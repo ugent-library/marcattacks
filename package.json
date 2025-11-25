@@ -1,11 +1,12 @@
 {
-  "name": "xml2alephseq",
+  "name": "alma2else",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "npx tsc",
-    "watch": "npx tsc -w"
+    "build:ts": "npx tsc",
+    "build:watch": "npx tsc -w"
   },
   "keywords": [],
   "author": "",
@@ -13,9 +14,16 @@
   "description": "",
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/sax": "^1.2.7",
     "eslint": "^9.39.1",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "commander": "^14.0.2",
+    "fast-xml-parser": "^5.3.2",
+    "log4js": "^6.9.1",
+    "sax": "^1.4.3"
   }
 }
