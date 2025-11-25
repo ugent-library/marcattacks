@@ -1,6 +1,7 @@
 import log4js from 'log4js';
 import { program } from 'commander';
 import { processStream } from './xml2json.js';
+import { json2out } from './json2out.js';
 import fs from 'fs';
 
 program.version('0.1.0')
@@ -40,24 +41,5 @@ async function main() : Promise<void> {
     const readableStream = fs.createReadStream(inputFile);
 
     const events = processStream(readableStream,logger);
-
-    let isFirst = true;
-
-    events.on("start", () => {
-        console.log("[");
-    });
-
-    events.on("record", (rec) => {
-        if (!isFirst) {
-            console.log(',');
-        }
-        console.log(JSON.stringify({"record":rec}));
-        isFirst = false;
-    });
-    events.on("end", () => {
-        console.log("]");
-    });
-    events.on("error",(err) => {
-        console.error(err);
-    });
+    json2out(events);
 }

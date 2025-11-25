@@ -1,0 +1,27 @@
+import { EventEmitter } from 'node:events';
+import { processStream } from './xml2json.js';
+import { marcmap } from './marcmap.js';
+
+export function json2out(emitter: EventEmitter) : void {
+    let isFirst = true;
+
+    emitter.on("start", () => {
+        process.stdout.write("[");
+    });
+
+    emitter.on("record", (rec: string[][]) => {
+        if (!isFirst) {
+            process.stdout.write(',');
+        }
+        let id = marcmap(rec,"001",{});
+        console.log(JSON.stringify({
+            "_id": id,
+            "record":rec
+        }));
+        isFirst = false;
+    });
+
+    emitter.on("end", () => {
+        process.stdout.write("]");
+    });
+}

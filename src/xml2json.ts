@@ -78,11 +78,10 @@ export function processStream(stream: ReadStream, logger: log4js.Logger) : Event
 
     parser.on("error", (err) => {
         logger.error("Parser error:", err);
-        parser.resume(); // continue parsing if desired
     });
 
     parser.on('end', () => {
-        emitter.emit("end");
+        emitter.emit("end","");
     });
 
     stream.pipe(parser);
