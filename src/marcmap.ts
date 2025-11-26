@@ -2,6 +2,9 @@ interface MARCMapOpts {
     join_char?: string;
 }
 
+/**
+ * Given a marc row return the marc tag
+ */
 export function marctag(row: string[] | undefined) : string {
     if (!row) {
         return "";
@@ -9,6 +12,9 @@ export function marctag(row: string[] | undefined) : string {
     return row[0] ? row[0] : "";
 }
 
+/**
+ * Given a marc row return an array with the indicators
+ */
 export function marcind(row: string[] | undefined) : string[] {
     if (!row) {
         return [" "," "];
@@ -18,6 +24,10 @@ export function marcind(row: string[] | undefined) : string[] {
     return [ind1,ind2];
 }
 
+/**
+ * Given a marc row and a callback function, call function(code,value)
+ * for each subfield
+ */
 export function marcsubf(row: string[] | undefined , fun: (code:string, value:string) => void) : void {
     if (!row) return;
     for (let i = 3 ; i < row.length ; i +=2) {
@@ -30,6 +40,9 @@ export function marcsubf(row: string[] | undefined , fun: (code:string, value:st
     }
 }
 
+/**
+ * Given an marc record and a field-path return a string[] with all matching values
+ */
 export function marcmap(record: string[][], find: string, opts: MARCMapOpts) : string[] {
     const fullOpts = {
         join_char: opts.join_char ?? " "
@@ -50,6 +63,9 @@ export function marcmap(record: string[][], find: string, opts: MARCMapOpts) : s
     return results;
 }
 
+/**
+ * Given a marc row and a code regex, return all matching values
+ */
 export function marcsubfields(row: string[], re: RegExp) : string[] {
     const result : string[] = [];
     for (let i = 3 ; i < row.length ; i += 2) {
