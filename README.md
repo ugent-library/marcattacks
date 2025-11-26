@@ -36,6 +36,12 @@ Generate Prolog
 alma2else --to prolog <file>
 ```
 
+Generate RDF
+
+```
+alma2else --to rdf <file>
+```
+
 Generate XML
 
 ```
