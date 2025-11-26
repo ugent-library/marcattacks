@@ -1,6 +1,6 @@
 # alma2else
 
-Turn Alma XML exports into something else.
+Turn Clarivate Alma XML exports into something else.
 
 ## Build
 
@@ -18,6 +18,20 @@ npm link
 
 ### Run
 
+Generate JSON
+
 ```
-alma2else <file>
+alma2else --to json <file>
+```
+
+Generate Aleph sequential
+
+```
+alma2else --to alephseq <file>
+```
+
+Generate Prolog
+
+```
+alma2else --to prolog <file>
 ```

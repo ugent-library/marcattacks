@@ -5,6 +5,7 @@ import { program } from 'commander';
 import { processStream } from './xml2rec.js';
 import { rec2json } from './rec2json.js';
 import { rec2alephseq } from './rec2alephseq.js';
+import { rec2prolog } from './rec2prolog.js';
 import fs from 'fs';
 
 log4js.configure({
@@ -60,6 +61,9 @@ async function main() : Promise<void> {
     }
     else if (opts.to == 'alephseq') {
         rec2alephseq(events);
+    }
+    else if (opts.to == 'prolog') {
+        rec2prolog(events);
     }
     else {
         logger.error(`unknown output type ${opts.to}`);

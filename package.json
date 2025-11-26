@@ -16,6 +16,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/n3": "^1.26.1",
     "@types/node": "^24.10.1",
     "@types/sax": "^1.2.7",
     "eslint": "^9.39.1",
@@ -27,6 +28,7 @@
     "commander": "^14.0.2",
     "fast-xml-parser": "^5.3.2",
     "log4js": "^6.9.1",
+    "n3": "^1.26.0",
     "sax": "^1.4.3"
   }
 }
