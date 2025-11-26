@@ -12,8 +12,12 @@ npm install
 npm run build:ts
 ```
 
+```
+npm link
+```
+
 ### Run
 
 ```
-node dist/index.js file
+alma2else <file>
 ```

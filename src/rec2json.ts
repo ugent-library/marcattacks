@@ -1,5 +1,4 @@
 import { EventEmitter } from 'node:events';
-import { processStream } from './xml2json.js';
 import { marcmap } from './marcmap.js';
 
 export function json2out(emitter: EventEmitter) : void {
