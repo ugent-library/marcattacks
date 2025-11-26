@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { marcmap } from './marcmap.js';
 
-export function json2out(emitter: EventEmitter) : void {
+export function rec2json(emitter: EventEmitter) : void {
     let isFirst = true;
 
     emitter.on("start", () => {

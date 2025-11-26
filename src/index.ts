@@ -3,7 +3,8 @@
 import log4js from 'log4js';
 import { program } from 'commander';
 import { processStream } from './xml2rec.js';
-import { json2out } from './rec2json.js';
+import { rec2json } from './rec2json.js';
+import { rec2alephseq } from './rec2alephseq.js';
 import fs from 'fs';
 
 log4js.configure({
@@ -55,7 +56,10 @@ async function main() : Promise<void> {
     const events = processStream(readableStream,logger);
 
     if (opts.to === 'json') {
-        json2out(events);
+        rec2json(events);
+    }
+    else if (opts.to == 'alephseq') {
+        rec2alephseq(events);
     }
     else {
         logger.error(`unknown output type ${opts.to}`);
