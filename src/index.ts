@@ -7,6 +7,7 @@ import { rec2json } from './rec2json.js';
 import { rec2alephseq } from './rec2alephseq.js';
 import { rec2prolog } from './rec2prolog.js';
 import { rec2xml } from './rec2xml.js';
+import { rec2rdf } from './rec2rdf.js';
 import fs from 'fs';
 
 log4js.configure({
@@ -65,6 +66,9 @@ async function main() : Promise<void> {
     }
     else if (opts.to == 'prolog') {
         rec2prolog(events);
+    }
+    else if (opts.to == 'rdf') {
+        rec2rdf(events);
     }
     else if (opts.to == 'xml') {
         rec2xml(events);

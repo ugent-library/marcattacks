@@ -3,12 +3,15 @@
         "alephseq",
         "appenders",
         "controlfield",
+        "genid",
         "mapsubfields",
         "marcind",
         "marcmap",
         "marcsubf",
         "marcsubfields",
         "marctag",
-        "sattrib"
+        "sattrib",
+        "uuidv",
+        "viaf"
     ]
 }
