@@ -35,3 +35,9 @@ Generate Prolog
 ```
 alma2else --to prolog <file>
 ```
+
+Generate XML
+
+```
+alma2else --to xml <file>
+```

@@ -2,6 +2,34 @@ interface MARCMapOpts {
     join_char?: string;
 }
 
+export function marctag(row: string[] | undefined) : string {
+    if (!row) {
+        return "";
+    }
+    return row[0] ? row[0] : "";
+}
+
+export function marcind(row: string[] | undefined) : string[] {
+    if (!row) {
+        return [" "," "];
+    }
+    let ind1 = row[1] ?? " ";
+    let ind2 = row[2] ?? " ";
+    return [ind1,ind2];
+}
+
+export function marcsubf(row: string[] | undefined , fun: (code:string, value:string) => void) : void {
+    if (!row) return;
+    for (let i = 3 ; i < row.length ; i +=2) {
+        let code = row[i];
+        let value = row[i+1];
+        
+        if (code !== undefined && value !== undefined) {
+            fun(code, value);
+        }
+    }
+}
+
 export function marcmap(record: string[][], find: string, opts: MARCMapOpts) : string[] {
     const fullOpts = {
         join_char: opts.join_char ?? " "
@@ -15,14 +43,14 @@ export function marcmap(record: string[][], find: string, opts: MARCMapOpts) : s
     
     for (const row of record) {
         if (row[0] === tagName) {
-            results.push(map_subfields(row,subRegex).join(fullOpts.join_char));
+            results.push(marcsubfields(row,subRegex).join(fullOpts.join_char));
         }
     }
     
     return results;
 }
 
-function map_subfields(row: string[], re: RegExp) : string[] {
+export function marcsubfields(row: string[], re: RegExp) : string[] {
     const result : string[] = [];
     for (let i = 3 ; i < row.length ; i += 2) {
         if (row[i] !== undefined && row[i]?.match(re) && row[i+1] !== undefined) {
