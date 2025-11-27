@@ -1,10 +1,12 @@
 import { Transform } from "stream";
-import { marcmap } from '../marcmap.js';
+import { marcmap , marcForTag, marcsubfields } from '../marcmap.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const prefixes = {
     this: 'https://lib.ugent.be/record',
     schema: 'https://schema.org/',
-    rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+    rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    genid: 'https://lib.ugent.be/.well-known/genid/',
 };
 
 export default function transform(_opts: any) {
@@ -31,9 +33,172 @@ function rec2quads(rec: string[][]) {
 
     quads.push({
         subject: { value: `${prefixes.this}${id}` },
-        predicate: { value: `${prefixes.rdf}type`},
-        object: { value: `${prefixes.schema}CreativeWork`}
+        predicate: { value: `${prefixes.rdf}type` },
+        object: { value: `${prefixes.schema}CreativeWork` }
+    });
+
+    marcForTag(rec, (tag,row) => {
+        if (false) {}
+        else if (tag === '100') {
+            let name = marcmap(rec,"100a",{})[0]?.replace(/,$/g,'');
+            let viaf = marcmap(rec,"1000",{})[0];
+
+            if (!name) {
+                return undefined;
+            }
+
+            let bn = genid();
+
+            quads.push({
+                subject: { value: `${prefixes.this}${id}` },
+                predicate: { value: `${prefixes.schema}author` },
+                object: { value: bn },
+            });
+
+            quads.push({
+                subject: { value: bn },
+                predicate: { value: `${prefixes.rdf}type` },
+                object: { value: `${prefixes.schema}Person` },
+            }); 
+
+            quads.push({
+                subject: { value: bn },
+                predicate: { value: `${prefixes.schema}name` },
+                object: { value: name , type: 'Literal' },
+            }); 
+
+            let dates = marcmap(rec,"100d",{})[0];
+
+            if (dates && dates.match(/\d{4}-(\d{4})?/)) {
+                let parts = dates.split("-",2);
+                if (parts[0]) {
+                    quads.push({
+                        subject: { value: bn },
+                        predicate: { value: `${prefixes.schema}birthDate` },
+                        object: { value: parts[0] , type: 'Literal' },
+                    }); 
+                }
+                if (parts[1]) {
+                    quads.push({
+                        subject: { value: bn },
+                        predicate: { value: `${prefixes.schema}deathDate` },
+                        object: { value: parts[1] , type: 'Literal' },
+                    }); 
+                }
+            }
+        }
+        else if (tag === '245') {
+            let value = strip( marcsubfields(row,/[ab]/).join(" ") );
+            if (value) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}name` },
+                    object: { value , type: 'Literal'}
+                });
+            }
+        }
+        else if (tag === '246') {
+            let value = strip( marcsubfields(row,/a/).join(" ") );
+            if (value) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}alternativeHeadline` },
+                    object: { value , type: 'Literal'}
+                });
+            }
+        }
+        else if (tag === '260') {
+            let location  = strip( marcsubfields(row,/a/).join(" ") );
+            let publisher = strip( marcsubfields(row,/b/).join(" ") );
+            let date      = strip( marcsubfields(row,/c/).join(" ") );
+
+            if (location) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}locationCreated` },
+                    object: { value: location , type: 'Literal'}
+                });
+            }
+
+            if (publisher) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}publisher` },
+                    object: { value: publisher , type: 'Literal'}
+                });
+            }
+
+            if (date) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}datePublished` },
+                    object: { value: date , type: 'Literal'}
+                });
+            }
+        }
+        else if (tag === '300') {
+            let value = strip( marcsubfields(row,/a/).join(" ") );
+            if (value) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}numberOfPages` },
+                    object: { value , type: 'Literal'}
+                });
+            }
+        }
+        else if (tag === '340') {
+            let value = strip( marcsubfields(row,/a/).join(" ") );
+            if (value) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}material` },
+                    object: { value , type: 'Literal'}
+                });
+            }
+        }
+        else if (tag === '500') {
+            let value = strip( marcsubfields(row,/a/).join(" ") );
+            if (value) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}description` },
+                    object: { value , type: 'Literal'}
+                });
+            }
+        }
+        else if (tag === '856') {
+            let value = strip( marcsubfields(row,/u/).join(" ") );
+            if (value) {
+                let bn = genid();
+
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}encoding` },
+                    object: { value: bn }
+                });
+
+                quads.push({
+                    subject: { value: bn },
+                    predicate: { value: `${prefixes.rdf}type` },
+                    object: { value: `${prefixes.schema}MediaObject`}
+                });
+
+                quads.push({
+                    subject: { value: bn },
+                    predicate: { value: `${prefixes.rdf}contentUrl` },
+                    object: { value }
+                });
+            }
+        }
     });
 
     return quads;
 }   
+
+function strip(s: string) : string {
+    return s.replaceAll(/\s*[\,.:\/]$/g,'');
+}
+
+function genid() : string {
+    return `genid:${uuidv4()}`;
+}
