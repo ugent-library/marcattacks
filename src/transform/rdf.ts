@@ -7,6 +7,7 @@ const prefixes = {
     schema: 'https://schema.org/',
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     genid: 'https://lib.ugent.be/.well-known/genid/',
+    owl: 'http://www.w3.org/2002/07/owl#',
 };
 
 export default function transform(_opts: any) {
@@ -39,9 +40,28 @@ function rec2quads(rec: string[][]) {
 
     marcForTag(rec, (tag,row) => {
         if (false) {}
+        else if (tag === '035') {
+            let value = marcsubfields(row,/a/)[0];
+        
+            if (value?.match(/^\(RUG01\)\d+/)) {
+                value = 'https://lib.ugent.be/catalog/rug01:' + value.replace(/\(RUG01\)(.*)/,"$1");
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.owl}sameAs` },
+                    object: { value: value },
+                });
+            }
+            else if (value?.match(/^\(BIBLIO\)\d+/)) {
+                value = 'https://biblio.ugent.be/record/' + value.replace(/\(BIBLIO\)(.*)/,"$1");
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.owl}sameAs` },
+                    object: { value: value },
+                });
+            }
+        }
         else if (tag === '100') {
-            let name = marcmap(rec,"100a",{})[0]?.replace(/,$/g,'');
-            let viaf = marcmap(rec,"1000",{})[0];
+            let name = strip(marcsubfields(row,/a/).join(" "));
 
             if (!name) {
                 return undefined;
@@ -67,7 +87,7 @@ function rec2quads(rec: string[][]) {
                 object: { value: name , type: 'Literal' },
             }); 
 
-            let dates = marcmap(rec,"100d",{})[0];
+            let dates = marcsubfields(row,/d/)[0];
 
             if (dates && dates.match(/\d{4}-(\d{4})?/)) {
                 let parts = dates.split("-",2);

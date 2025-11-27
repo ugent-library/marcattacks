@@ -31,8 +31,8 @@ export function marcind(row: string[] | undefined) : string[] {
 export function marcForTag(rec: string[][] | undefined , fun: (tag:string, row:string[]) => void) : void {
     if (!rec) return;
     for (let i = 0 ; i < rec.length ; i++) {
-        let row = rec[i];
-        let tag = marctag(row);
+        let row = rec[i] ?? [];
+        let tag = row[0] ?? "---";
         
         if (tag !== undefined && row !== undefined) {
             fun(tag,row);
