@@ -8,6 +8,7 @@ import { rec2alephseq } from './rec2alephseq.js';
 import { rec2prolog } from './rec2prolog.js';
 import { rec2xml } from './rec2xml.js';
 import { rec2rdf } from './rec2rdf.js';
+import rdfTransform from './transform/rdf.js';
 import fs from 'fs';
 
 log4js.configure({
@@ -56,22 +57,22 @@ async function main() : Promise<void> {
     logger.info(`using: ${inputFile}`);
     const readableStream = fs.createReadStream(inputFile);
 
-    const events = processStream(readableStream,logger);
+    const objectStream = processStream(readableStream,logger);
 
     if (opts.to === 'json') {
-        rec2json(events);
+        rec2json(objectStream);
     }
     else if (opts.to == 'alephseq') {
-        rec2alephseq(events);
+        rec2alephseq(objectStream);
     }
     else if (opts.to == 'prolog') {
-        rec2prolog(events);
+        rec2prolog(objectStream);
     }
     else if (opts.to == 'rdf') {
-        rec2rdf(events);
+        rec2rdf(objectStream.pipe(rdfTransform({})));
     }
     else if (opts.to == 'xml') {
-        rec2xml(events);
+        rec2xml(objectStream);
     }
     else {
         logger.error(`unknown output type ${opts.to}`);

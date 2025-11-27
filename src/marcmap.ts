@@ -25,10 +25,26 @@ export function marcind(row: string[] | undefined) : string[] {
 }
 
 /**
+ * Given a marc and a callback function, call function(tag,row)
+ * for each tag
+ */
+export function marcForTag(rec: string[][] | undefined , fun: (tag:string, row:string[]) => void) : void {
+    if (!rec) return;
+    for (let i = 0 ; i < rec.length ; i++) {
+        let row = rec[i];
+        let tag = marctag(row);
+        
+        if (tag !== undefined && row !== undefined) {
+            fun(tag,row);
+        }
+    }
+}
+
+/**
  * Given a marc row and a callback function, call function(code,value)
  * for each subfield
  */
-export function marcsubf(row: string[] | undefined , fun: (code:string, value:string) => void) : void {
+export function marcForEachSub(row: string[] | undefined , fun: (code:string, value:string) => void) : void {
     if (!row) return;
     for (let i = 3 ; i < row.length ; i +=2) {
         let code = row[i];

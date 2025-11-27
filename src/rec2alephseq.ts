@@ -1,8 +1,12 @@
-import { EventEmitter } from 'node:events';
+import { Readable } from 'stream';
 import { marcmap } from './marcmap.js';
 
-export function rec2alephseq(emitter: EventEmitter) : void {
-    emitter.on("record", (rec: string[][]) => {
+export function rec2alephseq(stream: Readable) : void {
+    stream.on('data', (data: any) => {
+        let rec : string[][] = data['record'];
+
+        if (!rec) return;
+
         let id = marcmap(rec,"001",{});
         console.log(`${id} FMT   L BK`);
         for (let i = 0 ; i < rec.length ; i++) {

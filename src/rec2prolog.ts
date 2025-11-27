@@ -1,8 +1,12 @@
-import { EventEmitter } from 'node:events';
+import { Readable } from 'stream';
 import { marcmap } from './marcmap.js';
 
-export function rec2prolog(emitter: EventEmitter) : void {
-    emitter.on("record", (rec: string[][]) => {
+export function rec2prolog(stream: Readable) : void {
+    stream.on('data', (data: any) => {
+        let rec : string[][] = data['record'];
+
+        if (!rec) return;
+
         let id = marcmap(rec,"001",{});
         let rows : string[] = [];
 

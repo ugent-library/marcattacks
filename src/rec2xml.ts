@@ -1,15 +1,17 @@
-import { EventEmitter } from 'node:events';
-import { marcmap, marctag, marcind, marcsubfields , marcsubf} from './marcmap.js';
+import { Readable } from 'stream';
+import { marcmap, marctag, marcind, marcsubfields , marcForEachSub} from './marcmap.js';
 
-export function rec2xml(emitter: EventEmitter) : void {
+export function rec2xml(stream: Readable) : void {
     let isFirst = true;
 
-    emitter.on("start", () => {
-        console.log("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        console.log("<marc:collection xmlns:marc=\"http://www.loc.gov/MARC21/slim\">");
-    });
+    console.log("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    console.log("<marc:collection xmlns:marc=\"http://www.loc.gov/MARC21/slim\">");
 
-    emitter.on("record", (rec: string[][]) => {
+    stream.on('data', (data: any) => {
+        let rec : string[][] = data['record'];
+
+        if (!rec) return;
+
         console.log(" <marc:record>");
         let leader = marcmap(rec,"LDR",{})[0];
         console.log(`  <marc:leader>${leader}</marc:leader>`);
@@ -22,7 +24,7 @@ export function rec2xml(emitter: EventEmitter) : void {
             }
             else {
                 console.log(`  <marc:datafield tag="${tag}" ind1="${ind[0]}" ind2="${ind[1]}">`);
-                marcsubf(rec[i], (code,value) => {
+                marcForEachSub(rec[i], (code,value) => {
                     console.log(`    <marc:subfield code="${code}">${escapeXML(value)}</marc:subfield>`);
                 });
                 console.log(`  </marc:datafield>`);
@@ -31,7 +33,7 @@ export function rec2xml(emitter: EventEmitter) : void {
         console.log(" </marc:record>");
     }); 
 
-    emitter.on("end", () => {
+    stream.on('end', () => {
         console.log("</marc:collection>");
     });
 }

@@ -1,14 +1,16 @@
-import { EventEmitter } from 'node:events';
+import { Readable } from 'stream';
 import { marcmap } from './marcmap.js';
 
-export function rec2json(emitter: EventEmitter) : void {
+export function rec2json(stream: Readable) : void {
     let isFirst = true;
 
-    emitter.on("start", () => {
-        process.stdout.write("[");
-    });
+    process.stdout.write("[");
 
-    emitter.on("record", (rec: string[][]) => {
+    stream.on('data', (data: any) => {
+        let rec : string[][] = data['record'];
+
+        if (!rec) return;
+
         if (!isFirst) {
             process.stdout.write(',');
         }
@@ -20,7 +22,7 @@ export function rec2json(emitter: EventEmitter) : void {
         isFirst = false;
     });
 
-    emitter.on("end", () => {
+    stream.on('end', () => {
         process.stdout.write("]");
     });
 }

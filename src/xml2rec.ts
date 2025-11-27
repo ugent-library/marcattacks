@@ -1,14 +1,17 @@
 import type { ReadStream } from 'fs';
+import { Readable } from 'stream';
 import sax from 'sax';
 import log4js from 'log4js';
-import { EventEmitter } from 'node:events';
 
 type FieldAttribute = { [key: string]: string; } | { [key: string]: sax.QualifiedAttribute; };
 type SubfieldAttribute = { [key: string]: string; };
 type MARCType = 'leader' | 'control' | 'field' | 'subfield' | undefined;
 
-export function processStream(stream: ReadStream, logger: log4js.Logger) : EventEmitter {
-    const emitter = new EventEmitter();
+export function processStream(stream: ReadStream, logger: log4js.Logger) : Readable {
+    const readableStream = new Readable({
+        read() {} ,
+        objectMode: true 
+    });
 
     const parser = sax.createStream(true);
 
@@ -22,7 +25,6 @@ export function processStream(stream: ReadStream, logger: log4js.Logger) : Event
     parser.on('opentag', (node: sax.Tag) => {
         if (node.name === 'marc:collection') {
             // Start collection...
-            emitter.emit("start");
         }
         else if (node.name === 'marc:record') {
             // Start record...
@@ -71,7 +73,7 @@ export function processStream(stream: ReadStream, logger: log4js.Logger) : Event
             subfield = subfield.concat([code,text]);
         }
         if (tag === 'marc:record') {
-            emitter.emit("record",record);
+            readableStream.push({ record });
             record = [];
         }
     }); 
@@ -81,10 +83,10 @@ export function processStream(stream: ReadStream, logger: log4js.Logger) : Event
     });
 
     parser.on('end', () => {
-        emitter.emit("end","");
+        readableStream.push(null);
     });
 
     stream.pipe(parser);
 
-    return emitter;
+    return readableStream;
 }   
