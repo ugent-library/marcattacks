@@ -8,8 +8,10 @@ export function rec2rdf(stream: Readable) : void {
     let writer : N3.Writer;
 
     stream.on('data', (data: any)  => {   
+        let prefixes = data['prefixes'];
+
         if (!writer) {
-            writer = new N3.Writer(process.stdout, { end: false });
+            writer = new N3.Writer(process.stdout, { end: false, prefixes });
         }
 
         let quads : any[] = data['quads'];
