@@ -8,6 +8,7 @@ const prefixes = {
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     genid: 'https://lib.ugent.be/.well-known/genid/',
     owl: 'http://www.w3.org/2002/07/owl#',
+    bibo: 'http://purl.org/ontology/bibo/',
 };
 
 export default function transform(_opts: any) {
@@ -264,6 +265,25 @@ function rec2quads(rec: string[][]) {
             if (!value) return;
             
             switch (value) {
+                case 'catalog':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Book`}
+                    });
+                    break;
+                case 'correspondence':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}CreativeWork`}
+                    });
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.bibo}Letter`}
+                    });
+                    break;
                 case 'book':
                     quads.push({
                         subject: { value: `${prefixes.this}${id}` },
@@ -271,11 +291,49 @@ function rec2quads(rec: string[][]) {
                         object: { value: `${prefixes.schema}Book`}
                     });
                     break;
+                case 'dissertation':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Thesis`}
+                    });
+                    break;
+                case 'ephemera':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}CreativeWork`}
+                    });
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.bibo}Document  `}
+                    });
+                    break;
                 case 'image':
                     quads.push({
                         subject: { value: `${prefixes.this}${id}` },
                         predicate: { value: `${prefixes.rdf}type` },
                         object: { value: `${prefixes.schema}VisualArtwork`}
+                    });
+                    break;
+                case 'manuscript':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Book`}
+                    });
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.bibo}Manuscript`}
+                    });
+                    break;
+                case 'map':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Map`}
                     });
                     break;
                 case 'master':

@@ -1,4 +1,3 @@
-import type { ReadStream } from 'fs';
 import { Readable } from 'stream';
 import sax from 'sax';
 import log4js from 'log4js';
@@ -7,7 +6,9 @@ type FieldAttribute = { [key: string]: string; } | { [key: string]: sax.Qualifie
 type SubfieldAttribute = { [key: string]: string; };
 type MARCType = 'leader' | 'control' | 'field' | 'subfield' | undefined;
 
-export function processStream(stream: ReadStream, logger: log4js.Logger) : Readable {
+export function processStream(stream: Readable, logger: log4js.Logger) : Readable {
+    let recordNum = 0;
+
     const readableStream = new Readable({
         read() {} ,
         objectMode: true 
@@ -23,23 +24,25 @@ export function processStream(stream: ReadStream, logger: log4js.Logger) : Reada
     let text : string = '';
         
     parser.on('opentag', (node: sax.Tag) => {
-        if (node.name === 'marc:collection') {
+        const localName = node.name.replaceAll(/^\w+:/g,'');
+
+        if (localName === 'collection') {
             // Start collection...
         }
-        else if (node.name === 'marc:record') {
+        else if (localName === 'record') {
             // Start record...
         }
-        else if (node.name === 'marc:leader') {
+        else if (localName === 'leader') {
             type = 'leader';
         }
-        else if (node.name == 'marc:controlfield') {
+        else if (localName == 'controlfield') {
             type = 'control';
             attrib = node.attributes
         }
-        else if (node.name === 'marc:datafield') {
+        else if (localName === 'datafield') {
             attrib = node.attributes;
         }
-        else if (node.name === 'marc:subfield') {
+        else if (localName === 'subfield') {
             sattrib = node.attributes;
         }
         else {
@@ -54,27 +57,33 @@ export function processStream(stream: ReadStream, logger: log4js.Logger) : Reada
     });
 
     parser.on('closetag', (tag: string) => {
-        if (tag === 'marc:leader') {
+        const localName = tag.replaceAll(/^\w+:/g,'');
+        if (localName === 'leader') {
             record.push(['LDR',' ',' ','_',text]);
         }
-        else if (tag == 'marc:controlfield') {
+        else if (localName == 'controlfield') {
             let tag = attrib.tag as string;
             record.push([tag,' ',' ','_',text]);
         }
-        else if (tag === 'marc:datafield') {
+        else if (localName === 'datafield') {
             let tag  = attrib.tag as string;
             let ind1 = attrib.ind1 as string;
             let ind2 = attrib.ind2 as string;
             record.push([tag,ind1,ind2].concat(subfield));
             subfield = [];
         }
-        else if (tag === 'marc:subfield') {
+        else if (localName === 'subfield') {
             let code = sattrib.code as string;
             subfield = subfield.concat([code,text]);
         }
-        if (tag === 'marc:record') {
+        if (localName === 'record') {
             readableStream.push({ record });
             record = [];
+            recordNum++;
+
+            if (recordNum % 1000 === 0) {
+                logger.info(`record: ${recordNum}`);
+            }
         }
     }); 
 

@@ -8,6 +8,7 @@ import { rec2alephseq } from './rec2alephseq.js';
 import { rec2prolog } from './rec2prolog.js';
 import { rec2xml } from './rec2xml.js';
 import { rec2rdf } from './rec2rdf.js';
+import { sftpReadStream , type SftpConfig } from './sftpstream.js';
 import rdfTransform from './transform/rdf.js';
 import fs from 'fs';
 
@@ -23,6 +24,11 @@ log4js.configure({
 program.version('0.1.0')
     .argument('<file>')
     .option('-t,--to <output>','output type','json')
+    .option('--host <host>', 'sftp host')
+    .option('--port <port>', 'sftp port',"22")
+    .option('-u,--username <user>', 'sftp user')
+    .option('-p,--password <password>', 'sftp password')
+    .option('--key <keyfile>', 'private key file')
     .option('--info','output debugging messages')
     .option('--debug','output more debugging messages')
     .option('--trace','output much more debugging messages');
@@ -55,7 +61,30 @@ async function main() : Promise<void> {
     }
 
     logger.info(`using: ${inputFile}`);
-    const readableStream = fs.createReadStream(inputFile);
+
+    let readableStream;
+
+    if (opts.host) {
+        let privateKey : string | undefined = undefined;
+
+        if (opts.key) {
+            privateKey = fs.readFileSync(opts.key,{ encoding: 'utf-8'});
+        }
+
+        let config: SftpConfig = {
+            host: opts.host,
+            port: Number(opts.port),
+            username: opts.username
+        };
+
+        if (opts.password) { config.password = opts.password }
+        if (privateKey) { config.privateKey = privateKey}
+
+        readableStream = await sftpReadStream(config, inputFile)
+    }
+    else {
+        readableStream = fs.createReadStream(inputFile);
+    }
 
     const objectStream = processStream(readableStream,logger);
 
