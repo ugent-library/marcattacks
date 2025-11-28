@@ -32,12 +32,6 @@ function rec2quads(rec: string[][]) {
 
     if (!id) return;
 
-    quads.push({
-        subject: { value: `${prefixes.this}${id}` },
-        predicate: { value: `${prefixes.rdf}type` },
-        object: { value: `${prefixes.schema}CreativeWork` }
-    });
-
     marcForTag(rec, (tag,row) => {
         if (false) {}
         else if (tag === '035') {
@@ -186,6 +180,60 @@ function rec2quads(rec: string[][]) {
                 });
             }
         }
+        else if (tag === '520') {
+            let value = strip( marcsubfields(row,/a/).join(" ") );
+            if (value) {
+                quads.push({
+                    subject: { value: `${prefixes.this}${id}` },
+                    predicate: { value: `${prefixes.schema}abstract` },
+                    object: { value , type: 'Literal'}
+                });
+            }
+        }
+        else if (tag === '650') {
+            let bn = genid();
+
+            quads.push({
+                subject: { value: `${prefixes.this}${id}` },
+                predicate: { value: `${prefixes.schema}about` },
+                object: { value: bn }
+            });
+
+            quads.push({
+                subject: { value: bn },
+                predicate: { value: `${prefixes.rdf}type` },
+                object: { value: `${prefixes.schema}Thing`}
+            });
+
+            marcsubfields(row,/a|x/).forEach(v =>  {
+                quads.push({
+                    subject: { value: bn },
+                    predicate: { value: `${prefixes.schema}name` },
+                    object: { value: strip(v) , type: 'Literal'}
+                });
+            });
+            marcsubfields(row,/v/).forEach(v =>  {
+                quads.push({
+                    subject: { value: bn },
+                    predicate: { value: `${prefixes.schema}genre` },
+                    object: { value: strip(v) , type: 'Literal'}
+                });
+            });
+            marcsubfields(row,/y/).forEach(v =>  {
+                quads.push({
+                    subject: { value: bn },
+                    predicate: { value: `${prefixes.schema}temporalCoverage` },
+                    object: { value: strip(v) , type: 'Literal'}
+                });
+            });
+            marcsubfields(row,/z/).forEach(v =>  {
+                quads.push({
+                    subject: { value: bn },
+                    predicate: { value: `${prefixes.schema}spatialCoverage` },
+                    object: { value: strip(v) , type: 'Literal'}
+                });
+            });
+        }
         else if (tag === '856') {
             let value = strip( marcsubfields(row,/u/).join(" ") );
             if (value) {
@@ -208,6 +256,56 @@ function rec2quads(rec: string[][]) {
                     predicate: { value: `${prefixes.rdf}contentUrl` },
                     object: { value }
                 });
+            }
+        }
+        else if (tag === '920') {
+            let value = strip( marcsubfields(row,/a/).join(" ") );
+
+            if (!value) return;
+            
+            switch (value) {
+                case 'book':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Book`}
+                    });
+                    break;
+                case 'image':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}VisualArtwork`}
+                    });
+                    break;
+                case 'master':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Thesis`}
+                    });
+                    break;
+                case 'periodical':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Periodical`}
+                    });
+                    break;
+                case 'phd':
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}Thesis`}
+                    });
+                    break;
+                default:
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.rdf}type` },
+                        object: { value: `${prefixes.schema}CreativeWork`}
+                    });
+                    break;
             }
         }
     });
