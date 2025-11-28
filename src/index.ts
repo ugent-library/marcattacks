@@ -8,7 +8,7 @@ import { rec2alephseq } from './rec2alephseq.js';
 import { rec2prolog } from './rec2prolog.js';
 import { rec2xml } from './rec2xml.js';
 import { rec2rdf } from './rec2rdf.js';
-import { sftpReadStream , type SftpConfig } from './sftpstream.js';
+import { sftpReadStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
 import rdfTransform from './transform/rdf.js';
 import fs from 'fs';
 
@@ -80,6 +80,13 @@ async function main() : Promise<void> {
         if (opts.password) { config.password = opts.password }
         if (privateKey) { config.privateKey = privateKey}
 
+        if (inputFile.match(/\/@latest:\w+$/)) {
+            const remoteDir = inputFile.replace(/\/@latest.*/,"");
+            const extension = inputFile.replace(/.*\/@latest:/,"");
+            inputFile = await sftpLatestFile(config,remoteDir,extension);
+        }
+
+        logger.info(`connecting to ${opts.host} as ${opts.username}`);
         readableStream = await sftpReadStream(config, inputFile)
     }
     else {
