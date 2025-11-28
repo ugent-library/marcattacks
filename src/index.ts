@@ -26,10 +26,6 @@ program.version('0.1.0')
     .argument('<file>')
     .option('-f,--from <from>','input type','xml')
     .option('-t,--to <output>','output type','json')
-    .option('--host <host>', 'sftp host')
-    .option('--port <port>', 'sftp port',"22")
-    .option('-u,--username <user>', 'sftp user')
-    .option('-p,--password <password>', 'sftp password')
     .option('--key <keyfile>', 'private key file')
     .option('--info','output debugging messages')
     .option('--debug','output more debugging messages')
@@ -55,18 +51,17 @@ if (opts.trace) {
 main();
 
 async function main() : Promise<void> {
-    let inputFile = program.args[0];
-
-    if (! inputFile) {
+    if (! program.args[0]) {
         console.error(`need an input file`);
         process.exit(2);
     }
 
+    let inputFile = new URL(program.args[0]);
+
     logger.info(`using: ${inputFile}`);
 
     let readableStream;
-
-    if (opts.host) {
+    if (inputFile.protocol === 'sftp:') {
         let privateKey : string | undefined = undefined;
 
         if (opts.key) {
@@ -74,22 +69,27 @@ async function main() : Promise<void> {
         }
 
         let config: SftpConfig = {
-            host: opts.host,
-            port: Number(opts.port),
-            username: opts.username
+            host: inputFile.hostname,
+            port: Number(inputFile.port),
+            username: inputFile.username
         };
 
-        if (opts.password) { config.password = opts.password }
+        if (inputFile.password) { config.password = inputFile.password }
         if (privateKey) { config.privateKey = privateKey}
 
-        if (inputFile.match(/\/@latest:\w+$/)) {
-            const remoteDir = inputFile.replace(/\/@latest.*/,"");
-            const extension = inputFile.replace(/.*\/@latest:/,"");
-            inputFile = await sftpLatestFile(config,remoteDir,extension);
+        let remotePath;
+
+        if (inputFile.pathname.match(/\/@latest:\w+$/)) {
+            const remoteDir = inputFile.pathname.replace(/\/@latest.*/,"");
+            const extension = inputFile.pathname.replace(/.*\/@latest:/,"");
+            remotePath = await sftpLatestFile(config,remoteDir,extension);
+        }
+        else {
+            remotePath = inputFile.pathname;
         }
 
-        logger.info(`connecting to ${opts.host} as ${opts.username}`);
-        readableStream = await sftpReadStream(config, inputFile)
+        logger.info(`get ${opts.username}@${opts.host}:${remotePath}`);
+        readableStream = await sftpReadStream(config, remotePath)
     }
     else {
         readableStream = fs.createReadStream(inputFile);

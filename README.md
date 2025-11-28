@@ -53,13 +53,13 @@ alma2else --to xml <file>
 A remote SFTP path
 
 ```
-alma2else --host hostname --port port --username username --key ~/.ssh/privatekey /remote/path
+alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path
 ```
 
 The latest XML file in a remote SFTP path
 
 ```
-alma2else --host hostname --port port --username username --key ~/.ssh/privatekey /remote/path/@latest:xml
+alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
 ```
 
 
