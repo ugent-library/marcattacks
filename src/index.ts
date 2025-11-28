@@ -2,16 +2,14 @@
 
 import log4js from 'log4js';
 import { program } from 'commander';
-import * as xml2rec from './xml2rec.js';
-import * as rec2json from './rec2json.js';
-import * as rec2alephseq from './rec2alephseq.js';
-import * as rec2prolog from './rec2prolog.js';
-import * as rec2xml from './rec2xml.js';
-import * as rec2rdf from './rec2rdf.js';
+import { loadPlugin } from './plugin-loader.js';
 import { sftpReadStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
-import rdfTransform from './transform/rdf.js';
+import * as rdfTransform from './transform/rdf.js';
 import { Readable } from 'stream';
+import { pathToFileURL } from "node:url";
+import path from "node:path";
 import fs from 'fs';
+import type { Transform, Writable } from 'node:stream';
 
 log4js.configure({
   appenders: {
@@ -26,6 +24,8 @@ program.version('0.1.0')
     .argument('<file>')
     .option('-f,--from <from>','input type','xml')
     .option('-t,--to <output>','output type','json')
+    .option('-m,--map <map>','data mapper')
+    .option('-o,--out <file>','output file')
     .option('--key <keyfile>', 'private key file')
     .option('--info','output debugging messages')
     .option('--debug','output more debugging messages')
@@ -51,16 +51,27 @@ if (opts.trace) {
 main();
 
 async function main() : Promise<void> {
-    if (! program.args[0]) {
+    const url = program.args[0];
+
+    if (! url) {
         console.error(`need an input file`);
         process.exit(2);
     }
 
-    let inputFile = new URL(program.args[0]);
+    let inputFile : URL;
+
+    if (fs.existsSync(url)) {
+        const filePath = path.resolve(process.cwd(), url);
+        inputFile = pathToFileURL(filePath);
+    }
+    else {
+        inputFile = new URL(url);
+    }
 
     logger.info(`using: ${inputFile}`);
 
     let readableStream;
+
     if (inputFile.protocol === 'sftp:') {
         let privateKey : string | undefined = undefined;
 
@@ -97,30 +108,34 @@ async function main() : Promise<void> {
 
     let objectStream : Readable;
    
-    if (opts.from === 'xml') {
-        objectStream = xml2rec.stream2readable(readableStream);
+    if (opts.from) {
+        const mod = await loadPlugin(`${opts.from}2rec`,'input');
+        objectStream = mod.stream2readable(readableStream);
     }
     else {
-        throw new Error(`${opts.from} not supported`);
+        console.error(`Need --from`);
+        process.exit(1);
     }
 
-    if (opts.to === 'json') {
-        rec2json.readable2writable(objectStream,process.stdout);
+    let resultStream = objectStream;
+
+    if (opts.map) {
+        const mod = await loadPlugin(opts.map,'transform');
+        const transformer : Transform = mod.transform({});
+        resultStream = objectStream.pipe(transformer);
     }
-    else if (opts.to == 'alephseq') {
-        rec2alephseq.readable2writable(objectStream,process.stdout);
-    }
-    else if (opts.to == 'prolog') {
-        rec2prolog.readable2writable(objectStream,process.stdout);
-    }
-    else if (opts.to == 'rdf') {
-        rec2rdf.readable2writable(objectStream.pipe(rdfTransform({})),process.stdout);
-    }
-    else if (opts.to == 'xml') {
-        rec2xml.readable2writable(objectStream,process.stdout);
+
+    let outStream : Writable;
+
+    if (opts.out) {
+        outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
     }
     else {
-        logger.error(`unknown output type ${opts.to}`);
-        process.exit(1);
+        outStream = process.stdout;
+    }
+
+    if (opts.to) {
+        const mod = await loadPlugin(`rec2${opts.to}`,'output');
+        mod.readable2writable(resultStream, outStream);
     }
 }

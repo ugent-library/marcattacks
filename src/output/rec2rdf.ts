@@ -1,5 +1,5 @@
 import { Readable, Writable } from 'stream';
-import N3, { Literal, NamedNode } from 'n3';
+import N3 from 'n3';
 
 const { DataFactory } = N3;
 const { namedNode, literal, blankNode } = DataFactory;

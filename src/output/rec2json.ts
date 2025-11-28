@@ -1,5 +1,5 @@
 import { Readable, Writable } from 'stream';
-import { marcmap } from './marcmap.js';
+import { marcmap } from '../marcmap.js';
 
 export function readable2writable(readable: Readable, writable: Writable) : void {
     let isFirst = true;

@@ -39,7 +39,7 @@ alma2else --to prolog <file>
 Generate RDF
 
 ```
-alma2else --to rdf <file>
+alma2else --to rdf --map rdf <file>
 ```
 
 Generate XML
