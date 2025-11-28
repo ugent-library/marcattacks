@@ -2,14 +2,15 @@
 
 import log4js from 'log4js';
 import { program } from 'commander';
-import { processStream } from './xml2rec.js';
-import { rec2json } from './rec2json.js';
-import { rec2alephseq } from './rec2alephseq.js';
-import { rec2prolog } from './rec2prolog.js';
-import { rec2xml } from './rec2xml.js';
-import { rec2rdf } from './rec2rdf.js';
+import * as xml2rec from './xml2rec.js';
+import * as rec2json from './rec2json.js';
+import * as rec2alephseq from './rec2alephseq.js';
+import * as rec2prolog from './rec2prolog.js';
+import * as rec2xml from './rec2xml.js';
+import * as rec2rdf from './rec2rdf.js';
 import { sftpReadStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
 import rdfTransform from './transform/rdf.js';
+import { Readable } from 'stream';
 import fs from 'fs';
 
 log4js.configure({
@@ -23,6 +24,7 @@ log4js.configure({
 
 program.version('0.1.0')
     .argument('<file>')
+    .option('-f,--from <from>','input type','xml')
     .option('-t,--to <output>','output type','json')
     .option('--host <host>', 'sftp host')
     .option('--port <port>', 'sftp port',"22")
@@ -93,22 +95,29 @@ async function main() : Promise<void> {
         readableStream = fs.createReadStream(inputFile);
     }
 
-    const objectStream = processStream(readableStream,logger);
+    let objectStream : Readable;
+   
+    if (opts.from === 'xml') {
+        objectStream = xml2rec.stream2readable(readableStream);
+    }
+    else {
+        throw new Error(`${opts.from} not supported`);
+    }
 
     if (opts.to === 'json') {
-        rec2json(objectStream);
+        rec2json.readable2writable(objectStream,process.stdout);
     }
     else if (opts.to == 'alephseq') {
-        rec2alephseq(objectStream);
+        rec2alephseq.readable2writable(objectStream,process.stdout);
     }
     else if (opts.to == 'prolog') {
-        rec2prolog(objectStream);
+        rec2prolog.readable2writable(objectStream,process.stdout);
     }
     else if (opts.to == 'rdf') {
-        rec2rdf(objectStream.pipe(rdfTransform({})));
+        rec2rdf.readable2writable(objectStream.pipe(rdfTransform({})),process.stdout);
     }
     else if (opts.to == 'xml') {
-        rec2xml(objectStream);
+        rec2xml.readable2writable(objectStream,process.stdout);
     }
     else {
         logger.error(`unknown output type ${opts.to}`);

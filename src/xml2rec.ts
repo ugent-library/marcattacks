@@ -6,7 +6,9 @@ type FieldAttribute = { [key: string]: string; } | { [key: string]: sax.Qualifie
 type SubfieldAttribute = { [key: string]: string; };
 type MARCType = 'leader' | 'control' | 'field' | 'subfield' | undefined;
 
-export function processStream(stream: Readable, logger: log4js.Logger) : Readable {
+const logger = log4js.getLogger();
+
+export function stream2readable(stream: Readable) : Readable {
     let recordNum = 0;
 
     const readableStream = new Readable({

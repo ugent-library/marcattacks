@@ -1,8 +1,8 @@
-import { Readable } from 'stream';
+import { Readable, Writable } from 'stream';
 import { marcmap } from './marcmap.js';
 
-export function rec2prolog(stream: Readable) : void {
-    stream.on('data', (data: any) => {
+export function readable2writable(readable: Readable, writable: Writable) : void {
+    readable.on('data', (data: any) => {
         let rec : string[][] = data['record'];
 
         if (!rec) return;
@@ -15,7 +15,7 @@ export function rec2prolog(stream: Readable) : void {
             rows.push(`[${facts.join(',')}]`);
         }
 
-        console.log(`data(${id},[${rows.join(",")}]).`);
+        writable.write(`data(${id},[${rows.join(",")}]).\n`);
     });
 }
 

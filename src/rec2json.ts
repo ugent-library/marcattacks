@@ -1,28 +1,28 @@
-import { Readable } from 'stream';
+import { Readable, Writable } from 'stream';
 import { marcmap } from './marcmap.js';
 
-export function rec2json(stream: Readable) : void {
+export function readable2writable(readable: Readable, writable: Writable) : void {
     let isFirst = true;
 
-    process.stdout.write("[");
+    writable.write("[");
 
-    stream.on('data', (data: any) => {
+    readable.on('data', (data: any) => {
         let rec : string[][] = data['record'];
 
         if (!rec) return;
 
         if (!isFirst) {
-            process.stdout.write(',');
+            writable.write(',');
         }
         let id = marcmap(rec,"001",{});
-        console.log(JSON.stringify({
+        writable.write(JSON.stringify({
             "_id": id,
             "record":rec
         }));
         isFirst = false;
     });
 
-    stream.on('end', () => {
-        process.stdout.write("]");
+    readable.on('end', () => {
+        writable.write("]");
     });
 }
