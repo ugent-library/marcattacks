@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
+  "author": "Patrick Hochstenbach <Patrick.Hochstenbach@UGent.be>",
+  "repository": "https://codeberg.org/phochste/alma2else.git",
   "bin": {
     "alma2else": "./dist/index.js"
   },
@@ -13,7 +15,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "description": "",
   "devDependencies": {
     "@types/n3": "^1.26.1",
