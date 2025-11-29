@@ -28,6 +28,10 @@ export function stream2readable(stream: Readable) : Readable {
             });
             rec = [];
             recordNum++;
+
+            if (recordNum % 1000 === 0) {
+                logger.info(`record: ${recordNum}`);
+            }
         }
 
         const tag  = data?.substring(0,3);
