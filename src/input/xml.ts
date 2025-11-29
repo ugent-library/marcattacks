@@ -95,6 +95,7 @@ export function stream2readable(stream: Readable) : Readable {
 
     parser.on('end', () => {
         readableStream.push(null);
+        logger.info(`processed ${recordNum} records`);
     });
 
     stream.pipe(parser);

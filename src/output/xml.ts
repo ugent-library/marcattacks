@@ -13,12 +13,15 @@ export function readable2writable(readable: Readable, writable: Writable) : void
         if (!rec) return;
 
         writable.write(" <marc:record>\n");
-        let leader = marcmap(rec,"LDR",{})[0];
-        writable.write(`  <marc:leader>${leader}</marc:leader>\n`);
         for (let i = 0 ; i < rec.length ; i++) {
             let tag = marctag(rec[i]);
             let ind = marcind(rec[i]); 
-            if (tag.match(/^00/)) {
+            if (tag === 'FMT') {}
+            else if (tag === 'LDR') {
+                let value = marcsubfields(rec[i]!,/.*/)[0];
+                writable.write(`  <marc:leader>${escapeXML(value)}</marc:leader>\n`);
+            }
+            else if (tag.match(/^00/)) {
                 let value = marcsubfields(rec[i]!,/.*/)[0];
                 writable.write(`  <marc:controlfield tag="${tag}">${escapeXML(value)}</marc:controlfield>\n`);
             }
