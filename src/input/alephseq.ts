@@ -7,12 +7,20 @@ const logger = log4js.getLogger();
 export function stream2readable(stream: Readable) : Readable {
     let recordNum = 0;
 
+    const rl = readline.createInterface({input: stream, crlfDelay: Infinity});
+
+    let sourcePaused = false;
+
     const readableStream = new Readable({
-        read() {} ,
+        read() {
+            if (sourcePaused) {
+                logger.debug("backpressure off");
+                rl.resume(); 
+                sourcePaused = false;
+            }
+        } ,
         objectMode: true 
     });
-
-    const rl = readline.createInterface({input: stream, crlfDelay: Infinity});
 
     let rec : string[][] = [];
     let previd : string = "";
@@ -22,10 +30,16 @@ export function stream2readable(stream: Readable) : Readable {
         const data = rest.join(" ");
 
         if (previd && previd !== id) {
-            readableStream.push({
+            const ok = readableStream.push({
                 _id: previd,
                 record:  rec
             });
+
+            if (!ok) {
+                logger.debug("backpressure on");
+                rl.pause();
+                sourcePaused = true; 
+            }
             rec = [];
             recordNum++;
 

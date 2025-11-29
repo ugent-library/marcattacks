@@ -10,13 +10,20 @@ import { pathToFileURL } from "node:url";
 import path from "node:path";
 import fs from 'fs';
 import type { Transform, Writable } from 'node:stream';
+import { SlowWritable } from './slow-writable.js';
 
 log4js.configure({
   appenders: {
-    err: { type: "stderr" }
+    err: { 
+        type: "stderr" ,
+        layout: {
+            type: "pattern",
+            pattern: "%[%d %p %f{1} %m"
+        }
+    }
   },
   categories: {
-    default: { appenders: ["err"], level: "info" }
+    default: { appenders: ["err"], level: "info" , enableCallStack: true }
   }
 });
 
@@ -127,7 +134,10 @@ async function main() : Promise<void> {
 
     let outStream : Writable;
 
-    if (opts.out) {
+    if (opts.out === '@slow') {
+        outStream = new SlowWritable({ delayMs: 100 });
+    }
+    else if (opts.out) {
         outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
     }
     else {

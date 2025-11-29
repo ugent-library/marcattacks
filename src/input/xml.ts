@@ -11,8 +11,16 @@ const logger = log4js.getLogger();
 export function stream2readable(stream: Readable) : Readable {
     let recordNum = 0;
 
+    let sourcePaused = false;
+
     const readableStream = new Readable({
-        read() {} ,
+        read() {
+            if (sourcePaused) {
+                logger.debug("backpressure off");
+                stream.resume(); 
+                sourcePaused = false;
+            }
+        } ,
         objectMode: true 
     });
 
@@ -79,7 +87,14 @@ export function stream2readable(stream: Readable) : Readable {
             subfield = subfield.concat([code,text]);
         }
         if (localName === 'record') {
-            readableStream.push({ record });
+            const ok = readableStream.push({ record });
+            
+            if (!ok) {
+                logger.debug("backpressure on");
+                stream.pause();
+                sourcePaused = true;
+            }
+
             record = [];
             recordNum++;
 
@@ -94,7 +109,12 @@ export function stream2readable(stream: Readable) : Readable {
     });
 
     parser.on('end', () => {
-        readableStream.push(null);
+        const ok = readableStream.push(null);
+        if (!ok) {
+            logger.debug("backpressure on");
+            stream.pause();
+            sourcePaused = true;
+        }
         logger.info(`processed ${recordNum} records`);
     });
 

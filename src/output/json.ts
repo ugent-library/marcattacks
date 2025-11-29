@@ -1,6 +1,10 @@
 import { Readable, Writable } from 'stream';
 import { marcmap } from '../marcmap.js';
 
+import log4js from 'log4js';
+
+const logger = log4js.getLogger();
+
 export function readable2writable(readable: Readable, writable: Writable) : void {
     let isFirst = true;
 
@@ -9,16 +13,31 @@ export function readable2writable(readable: Readable, writable: Writable) : void
     readable.on('data', (data: any) => {
         let rec : string[][] = data['record'];
 
+        let output = "";
+
         if (!rec) return;
 
         if (!isFirst) {
-            writable.write(',');
+            output += ',';
         }
+
         let id = marcmap(rec,"001",{});
-        writable.write(JSON.stringify({
+        output += JSON.stringify({
             "_id": id,
             "record":rec
-        }));
+        });
+
+        const ok = writable.write(output);
+
+        if (!ok) {
+            logger.debug("backpressure on");
+            readable.pause();
+            writable.once('drain' , () => {
+                logger.debug("backpressure off");
+                readable.resume();
+            });
+        }
+        
         isFirst = false;
     });
 

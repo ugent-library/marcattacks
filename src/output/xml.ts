@@ -1,5 +1,8 @@
 import { Readable, Writable } from 'stream';
 import { marcmap, marctag, marcind, marcsubfields , marcForEachSub} from '../marcmap.js';
+import log4js from 'log4js';
+
+const logger = log4js.getLogger();
 
 export function readable2writable(readable: Readable, writable: Writable) : void {
     let isFirst = true;
@@ -12,28 +15,40 @@ export function readable2writable(readable: Readable, writable: Writable) : void
 
         if (!rec) return;
 
-        writable.write(" <marc:record>\n");
+        let output = " <marc:record>\n";
+
         for (let i = 0 ; i < rec.length ; i++) {
             let tag = marctag(rec[i]);
             let ind = marcind(rec[i]); 
             if (tag === 'FMT') {}
             else if (tag === 'LDR') {
                 let value = marcsubfields(rec[i]!,/.*/)[0];
-                writable.write(`  <marc:leader>${escapeXML(value)}</marc:leader>\n`);
+                output += `  <marc:leader>${escapeXML(value)}</marc:leader>\n`;
             }
             else if (tag.match(/^00/)) {
                 let value = marcsubfields(rec[i]!,/.*/)[0];
-                writable.write(`  <marc:controlfield tag="${tag}">${escapeXML(value)}</marc:controlfield>\n`);
+                output += `  <marc:controlfield tag="${tag}">${escapeXML(value)}</marc:controlfield>\n`;
             }
             else {
-                writable.write(`  <marc:datafield tag="${tag}" ind1="${ind[0]}" ind2="${ind[1]}">\n`);
+                output += `  <marc:datafield tag="${tag}" ind1="${ind[0]}" ind2="${ind[1]}">\n`;
                 marcForEachSub(rec[i], (code,value) => {
-                    writable.write(`    <marc:subfield code="${code}">${escapeXML(value)}</marc:subfield>\n`);
+                    output += `    <marc:subfield code="${code}">${escapeXML(value)}</marc:subfield>\n`;
                 });
-                writable.write(`  </marc:datafield>\n`);
+                output += `  </marc:datafield>\n`;
             }
         }
-        writable.write(" </marc:record>\n");
+        output += " </marc:record>\n";
+
+        const ok = writable.write(output);
+
+        if (!ok) {
+            logger.debug("backpressure on");
+            readable.pause();
+            writable.once('drain', () => {
+                logger.debug("backpressure off");
+                readable.resume();
+            });
+        }
     }); 
 
     readable.on('end', () => {
