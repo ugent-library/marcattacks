@@ -59,6 +59,10 @@ export function stream2readable(stream: Readable) : Readable {
             _id: previd,
             record: rec
         });
+        recordNum++;
+        if (recordNum % 1000 === 0) {
+            logger.info(`record: ${recordNum}`);
+        }
         readableStream.push(null);
         logger.info(`processed ${recordNum} records`);
     });
