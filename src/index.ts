@@ -18,7 +18,7 @@ log4js.configure({
         type: "stderr" ,
         layout: {
             type: "pattern",
-            pattern: "%[%d %p %f{1} %m"
+            pattern: "%[%d %p %f{1} %m%]"
         }
     }
   },

@@ -1,6 +1,10 @@
 import { Readable, Writable } from 'stream';
 import N3 from 'n3';
 
+import log4js from 'log4js';
+
+const logger = log4js.getLogger();
+
 const { DataFactory } = N3;
 const { namedNode, literal, blankNode } = DataFactory;
 
