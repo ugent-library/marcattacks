@@ -14,7 +14,7 @@ const prefixes = {
 export function transform(_opts: any) {
     return new Transform({
         objectMode: true,
-        transform(data: any, encoding, callback) {
+        transform(data: any, _encoding, callback) {
             let rec : string[][] = data['record'];
 
             if (!rec) return;
