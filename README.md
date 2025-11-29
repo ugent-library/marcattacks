@@ -69,7 +69,7 @@ alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@lat
 - xml
 - alephseq (Aleph sequential)
 - json
-- rdF
+- rdf
 
 ### Transform (--map)
 
