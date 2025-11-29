@@ -30,12 +30,6 @@ Generate Aleph sequential
 alma2else --to alephseq <file>
 ```
 
-Generate Prolog
-
-```
-alma2else --to prolog <file>
-```
-
 Generate RDF
 
 ```

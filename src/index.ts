@@ -109,7 +109,7 @@ async function main() : Promise<void> {
     let objectStream : Readable;
    
     if (opts.from) {
-        const mod = await loadPlugin(`${opts.from}2rec`,'input');
+        const mod = await loadPlugin(opts.from,'input');
         objectStream = mod.stream2readable(readableStream);
     }
     else {
@@ -135,7 +135,7 @@ async function main() : Promise<void> {
     }
 
     if (opts.to) {
-        const mod = await loadPlugin(`rec2${opts.to}`,'output');
+        const mod = await loadPlugin(opts.to,'output');
         mod.readable2writable(resultStream, outStream);
     }
 }

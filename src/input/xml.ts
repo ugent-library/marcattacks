@@ -90,7 +90,7 @@ export function stream2readable(stream: Readable) : Readable {
     }); 
 
     parser.on("error", (err) => {
-        logger.error("Parser error:", err);
+        logger.error ("Parser error:", err);
     });
 
     parser.on('end', () => {
