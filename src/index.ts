@@ -2,15 +2,14 @@
 
 import log4js from 'log4js';
 import { program } from 'commander';
-import { processStream } from './xml2rec.js';
-import { rec2json } from './rec2json.js';
-import { rec2alephseq } from './rec2alephseq.js';
-import { rec2prolog } from './rec2prolog.js';
-import { rec2xml } from './rec2xml.js';
-import { rec2rdf } from './rec2rdf.js';
+import { loadPlugin } from './plugin-loader.js';
 import { sftpReadStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
-import rdfTransform from './transform/rdf.js';
+import * as rdfTransform from './transform/rdf.js';
+import { Readable } from 'stream';
+import { pathToFileURL } from "node:url";
+import path from "node:path";
 import fs from 'fs';
+import type { Transform, Writable } from 'node:stream';
 
 log4js.configure({
   appenders: {
@@ -23,11 +22,10 @@ log4js.configure({
 
 program.version('0.1.0')
     .argument('<file>')
+    .option('-f,--from <from>','input type','xml')
     .option('-t,--to <output>','output type','json')
-    .option('--host <host>', 'sftp host')
-    .option('--port <port>', 'sftp port',"22")
-    .option('-u,--username <user>', 'sftp user')
-    .option('-p,--password <password>', 'sftp password')
+    .option('-m,--map <map>','data mapper')
+    .option('-o,--out <file>','output file')
     .option('--key <keyfile>', 'private key file')
     .option('--info','output debugging messages')
     .option('--debug','output more debugging messages')
@@ -53,18 +51,28 @@ if (opts.trace) {
 main();
 
 async function main() : Promise<void> {
-    let inputFile = program.args[0];
+    const url = program.args[0];
 
-    if (! inputFile) {
+    if (! url) {
         console.error(`need an input file`);
         process.exit(2);
+    }
+
+    let inputFile : URL;
+
+    if (fs.existsSync(url)) {
+        const filePath = path.resolve(process.cwd(), url);
+        inputFile = pathToFileURL(filePath);
+    }
+    else {
+        inputFile = new URL(url);
     }
 
     logger.info(`using: ${inputFile}`);
 
     let readableStream;
 
-    if (opts.host) {
+    if (inputFile.protocol === 'sftp:') {
         let privateKey : string | undefined = undefined;
 
         if (opts.key) {
@@ -72,46 +80,62 @@ async function main() : Promise<void> {
         }
 
         let config: SftpConfig = {
-            host: opts.host,
-            port: Number(opts.port),
-            username: opts.username
+            host: inputFile.hostname,
+            port: Number(inputFile.port),
+            username: inputFile.username
         };
 
-        if (opts.password) { config.password = opts.password }
+        if (inputFile.password) { config.password = inputFile.password }
         if (privateKey) { config.privateKey = privateKey}
 
-        if (inputFile.match(/\/@latest:\w+$/)) {
-            const remoteDir = inputFile.replace(/\/@latest.*/,"");
-            const extension = inputFile.replace(/.*\/@latest:/,"");
-            inputFile = await sftpLatestFile(config,remoteDir,extension);
+        let remotePath;
+
+        if (inputFile.pathname.match(/\/@latest:\w+$/)) {
+            const remoteDir = inputFile.pathname.replace(/\/@latest.*/,"");
+            const extension = inputFile.pathname.replace(/.*\/@latest:/,"");
+            remotePath = await sftpLatestFile(config,remoteDir,extension);
+        }
+        else {
+            remotePath = inputFile.pathname;
         }
 
-        logger.info(`connecting to ${opts.host} as ${opts.username}`);
-        readableStream = await sftpReadStream(config, inputFile)
+        logger.info(`get ${opts.username}@${opts.host}:${remotePath}`);
+        readableStream = await sftpReadStream(config, remotePath)
     }
     else {
         readableStream = fs.createReadStream(inputFile);
     }
 
-    const objectStream = processStream(readableStream,logger);
-
-    if (opts.to === 'json') {
-        rec2json(objectStream);
-    }
-    else if (opts.to == 'alephseq') {
-        rec2alephseq(objectStream);
-    }
-    else if (opts.to == 'prolog') {
-        rec2prolog(objectStream);
-    }
-    else if (opts.to == 'rdf') {
-        rec2rdf(objectStream.pipe(rdfTransform({})));
-    }
-    else if (opts.to == 'xml') {
-        rec2xml(objectStream);
+    let objectStream : Readable;
+   
+    if (opts.from) {
+        const mod = await loadPlugin(opts.from,'input');
+        objectStream = mod.stream2readable(readableStream);
     }
     else {
-        logger.error(`unknown output type ${opts.to}`);
+        console.error(`Need --from`);
         process.exit(1);
+    }
+
+    let resultStream = objectStream;
+
+    if (opts.map) {
+        const mod = await loadPlugin(opts.map,'transform');
+        const transformer : Transform = mod.transform({});
+        resultStream = objectStream.pipe(transformer);
+    }
+
+    let outStream : Writable;
+
+    if (opts.out) {
+        outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
+    }
+    else {
+        outStream = process.stdout;
+    }
+
+    if (opts.to) {
+        const mod = await loadPlugin(opts.to,'output');
+        mod.readable2writable(resultStream, outStream);
     }
 }

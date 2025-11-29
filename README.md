@@ -30,16 +30,10 @@ Generate Aleph sequential
 alma2else --to alephseq <file>
 ```
 
-Generate Prolog
-
-```
-alma2else --to prolog <file>
-```
-
 Generate RDF
 
 ```
-alma2else --to rdf <file>
+alma2else --to rdf --map rdf <file>
 ```
 
 Generate XML
@@ -53,13 +47,13 @@ alma2else --to xml <file>
 A remote SFTP path
 
 ```
-alma2else --host hostname --port port --username username --key ~/.ssh/privatekey /remote/path
+alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path
 ```
 
 The latest XML file in a remote SFTP path
 
 ```
-alma2else --host hostname --port port --username username --key ~/.ssh/privatekey /remote/path/@latest:xml
+alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
 ```
 
 

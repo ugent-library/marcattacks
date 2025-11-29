@@ -1,40 +1,43 @@
-import { Readable } from 'stream';
-import { marcmap, marctag, marcind, marcsubfields , marcForEachSub} from './marcmap.js';
+import { Readable, Writable } from 'stream';
+import { marcmap, marctag, marcind, marcsubfields , marcForEachSub} from '../marcmap.js';
 
-export function rec2xml(stream: Readable) : void {
+export function readable2writable(readable: Readable, writable: Writable) : void {
     let isFirst = true;
 
-    console.log("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-    console.log("<marc:collection xmlns:marc=\"http://www.loc.gov/MARC21/slim\">");
+    writable.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    writable.write("<marc:collection xmlns:marc=\"http://www.loc.gov/MARC21/slim\">\n");
 
-    stream.on('data', (data: any) => {
+    readable.on('data', (data: any) => {
         let rec : string[][] = data['record'];
 
         if (!rec) return;
 
-        console.log(" <marc:record>");
-        let leader = marcmap(rec,"LDR",{})[0];
-        console.log(`  <marc:leader>${leader}</marc:leader>`);
+        writable.write(" <marc:record>\n");
         for (let i = 0 ; i < rec.length ; i++) {
             let tag = marctag(rec[i]);
             let ind = marcind(rec[i]); 
-            if (tag.match(/^00/)) {
+            if (tag === 'FMT') {}
+            else if (tag === 'LDR') {
                 let value = marcsubfields(rec[i]!,/.*/)[0];
-                console.log(`  <marc:controlfield tag="${tag}">${escapeXML(value)}</marc:controlfield>`);
+                writable.write(`  <marc:leader>${escapeXML(value)}</marc:leader>\n`);
+            }
+            else if (tag.match(/^00/)) {
+                let value = marcsubfields(rec[i]!,/.*/)[0];
+                writable.write(`  <marc:controlfield tag="${tag}">${escapeXML(value)}</marc:controlfield>\n`);
             }
             else {
-                console.log(`  <marc:datafield tag="${tag}" ind1="${ind[0]}" ind2="${ind[1]}">`);
+                writable.write(`  <marc:datafield tag="${tag}" ind1="${ind[0]}" ind2="${ind[1]}">\n`);
                 marcForEachSub(rec[i], (code,value) => {
-                    console.log(`    <marc:subfield code="${code}">${escapeXML(value)}</marc:subfield>`);
+                    writable.write(`    <marc:subfield code="${code}">${escapeXML(value)}</marc:subfield>\n`);
                 });
-                console.log(`  </marc:datafield>`);
+                writable.write(`  </marc:datafield>\n`);
             }
         }
-        console.log(" </marc:record>");
+        writable.write(" </marc:record>\n");
     }); 
 
-    stream.on('end', () => {
-        console.log("</marc:collection>");
+    readable.on('end', () => {
+        writable.write("</marc:collection>\n");
     });
 }
 

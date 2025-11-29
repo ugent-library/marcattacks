@@ -11,7 +11,7 @@ const prefixes = {
     bibo: 'http://purl.org/ontology/bibo/',
 };
 
-export default function transform(_opts: any) {
+export function transform(_opts: any) {
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {

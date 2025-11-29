@@ -1,17 +1,17 @@
-import { Readable } from 'stream';
-import N3, { Literal, NamedNode } from 'n3';
+import { Readable, Writable } from 'stream';
+import N3 from 'n3';
 
 const { DataFactory } = N3;
 const { namedNode, literal, blankNode } = DataFactory;
 
-export function rec2rdf(stream: Readable) : void {
+export function readable2writable(readable: Readable, writable: Writable) : void {
     let writer : N3.Writer;
 
-    stream.on('data', (data: any)  => {   
+    readable.on('data', (data: any)  => {   
         let prefixes = data['prefixes'];
 
         if (!writer) {
-            writer = new N3.Writer(process.stdout, { end: false, prefixes });
+            writer = new N3.Writer(writable, { end: false, prefixes });
         }
 
         let quads : any[] = data['quads'];
@@ -51,7 +51,7 @@ export function rec2rdf(stream: Readable) : void {
         }
     });
 
-    stream.on('end', () => {
+    readable.on('end', () => {
         writer.end();
     });
 }
