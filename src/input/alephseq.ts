@@ -31,7 +31,6 @@ export function stream2readable(stream: Readable) : Readable {
 
         if (previd && previd !== id) {
             const ok = readableStream.push({
-                _id: previd,
                 record:  rec
             });
 
@@ -70,7 +69,6 @@ export function stream2readable(stream: Readable) : Readable {
 
     rl.on('close', () => {
         readableStream.push({
-            _id: previd,
             record: rec
         });
         recordNum++;

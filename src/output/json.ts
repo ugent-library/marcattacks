@@ -21,11 +21,8 @@ export function readable2writable(readable: Readable, writable: Writable) : void
             output += ',';
         }
 
-        let id = marcmap(rec,"001",{});
-        output += JSON.stringify({
-            "_id": id,
-            "record":rec
-        });
+        let id = marcmap(rec,"001",{}).join(" ");
+        output += JSON.stringify(data);
 
         const ok = writable.write(output);
 

@@ -56,4 +56,24 @@ The latest XML file in a remote SFTP path
 alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
 ```
 
+## Formats
+
+### Input (--from)
+
+- xml
+- alephseq (Aleph sequential)
+- json
+
+### Output (--to)
+
+- xml
+- alephseq (Aleph sequential)
+- json
+- rdF
+
+### Transform (--map)
+
+- rdf
+
+Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
 
