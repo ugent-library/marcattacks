@@ -131,7 +131,7 @@ async function main() : Promise<void> {
 
     if (opts.map) {
         const mod = await loadPlugin(opts.map,'transform');
-        const transformer : Transform = mod.transform({});
+        const transformer : Transform = await mod.transform({});
         resultStream = objectStream.pipe(transformer);
     }
 

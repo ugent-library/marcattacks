@@ -12,7 +12,7 @@ const prefixes = {
     xmlschema: 'https://www.w3.org/2001/XMLSchema#',
 };
 
-export function transform(_opts: any) {
+export async function transform(_opts: any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {
