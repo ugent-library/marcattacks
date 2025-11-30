@@ -23,7 +23,7 @@ log4js.configure({
     }
   },
   categories: {
-    default: { appenders: ["err"], level: "info" , enableCallStack: true }
+    default: { appenders: ["err"], level: "off" , enableCallStack: true }
   }
 });
 

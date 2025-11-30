@@ -22,7 +22,6 @@ export function stream2readable(stream: Readable) : Readable {
         objectMode: true 
     });
 
-
     pipeline.on('data', (data: any) => {
         const ok = readableStream.push(data.value);
 
@@ -41,6 +40,7 @@ export function stream2readable(stream: Readable) : Readable {
 
     pipeline.on('end', () => {
         logger.info(`processed ${recordNum} records`);
+        readableStream.push(null);
     });
 
     return readableStream;

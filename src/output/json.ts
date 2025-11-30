@@ -11,17 +11,12 @@ export function readable2writable(readable: Readable, writable: Writable) : void
     writable.write("[");
 
     readable.on('data', (data: any) => {
-        let rec : string[][] = data['record'];
-
         let output = "";
-
-        if (!rec) return;
 
         if (!isFirst) {
             output += ',';
         }
 
-        let id = marcmap(rec,"001",{}).join(" ");
         output += JSON.stringify(data);
 
         const ok = writable.write(output);
@@ -38,7 +33,7 @@ export function readable2writable(readable: Readable, writable: Writable) : void
         isFirst = false;
     });
 
-    readable.on('end', () => {
+    readable.on('close', () => {
         writable.write("]");
     });
 }
