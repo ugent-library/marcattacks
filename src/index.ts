@@ -4,13 +4,13 @@ import log4js from 'log4js';
 import { program } from 'commander';
 import { loadPlugin } from './plugin-loader.js';
 import { sftpReadStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
-import * as rdfTransform from './transform/rdf.js';
+import { httpReadStream } from './httpstream.js';
 import { Readable } from 'stream';
 import { pathToFileURL } from "node:url";
-import path from "node:path";
-import fs from 'fs';
 import type { Transform, Writable } from 'node:stream';
 import { SlowWritable } from './slow-writable.js';
+import path from "node:path";
+import fs from 'fs';
 
 log4js.configure({
   appenders: {
@@ -79,7 +79,10 @@ async function main() : Promise<void> {
 
     let readableStream;
 
-    if (inputFile.protocol === 'sftp:') {
+    if (inputFile.protocol.startsWith("http")) {
+        readableStream = await httpReadStream(inputFile.toString());
+    }
+    else if (inputFile.protocol === 'sftp:') {
         let privateKey : string | undefined = undefined;
 
         if (opts.key) {
