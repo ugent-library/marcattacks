@@ -59,7 +59,7 @@ marcattack --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@la
 A remote HTTP path
 
 ```
-marcattack --from jsonl http://somewhere.org/data.jsonl
+marcattack http://somewhere.org/data.xml
 ```
 
 ## Formats
