@@ -9,6 +9,7 @@ const prefixes = {
     genid: 'https://lib.ugent.be/.well-known/genid/',
     owl: 'http://www.w3.org/2002/07/owl#',
     bibo: 'http://purl.org/ontology/bibo/',
+    xmlschema: 'https://www.w3.org/2001/XMLSchema#',
 };
 
 export function transform(_opts: any) {
@@ -42,7 +43,7 @@ function rec2quads(rec: string[][]) {
                 value = 'https://lib.ugent.be/catalog/rug01:' + value.replace(/\(RUG01\)(.*)/,"$1");
                 quads.push({
                     subject: { value: `${prefixes.this}${id}` },
-                    predicate: { value: `${prefixes.owl}sameAs` },
+                    predicate: { value: `${prefixes.schema}replaces` },
                     object: { value: value },
                 });
             }
@@ -50,19 +51,25 @@ function rec2quads(rec: string[][]) {
                 value = 'https://biblio.ugent.be/record/' + value.replace(/\(BIBLIO\)(.*)/,"$1");
                 quads.push({
                     subject: { value: `${prefixes.this}${id}` },
-                    predicate: { value: `${prefixes.owl}sameAs` },
+                    predicate: { value: `${prefixes.schema}workExample` },
                     object: { value: value },
                 });
             }
         }
         else if (tag === '100') {
-            let name = strip(marcsubfields(row,/a/).join(" "));
+            let name = marcsubfields(row,/a/);
 
             if (!name) {
                 return undefined;
             }
 
             let bn = genid();
+
+            let authorId = marcsubfields(row,/0/)[0];
+
+            if (authorId?.match(/\(viaf\)\d{2,}/)) {
+                bn = "https://viaf.org/viaf/" + authorId.replaceAll(/\(viaf\)/g,'');
+            }
 
             quads.push({
                 subject: { value: `${prefixes.this}${id}` },
@@ -76,11 +83,13 @@ function rec2quads(rec: string[][]) {
                 object: { value: `${prefixes.schema}Person` },
             }); 
 
-            quads.push({
-                subject: { value: bn },
-                predicate: { value: `${prefixes.schema}name` },
-                object: { value: name , type: 'Literal' },
-            }); 
+            name.forEach( n => {
+                quads.push({
+                    subject: { value: bn },
+                    predicate: { value: `${prefixes.schema}name` },
+                    object: { value: strip(n) , type: 'Literal' },
+                }); 
+            });
 
             let dates = marcsubfields(row,/d/)[0];
 
@@ -90,14 +99,14 @@ function rec2quads(rec: string[][]) {
                     quads.push({
                         subject: { value: bn },
                         predicate: { value: `${prefixes.schema}birthDate` },
-                        object: { value: parts[0] , type: 'Literal' },
+                        object: { value: parts[0], type: 'Literal', as: `${prefixes.xmlschema}gYear` },
                     }); 
                 }
                 if (parts[1]) {
                     quads.push({
                         subject: { value: bn },
                         predicate: { value: `${prefixes.schema}deathDate` },
-                        object: { value: parts[1] , type: 'Literal' },
+                        object: { value: parts[1], type: 'Literal', as: `${prefixes.xmlschema}gYear` },
                     }); 
                 }
             }
@@ -144,11 +153,20 @@ function rec2quads(rec: string[][]) {
             }
 
             if (date) {
-                quads.push({
-                    subject: { value: `${prefixes.this}${id}` },
-                    predicate: { value: `${prefixes.schema}datePublished` },
-                    object: { value: date , type: 'Literal'}
-                });
+                if (date.match(/^\d{4}$/)) {
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.schema}datePublished` },
+                        object: { value: date , type: 'Literal', as: `${prefixes.xmlschema}gYear` }
+                    });
+                }
+                else {
+                    quads.push({
+                        subject: { value: `${prefixes.this}${id}` },
+                        predicate: { value: `${prefixes.schema}datePublished` },
+                        object: { value: date , type: 'Literal'}
+                    });
+                }
             }
         }
         else if (tag === '300') {

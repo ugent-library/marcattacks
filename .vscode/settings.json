@@ -16,6 +16,7 @@
         "opentag",
         "sattrib",
         "uuidv",
-        "viaf"
+        "viaf",
+        "xmlschema"
     ]
 }
