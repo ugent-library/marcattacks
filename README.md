@@ -1,6 +1,6 @@
-# alma2else
+# marcattack
 
-Turn Clarivate Alma XML exports into something else.
+Turn MARC exports into something else.
 
 ## Build
 
@@ -21,25 +21,25 @@ npm link
 Generate JSON:
 
 ```
-alma2else --to json <file>
+marcattack --to json <file>
 ```
 
 Generate Aleph sequential:
 
 ```
-alma2else --to alephseq <file>
+marcattack --to alephseq <file>
 ```
 
 Generate RDF:
 
 ```
-alma2else --to rdf --map rdf <file>
+marcattack --to rdf --map rdf <file>
 ```
 
 Generate XML:
 
 ```
-alma2else --to xml <file>
+marcattack --to xml <file>
 ```
 
 ## Remote files
@@ -47,19 +47,19 @@ alma2else --to xml <file>
 A remote SFTP path:
 
 ```
-alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path
+marcattack --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path
 ```
 
 The latest XML file in a remote SFTP:
 
 ```
-alma2else --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
+marcattack --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
 ```
 
 A remote HTTP path
 
 ```
-alma2else --from jsonl http://somewhere.org/data.jsonl
+marcattack --from jsonl http://somewhere.org/data.jsonl
 ```
 
 ## Formats

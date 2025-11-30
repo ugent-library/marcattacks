@@ -1,12 +1,12 @@
 {
-  "name": "alma2else",
+  "name": "marcattack",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
   "author": "",
-  "repository": "https://codeberg.org/phochste/alma2else.git",
+  "repository": "https://codeberg.org/phochste/marcattack.git",
   "bin": {
-    "alma2else": "./dist/index.js"
+    "marcattack": "./dist/index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
