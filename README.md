@@ -83,4 +83,11 @@ marcattacks http://somewhere.org/data.xml
 
 - rdf
 
+### Writable (--out)
+
+- _default_: stdout
+- _file path_
+- sftp://username@host:port/path
+- s3://accessKey:secretKey@host:port/bucket/key
+ 
 Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
