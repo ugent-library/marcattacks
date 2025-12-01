@@ -16,4 +16,8 @@ export function readable2writable(readable: Readable, writable: Writable) : void
             });
         }
     });
+
+    readable.on('close', () => {
+        writable.end();
+    });
 }

@@ -58,5 +58,6 @@ export function readable2writable(readable: Readable, writable: Writable) : void
 
     readable.on('end', () => {
         writer.end();
+        writable.end();
     });
 }

@@ -53,6 +53,7 @@ export function readable2writable(readable: Readable, writable: Writable) : void
 
     readable.on('end', () => {
         writable.write("</marc:collection>\n");
+        writable.end();
     });
 }
 

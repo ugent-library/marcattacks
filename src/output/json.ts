@@ -6,7 +6,7 @@ const logger = log4js.getLogger();
 export function readable2writable(readable: Readable, writable: Writable) : void {
     let isFirst = true;
 
-    writable.write("[");
+    const ok = writable.write("[");
 
     readable.on('data', (data: any) => {
         let output = "";
@@ -33,5 +33,6 @@ export function readable2writable(readable: Readable, writable: Writable) : void
 
     readable.on('close', () => {
         writable.write("]");
+        writable.end();
     });
 }

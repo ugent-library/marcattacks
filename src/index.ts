@@ -11,6 +11,7 @@ import type { Transform, Writable } from 'node:stream';
 import { SlowWritable } from './slow-writable.js';
 import path from "node:path";
 import fs from 'fs';
+import { s3WriterStream } from './s3stream.js';
 
 log4js.configure({
   appenders: {
@@ -131,8 +132,13 @@ async function main() : Promise<void> {
         if (opts.out.startsWith("sftp")) {
             const url = new URL(opts.out);
             const config = makeSftpConfig(url,opts);
-            logger.info(`put ${config.username}@${config.host}:${config.port}:${url.href}`);
+            logger.info(`put ${url}`);
             outStream = await sftpWriteStream(url.href, config);
+        }
+        else if (opts.out.startsWith("s3")) {
+            const url = new URL(opts.out);
+            logger.info(`put ${url}`);
+            outStream = await s3WriterStream(url,{});
         }
         else {
             outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
