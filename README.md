@@ -65,7 +65,7 @@ An HTTP path
 marcattacks http://somewhere.org/data.xml
 ```
 
-A S3 path
+An S3 path
 
 ```
 marcattacks s3://accessKey:secretKey@host:port/bucket/key
