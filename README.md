@@ -1,6 +1,9 @@
-# marcattacks
+# marcattacks!
 
-Turn MARC exports into something else.
+<img src="logo.jpg" width="10%">
+
+Turn your MARC exports into something else.
+
 
 ## Build
 
