@@ -99,6 +99,6 @@ use `s3s://...` for using a SSL layer.
 - _default_: stdout
 - _file path_
 - sftp://username@host:port/path
-- s3://accessKey:secretKey@host:port/bucket/key
+- s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
  
 Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
