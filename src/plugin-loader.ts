@@ -1,3 +1,5 @@
+import path from "path";
+
 export async function loadPlugin(
     spec: string, type: "input" | "output" | "transform"
 ) {
@@ -8,7 +10,8 @@ export async function loadPlugin(
   //  - "package-plugin/submodule"
 
   try {
-    return await import(spec);
+    const resolved = path.resolve(spec);
+    return await import(resolved);
   } catch (e1) {
     try {
       const resolved = new URL(`./${type}/${spec}.js`, import.meta.url).href;
