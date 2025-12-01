@@ -94,6 +94,8 @@ use `s3s://...` for using a SSL layer.
 
 - rdf
 
+Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
+
 ### Writable (--out)
 
 - _default_: stdout
@@ -101,4 +103,3 @@ use `s3s://...` for using a SSL layer.
 - sftp://username@host:port/path
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
  
-Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
