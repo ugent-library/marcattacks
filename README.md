@@ -71,6 +71,8 @@ An S3 path
 marcattacks s3://accessKey:secretKey@host:port/bucket/key
 ```
 
+use `s3s://...` for using a SSL layer.
+
 ## Formats
 
 ### Input (--from)

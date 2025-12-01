@@ -116,6 +116,7 @@ export function stream2readable(stream: Readable) : Readable {
             sourcePaused = true;
         }
         logger.info(`processed ${recordNum} records`);
+        readableStream.destroy();
     });
 
     stream.pipe(parser);

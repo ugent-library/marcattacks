@@ -129,6 +129,7 @@ export function s3WriterStream(url: URL, options: { partSize?: number;}) : Promi
 
         const writer = new Writable({
             async write(chunk, _encoding, callback) {
+                logger.debug("write chunk...");
                 try {
                     buffer = Buffer.concat([buffer, chunk]);
 
@@ -142,8 +143,11 @@ export function s3WriterStream(url: URL, options: { partSize?: number;}) : Promi
             },
 
             async final(callback) {
+                logger.debug("final...");
                 try {
+                    logger.debug("flushPart...");
                     await flushPart(true);
+                    logger.debug("finishUpload...");
                     await finishUpload();
                     callback();
                 } catch (err) {
@@ -165,8 +169,10 @@ export function s3WriterStream(url: URL, options: { partSize?: number;}) : Promi
         async function flushPart(isLast = false) {
             if (buffer.length === 0 && !isLast) return;
 
+            logger.debug("ensureUpload...");
             await ensureUpload();
 
+            logger.debug("s3.send...");
             const res = await s3.send(new UploadPartCommand({
                 Bucket: bucket,
                 Key: key,
@@ -216,6 +222,7 @@ function isAsyncIterable(x: any): x is AsyncIterable<any> {
 }
 
 function makeClient(config: S3Config) : S3Client {
+    logger.debug(config);
     const myConfig : S3ClientConfig = {
         endpoint: config.endpoint,
         forcePathStyle: true,
@@ -239,7 +246,11 @@ function parseURL(url: URL) : S3Config {
         key: "test.txt"
     };
     
-    config.endpoint = `http://${url.hostname}:${url.port}`;
+    const scheme = url.protocol.startsWith("s3s") ? "https" : "http";
+    config.endpoint = `${scheme}://${url.hostname}`;
+    if (url.port) {
+        config.endpoint += `:${url.port}`;
+    }
     config.bucket = url.pathname.split("/")[1] ?? "";
     config.key = url.pathname.split("/").splice(2).join("/");
 
