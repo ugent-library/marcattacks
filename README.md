@@ -59,10 +59,16 @@ The latest XML file in a remote SFTP:
 marcattacks --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
 ```
 
-A remote HTTP path
+An HTTP path
 
 ```
 marcattacks http://somewhere.org/data.xml
+```
+
+A S3 path
+
+```
+marcattacks s3://accessKey:secretKey@host:port/bucket/key
 ```
 
 ## Formats

@@ -11,7 +11,7 @@ import type { Transform, Writable } from 'node:stream';
 import { SlowWritable } from './slow-writable.js';
 import path from "node:path";
 import fs from 'fs';
-import { s3WriterStream } from './s3stream.js';
+import { s3ReaderStream, s3WriterStream } from './s3stream.js';
 
 log4js.configure({
   appenders: {
@@ -83,6 +83,9 @@ async function main() : Promise<void> {
     if (inputFile.protocol.startsWith("http")) {
         readableStream = await httpReadStream(inputFile.toString());
     }
+    else if (inputFile.protocol.startsWith("s3")) {
+        readableStream = await s3ReaderStream(inputFile,{});
+    }
     else if (inputFile.protocol === 'sftp:') {
         const config = makeSftpConfig(inputFile,opts);
 
@@ -97,7 +100,6 @@ async function main() : Promise<void> {
             remotePath = inputFile.pathname;
         }
 
-        logger.info(`get ${config.username}@${config.host}:${config.port}:${remotePath}`);
         readableStream = await sftpReadStream(remotePath, config);
     }
     else {

@@ -1,12 +1,13 @@
 import { 
     S3Client, 
+    GetObjectCommand,
     PutObjectCommand, 
     UploadPartCommand, 
     CreateMultipartUploadCommand, 
     CompleteMultipartUploadCommand, 
     type S3ClientConfig
 } from "@aws-sdk/client-s3";
-import { Writable } from "stream";
+import { Readable, Writable } from "stream";
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
@@ -19,11 +20,103 @@ type S3Config = {
     secretAccessKey?: string;
 };
 
+export async function s3ReaderStream(url: URL, options: { range?: string }): Promise<Readable> {
+    const config = parseURL(url);
+
+    logger.debug(`s3 config:`,config);
+
+    const bucket = config.bucket;
+    const key    = config.key;
+    const range  = options.range;
+    const s3 = makeClient(config);
+
+    const res = await s3.send(new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Range: range,
+    }));
+
+    const body = res.Body;
+
+    if (!body) {
+        throw new Error("S3 GetObject returned an empty body");
+    }
+
+    // 1) If SDK returned a Node.js readable stream (typical in Node)
+    if (isNodeReadable(body)) {
+        return body as Readable;
+    }
+
+    // 2) If SDK returned a WHATWG ReadableStream (browser-ish or newer runtimes)
+    if (isReadableStream(body)) {
+        // Node.js v17+ has Readable.fromWeb
+        // Fallback: wrap async iterator
+        if (typeof (Readable as any).fromWeb === "function") {
+        return (Readable as any).fromWeb(body as ReadableStream<Uint8Array>);
+        } else {
+        // Convert using async iterator produced by the stream
+        const reader = (body as ReadableStream<Uint8Array>).getReader();
+        const nodeStream = new Readable({
+            read() {
+                // no-op. We'll push from async loop below
+            }
+        });
+        (async () => {
+            try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                nodeStream.push(Buffer.from(value));
+            }
+            nodeStream.push(null);
+            } catch (err) {
+            nodeStream.destroy(err as Error);
+            }
+        })();
+        return nodeStream;
+        }
+    }
+
+    // 3) If SDK returned a Blob (browsers)
+    if (typeof Blob !== "undefined" && body instanceof Blob) {
+        const stream = (body as Blob).stream();
+        if (typeof (Readable as any).fromWeb === "function") {
+        return (Readable as any).fromWeb(stream);
+        }
+        // fallback same as above
+        const reader = stream.getReader();
+        const nodeStream = new Readable({
+        read() {}
+        });
+        (async () => {
+        try {
+            while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            nodeStream.push(Buffer.from(value));
+            }
+            nodeStream.push(null);
+        } catch (err) {
+            nodeStream.destroy(err as Error);
+        }
+        })();
+        return nodeStream;
+    }
+
+    // 4) If it's an async iterable (some runtimes)
+    if (isAsyncIterable(body)) {
+        return Readable.from(body as AsyncIterable<Uint8Array | string | Buffer>);
+    }
+
+    // Unknown body shape
+    throw new Error("Unsupported S3 GetObject body type");
+}
+
 export function s3WriterStream(url: URL, options: { partSize?: number;}) : Promise<Writable> {
     return new Promise<Writable>( (resolve) => {
         const config = parseURL(url);
 
-        logger.debug(`s3 config`, config);
+        logger.debug(`s3 config:`, config);
         const bucket = config.bucket;
         const key = config.key;
         const s3 = makeClient(config);
@@ -108,6 +201,18 @@ export function s3WriterStream(url: URL, options: { partSize?: number;}) : Promi
 
         resolve(writer);
     });
+}
+
+function isNodeReadable(x: any): x is Readable {
+    return x && typeof x.pipe === "function" && typeof x.read === "function";
+}
+
+function isReadableStream(x: any): x is ReadableStream {
+    return typeof x?.getReader === "function";
+}
+
+function isAsyncIterable(x: any): x is AsyncIterable<any> {
+    return x && typeof x[Symbol.asyncIterator] === "function";
 }
 
 function makeClient(config: S3Config) : S3Client {
