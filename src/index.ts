@@ -3,7 +3,7 @@
 import log4js from 'log4js';
 import { program } from 'commander';
 import { loadPlugin } from './plugin-loader.js';
-import { sftpReadStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
+import { sftpReadStream , sftpWriteStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
 import { httpReadStream } from './httpstream.js';
 import { Readable } from 'stream';
 import { pathToFileURL } from "node:url";
@@ -83,20 +83,7 @@ async function main() : Promise<void> {
         readableStream = await httpReadStream(inputFile.toString());
     }
     else if (inputFile.protocol === 'sftp:') {
-        let privateKey : string | undefined = undefined;
-
-        if (opts.key) {
-            privateKey = fs.readFileSync(opts.key,{ encoding: 'utf-8'});
-        }
-
-        let config: SftpConfig = {
-            host: inputFile.hostname,
-            port: Number(inputFile.port),
-            username: inputFile.username
-        };
-
-        if (inputFile.password) { config.password = inputFile.password }
-        if (privateKey) { config.privateKey = privateKey}
+        const config = makeSftpConfig(inputFile,opts);
 
         let remotePath;
 
@@ -109,8 +96,8 @@ async function main() : Promise<void> {
             remotePath = inputFile.pathname;
         }
 
-        logger.info(`get ${opts.username}@${opts.host}:${remotePath}`);
-        readableStream = await sftpReadStream(config, remotePath)
+        logger.info(`get ${config.username}@${config.host}:${config.port}:${remotePath}`);
+        readableStream = await sftpReadStream(remotePath, config);
     }
     else {
         readableStream = fs.createReadStream(inputFile);
@@ -141,7 +128,15 @@ async function main() : Promise<void> {
         outStream = new SlowWritable({ delayMs: 100 });
     }
     else if (opts.out) {
-        outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
+        if (opts.out.startsWith("sftp")) {
+            const url = new URL(opts.out);
+            const config = makeSftpConfig(url,opts);
+            logger.info(`put ${config.username}@${config.host}:${config.port}:${url.href}`);
+            outStream = await sftpWriteStream(url.href, config);
+        }
+        else {
+            outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
+        }
     }
     else {
         outStream = process.stdout;
@@ -151,4 +146,23 @@ async function main() : Promise<void> {
         const mod = await loadPlugin(opts.to,'output');
         mod.readable2writable(resultStream, outStream);
     }
+}
+
+function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
+    let privateKey : string | undefined = undefined;
+
+    if (opts.key) {
+        privateKey = fs.readFileSync(opts.key,{ encoding: 'utf-8'});
+    }
+
+    let config: SftpConfig = {
+        host: inputFile.hostname,
+        port: Number(inputFile.port) ?? 22,
+        username: inputFile.username
+    };
+
+    if (inputFile.password) { config.password = inputFile.password }
+    if (privateKey) { config.privateKey = privateKey}
+
+    return config;
 }

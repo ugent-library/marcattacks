@@ -1,5 +1,5 @@
 import { Client } from "ssh2";
-import { Readable } from "stream";
+import { Readable , Writable } from "stream";
 
 export interface SftpConfig {
   host: string;
@@ -9,7 +9,7 @@ export interface SftpConfig {
   privateKey?: Buffer | string;
 }
 
-export async function sftpReadStream(config: SftpConfig, remotePath: string): Promise<Readable> {
+export async function sftpReadStream(remotePath: string, config: SftpConfig): Promise<Readable> {
     return new Promise((resolve, reject) => {
         const conn = new Client();
 
@@ -21,6 +21,35 @@ export async function sftpReadStream(config: SftpConfig, remotePath: string): Pr
                 }
 
                 const stream = sftp.createReadStream(remotePath);
+
+                // Close SSH connection when stream ends or errors
+                stream.on("close", () => conn.end());
+                stream.on("error", (err: any) => {
+                    conn.end();
+                    reject(err);
+                });
+
+                resolve(stream);
+            });
+        });
+
+        conn.on("error", (err) => reject(err));
+        conn.connect(config);
+    });
+}
+
+export async function sftpWriteStream(remotePath: string, config: SftpConfig): Promise<Writable> {
+    return new Promise((resolve, reject) => {
+        const conn = new Client();
+
+        conn.on("ready", () => {
+            conn.sftp((err, sftp) => {
+                if (err) {
+                    conn.end();
+                    return reject(err);
+                }
+
+                const stream = sftp.createWriteStream(remotePath, { encoding: "utf-8" });
 
                 // Close SSH connection when stream ends or errors
                 stream.on("close", () => conn.end());
