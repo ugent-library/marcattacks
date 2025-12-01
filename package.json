@@ -1,12 +1,12 @@
 {
-  "name": "marcattack",
+  "name": "marcattacks",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
   "author": "",
-  "repository": "https://codeberg.org/phochste/marcattack.git",
+  "repository": "https://codeberg.org/phochste/marcattacks.git",
   "bin": {
-    "marcattack": "./dist/index.js"
+    "marcattacks": "./dist/index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

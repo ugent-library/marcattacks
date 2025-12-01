@@ -1,4 +1,4 @@
-# marcattack
+# marcattacks
 
 Turn MARC exports into something else.
 
@@ -21,25 +21,25 @@ npm link
 Generate JSON:
 
 ```
-marcattack --to json <file>
+marcattacks --to json <file>
 ```
 
 Generate Aleph sequential:
 
 ```
-marcattack --to alephseq <file>
+marcattacks --to alephseq <file>
 ```
 
 Generate RDF:
 
 ```
-marcattack --to rdf --map rdf <file>
+marcattacks --to rdf --map rdf <file>
 ```
 
 Generate XML:
 
 ```
-marcattack --to xml <file>
+marcattacks --to xml <file>
 ```
 
 ## Remote files
@@ -47,19 +47,19 @@ marcattack --to xml <file>
 A remote SFTP path:
 
 ```
-marcattack --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path
+marcattacks --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path
 ```
 
 The latest XML file in a remote SFTP:
 
 ```
-marcattack --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
+marcattacks --key ~/.ssh/privatekey sftp://username@hostname:port/remote/path/@latest:xml
 ```
 
 A remote HTTP path
 
 ```
-marcattack http://somewhere.org/data.xml
+marcattacks http://somewhere.org/data.xml
 ```
 
 ## Formats
