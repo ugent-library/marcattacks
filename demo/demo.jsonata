@@ -1,0 +1,16 @@
+(
+    $type := $marcmap0("920a");
+
+    { 
+        "@id": "my:" & $marcmap0("001"),
+        "@type": $type = "book" ? "schema:Book" : "schema:CreativeWork",
+        "name": $strip($join($marcmap("245ab")," ")) ,
+        "subject": $map($marcmap("500a"), function ($val) {
+            { 
+                "@id": $genid(),
+                "@type": "schema:Subject",
+                "name": $val 
+            }
+        })
+    }
+)

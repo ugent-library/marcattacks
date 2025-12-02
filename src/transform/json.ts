@@ -2,6 +2,7 @@ import { Transform } from "stream";
 import jsonata from "jsonata";
 import fs from "fs";
 import { marcmap } from '../marcmap.js';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function transform(q: string) : Promise<Transform> {
     let query = q;
@@ -28,6 +29,9 @@ export async function transform(q: string) : Promise<Transform> {
             expression.registerFunction('strip', (value) => {
                 return value ? strip(value) : value;
             });
+            expression.registerFunction('genid', () => {
+                return genid();
+            });
             data = await expression.evaluate(data);
             callback(null,data);
         }
@@ -36,4 +40,8 @@ export async function transform(q: string) : Promise<Transform> {
 
 function strip(s: string) : string {
     return s.replaceAll(/\s*[\,.:\/]$/g,'');
+}
+
+function genid() : string {
+    return `genid:${uuidv4()}`;
 }

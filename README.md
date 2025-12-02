@@ -48,7 +48,7 @@ marcattacks --to xml <file>
 Transform the MARC input using a [JSONata](https://docs.jsonata.org/overview.html) expression or file:
 
 ```
-marcattacks <file> --fix ./demo/demo.js
+marcattacks <file> --fix ./demo/demo.jsonata
 ```
 
 ## Remote files
