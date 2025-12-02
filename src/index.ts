@@ -32,7 +32,8 @@ program.version('0.1.0')
     .argument('<file>')
     .option('-f,--from <from>','input type','xml')
     .option('-t,--to <output>','output type','json')
-    .option('-m,--map <map>','data mapper')
+    .option('-m,--map <map>','data mapper','json')
+    .option('--fix <what>','jsonata')
     .option('-o,--out <file>','output file')
     .option('--key <keyfile>', 'private key file')
     .option('--info','output debugging messages')
@@ -121,7 +122,7 @@ async function main() : Promise<void> {
 
     if (opts.map) {
         const mod = await loadPlugin(opts.map,'transform');
-        const transformer : Transform = await mod.transform({});
+        const transformer : Transform = await mod.transform(opts.fix);
         resultStream = objectStream.pipe(transformer);
     }
 
