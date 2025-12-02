@@ -45,6 +45,12 @@ Generate XML:
 marcattacks --to xml <file>
 ```
 
+Transform the MARC input using a [JSONata](https://docs.jsonata.org/overview.html) expression or file:
+
+```
+marcattacks <file> --fix ./demo/demo.js
+```
+
 ## Remote files
 
 A remote SFTP path:
