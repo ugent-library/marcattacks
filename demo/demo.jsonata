@@ -1,9 +1,37 @@
 (
-    $type := $marcmap0("920a");
+    /******start helper functions****/
+    $strip := function ($str) {
+        $replace($str,/\s*[\,.:\/]$/,"")
+    };
+
+    $marcmap0 := function ($path) {
+        $marcmap($path)[0]
+    };
+
+    $typeLookupTable := {
+        "_": "schema:CreativeWork", /* default */
+        "book": "schema:Book",
+        "catalog": "schema:Book",
+        "correspondence": "schema:CreativeWork",
+        "dissertation": "schema:Thesis",
+        "ephemera": "schema:CreativeWork",
+        "image": "schema:VisualWork",
+        "manuscript": "schema:Book",
+        "map": "schema:Map",
+        "master": "schema:Thesis",
+        "periodical": "schema:Periodical",
+        "phd": "schema:Thesis"
+    };
+
+    $typeLookup := function ($val) {(
+        $v := $lookup($typeLookupTable,$val);
+        $v ? $v : $typeLookupTable._ 
+    )};
+    /******end helper functions******/
 
     { 
         "@id": "my:" & $marcmap0("001"),
-        "@type": $type = "book" ? "schema:Book" : "schema:CreativeWork",
+        "@type": $typeLookup($marcmap0("920a")),
         "name": $marcmap("245ab") ~> $join(" ") ~> $strip() ,
         "subject": $marcmap("500a") ~> $map(function ($val) {
             { 

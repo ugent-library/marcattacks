@@ -22,13 +22,6 @@ export async function transform(q: string) : Promise<Transform> {
             expression.registerFunction('marcmap', (code) => {
                 return marcmap(data['record'],code,{});
             });
-            expression.registerFunction('marcmap0', (code) => {
-                const field = marcmap(data['record'],code,{});
-                return field && field[0] ? field[0] : undefined;
-            });
-            expression.registerFunction('strip', (value) => {
-                return value ? strip(value) : value;
-            });
             expression.registerFunction('genid', () => {
                 return genid();
             });
@@ -36,10 +29,6 @@ export async function transform(q: string) : Promise<Transform> {
             callback(null,data);
         }
     });
-}
-
-function strip(s: string) : string {
-    return s.replaceAll(/\s*[\,.:\/]$/g,'');
 }
 
 function genid() : string {
