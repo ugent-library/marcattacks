@@ -28,7 +28,7 @@ export function marcind(row: string[] | undefined) : string[] {
  * Given a marc and a callback function, call function(tag,row)
  * for each tag
  */
-export function marcForTag(rec: string[][] | undefined , fun: (tag:string, row:string[]) => void) : void {
+export function marcForEachTag(rec: string[][] | undefined , fun: (tag:string, row:string[]) => void) : void {
     if (!rec) return;
     for (let i = 0 ; i < rec.length ; i++) {
         let row = rec[i] ?? [];

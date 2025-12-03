@@ -1,5 +1,5 @@
 import { Transform } from "stream";
-import { marcmap , marcForTag, marcsubfields } from '../marcmap.js';
+import { marcmap , marcForEachTag, marcsubfields } from '../marcmap.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const prefixes = {
@@ -34,7 +34,7 @@ function rec2quads(rec: string[][]) {
 
     if (!id) return;
 
-    marcForTag(rec, (tag,row) => {
+    marcForEachTag(rec, (tag,row) => {
         if (false) {}
         else if (tag === '035') {
             let value = marcsubfields(row,/a/)[0];

@@ -1,7 +1,7 @@
 import { Transform } from "stream";
 import jsonata from "jsonata";
 import fs from "fs";
-import { marcmap } from '../marcmap.js';
+import { marcmap , marcsubfields, marcForEachTag } from '../marcmap.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function transform(q: string) : Promise<Transform> {
