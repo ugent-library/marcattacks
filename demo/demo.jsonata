@@ -1,8 +1,8 @@
 (
-    $type := $marcmap0("920a");
+    $type := $marcmap("920a")[0];
 
     { 
-        "@id": "my:" & $marcmap0("001"),
+        "@id": "my:" & $marcmap("001")[0],
         "@type": $type = "book" ? "schema:Book" : "schema:CreativeWork",
         "name": $marcmap("245ab") ~> $join(" ") ~> $strip() ,
         "subject": $marcmap("500a") ~> $map(function ($val) {
