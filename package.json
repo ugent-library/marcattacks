@@ -17,7 +17,8 @@
     "build:watch": "npx tsc -w",
     "docker:build": "docker build . -t hochstenbach/marcattacks:v0.0.1",
     "docker:run": "docker run --rm -v `pwd`/data:/app/data -it hochstenbach/marcattacks:v0.0.1 --to rdf --map rdf data/sample.xml",
-    "docker:push": "docker push hochstenbach/marcattacks:v0.0.1"
+    "docker:push": "docker push hochstenbach/marcattacks:v0.0.1",
+    "postversion": "npm publish && git push && git push --tags"
   },
   "keywords": [],
   "license": "MIT",
