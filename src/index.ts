@@ -14,21 +14,6 @@ import fs from 'fs';
 import { s3ReaderStream, s3WriterStream } from './s3stream.js';
 import dotenv from 'dotenv';
 
-log4js.configure({
-  appenders: {
-    err: { 
-        type: "stderr" ,
-        layout: {
-            type: "pattern",
-            pattern: "%[%d %p %f{1} %m%]"
-        }
-    }
-  },
-  categories: {
-    default: { appenders: ["err"], level: "off" , enableCallStack: true }
-  }
-});
-
 program.version('0.1.0')
     .argument('<file>')
     .option('-c,--config <config>','config .env',path.join(process.cwd(), '.env'))
@@ -38,6 +23,7 @@ program.version('0.1.0')
     .option('--fix <what>','jsonata')
     .option('-o,--out <file>','output file')
     .option('--key <keyfile>', 'private key file')
+    .option('--log <format>','logging format')
     .option('--info','output debugging messages')
     .option('--debug','output more debugging messages')
     .option('--trace','output much more debugging messages');
@@ -45,6 +31,29 @@ program.version('0.1.0')
 program.parse(process.argv);
 
 const opts   = program.opts();
+
+if (opts.log) {
+    let output = 'stderr';
+    let type = 0;
+
+    if (opts.log.indexOf('stdout') >= 0) {
+        output = 'stdout';
+    }
+    if (opts.log.indexOf('json') >= 0) {
+        type = 1;
+    }
+
+    if (type) {
+        configureJSONLogger(output);
+    }
+    else {
+        configureDefaultLogger(output);
+    }
+}
+else {
+    configureDefaultLogger('stderr');
+}
+
 const logger = log4js.getLogger();
 
 if (opts.info) {
@@ -64,6 +73,52 @@ if (opts.config) {
 }
 
 main();
+
+function configureDefaultLogger(output: string) {
+    log4js.configure({
+        appenders: {
+            err: { 
+                type: output ,
+                layout: {
+                    type: "pattern",
+                    pattern: "%[%d %p %f{1} %m%]"
+                }
+            }
+        },
+        categories: {
+            default: { appenders: ["err"], level: "off" , enableCallStack: true }
+        }
+    });
+}
+
+function configureJSONLogger(output: string) {
+    log4js.addLayout('json-pattern', (config) => {
+        return (logEvent) => {
+            return JSON.stringify({
+            timestamp: logEvent.startTime,  // Similar to %d
+            level: logEvent.level.levelStr, // Similar to %p
+            category: logEvent.categoryName,// Similar to %c
+            message: logEvent.data.join(' '), // Similar to %m
+            context: logEvent.context,      // Similar to %X (tokens)
+            pid: logEvent.pid               // Similar to %z
+            });
+        };
+    });
+
+    log4js.configure({
+        appenders: {
+            err: { 
+                type: output ,
+                layout: {
+                    type: "json-pattern"
+                }
+            }
+        },
+        categories: {
+            default: { appenders: ["err"], level: "off" , enableCallStack: true }
+        }
+    });
+}
 
 async function main() : Promise<void> {
     const url = program.args[0];
