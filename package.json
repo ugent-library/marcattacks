@@ -37,6 +37,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
     "commander": "^14.0.2",
+    "dotenv": "^17.2.3",
     "fast-xml-parser": "^5.3.2",
     "jsonata": "^2.1.0",
     "log4js": "^6.9.1",

@@ -12,6 +12,7 @@ import { SlowWritable } from './slow-writable.js';
 import path from "node:path";
 import fs from 'fs';
 import { s3ReaderStream, s3WriterStream } from './s3stream.js';
+import dotenv from 'dotenv';
 
 log4js.configure({
   appenders: {
@@ -30,6 +31,7 @@ log4js.configure({
 
 program.version('0.1.0')
     .argument('<file>')
+    .option('-c,--config <config>','config .env',path.join(process.cwd(), '.env'))
     .option('-f,--from <from>','input type','xml')
     .option('-t,--to <output>','output type','json')
     .option('-m,--map <map>','data mapper','json')
@@ -55,6 +57,10 @@ if (opts.debug) {
 
 if (opts.trace) {
     logger.level = "trace";
+}
+
+if (opts.config) {
+    dotenv.config({ path: opts.config });
 }
 
 main();
