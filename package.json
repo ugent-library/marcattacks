@@ -11,7 +11,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:ts": "npx tsc",
-    "build:watch": "npx tsc -w"
+    "build:watch": "npx tsc -w",
+    "docker:build": "docker build . -t hochstenbach/marcattacks:v0.0.1",
+    "docker:run": "docker run --rm -v `pwd`/data:/app/data -it hochstenbach/marcattacks:v0.0.1 --to rdf --map rdf data/sample.xml",
+    "docker:push": "docker push hochstenbach/marcattacks:v0.0.1"
   },
   "keywords": [],
   "license": "MIT",
