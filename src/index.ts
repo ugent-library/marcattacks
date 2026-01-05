@@ -13,6 +13,7 @@ import path from "node:path";
 import fs from 'fs';
 import { s3ReaderStream, s3WriterStream } from './s3stream.js';
 import dotenv from 'dotenv';
+import { finished } from 'node:stream/promises';
 
 program.version('0.1.0')
     .argument('<file>')
@@ -215,6 +216,7 @@ async function main() : Promise<void> {
     if (opts.to) {
         const mod = await loadPlugin(opts.to,'output');
         mod.readable2writable(resultStream, outStream);
+        await finished(outStream);
     }
 }
 
