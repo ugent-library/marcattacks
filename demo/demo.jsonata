@@ -8,19 +8,28 @@
         $marcmap($path)[0]
     };
 
+    $creatorid := function () {
+       ( 
+        $id := $marcmap("1000")[0];
+        $contains($id,/\(viaf\).*/) ?
+            $replace($id,/.*\(viaf\)(.*)/, "https://viaf.org/viaf/$1") :
+            $genid()
+       )
+    };
+
     $typeLookupTable := {
-        "_": "schema:CreativeWork", /* default */
-        "book": "schema:Book",
-        "catalog": "schema:Book",
-        "correspondence": "schema:CreativeWork",
-        "dissertation": "schema:Thesis",
-        "ephemera": "schema:CreativeWork",
-        "image": "schema:VisualWork",
-        "manuscript": "schema:Book",
-        "map": "schema:Map",
-        "master": "schema:Thesis",
-        "periodical": "schema:Periodical",
-        "phd": "schema:Thesis"
+        "_": "CreativeWork", /* default */
+        "book": "Book",
+        "catalog": "Book",
+        "correspondence": "CreativeWork",
+        "dissertation": "Thesis",
+        "ephemera": "CreativeWork",
+        "image": "VisualWork",
+        "manuscript": "Book",
+        "map": "Map",
+        "master": "Thesis",
+        "periodical": "Periodical",
+        "phd": "Thesis"
     };
 
     $typeLookup := function ($val) {(
@@ -30,13 +39,24 @@
     /******end helper functions******/
 
     { 
+        "@context": {
+            "my": "http://lib.ugent.be/catalog/",
+            "genid": "http://lib.ugent.be/.well-known/genid/",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "@vocab": "http://schema.org/"
+        },
         "@id": "my:" & $marcmap0("001"),
         "@type": $typeLookup($marcmap0("920a")),
-        "name": $marcmap("245ab") ~> $join(" ") ~> $strip() ,
-        "subject": $marcmap("500a") ~> $map(function ($val) {
+        "dc:title": $marcmap("245ab") ~> $join(" ") ~> $strip() ,
+        "dc:creator": {
+            "@id": $creatorid(),
+            "@type": "Person",
+            "name": $marcmap0("100a") ~> $strip()
+        },
+        "dc:subject": $marcmap("500a") ~> $map(function ($val) {
             { 
                 "@id": $genid(),
-                "@type": "schema:Subject",
+                "@type": "Subject",
                 "name": $val 
             }
         })

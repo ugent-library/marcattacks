@@ -70,7 +70,7 @@ if (opts.trace) {
 }
 
 if (opts.config) {
-    dotenv.config({ path: opts.config });
+    dotenv.config({ path: opts.config , quiet: true });
 }
 
 main();
