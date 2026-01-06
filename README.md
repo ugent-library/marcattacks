@@ -87,6 +87,7 @@ use `s3s://...` for using a SSL layer.
 - alephseq (Aleph sequential)
 - json
 - jsonl
+- rdf
 
 ### Output (--to)
 
@@ -98,9 +99,14 @@ use `s3s://...` for using a SSL layer.
 
 ### Transform (--map)
 
-- rdf
+- jsonata (_default_: A jsonata fixer)
+- marc2rdf (A mapper from MARC to RDF)
 
-Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
+Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
+
+### Fix (--fix)
+
+Provide a (jsonata) fix file to apply to the input data. See: ./demo/demo.jsonata for an example.
 
 ### Writable (--out)
 
