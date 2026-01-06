@@ -36,7 +36,7 @@ marcattacks --to alephseq <file>
 Generate RDF:
 
 ```
-marcattacks --to rdf --map rdf <file>
+marcattacks --to rdf --map marc2rdf <file>
 ```
 
 Generate XML:
@@ -115,3 +115,12 @@ Provide a (jsonata) fix file to apply to the input data. See: ./demo/demo.jsonat
 - sftp://username@host:port/path
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
  
+### Logging
+
+Logging messages can be provided with the `--info`, `--debug` and `--trace` options.
+
+Default the logging format is a text format that is written to stderr. This logging format and the output stream can be changed with the `--log` option:
+
+- `--log json` : write logs in a JSON format
+- `--log stdout` : write logs to the stdout
+- `--log json+stdout` : write logs in a JSON format and to the stdout
