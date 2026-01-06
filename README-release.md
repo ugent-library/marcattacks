@@ -1,3 +1,9 @@
+Login:
+
+```
+npm login
+```
+
 Bug fix:
 
 ```
