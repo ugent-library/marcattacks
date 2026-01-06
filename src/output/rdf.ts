@@ -44,6 +44,7 @@ export function readable2writable(readable: Readable, writable: Writable) : void
             let objectValue = 
                 object.type === 'NamedNode' ? namedNode(object.value) 
                 : object.type === 'BlankNode' ? blankNode(object.value)
+                : object.type === 'Literal' && object.language ? literal(object.value, object.language)
                 : object.type === 'Literal' && object.as ? literal(object.value, namedNode(object.as))
                 : object.type === 'Literal' ? literal(object.value)
                 : namedNode(object.value);

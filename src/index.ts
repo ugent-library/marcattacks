@@ -173,7 +173,9 @@ async function main() : Promise<void> {
    
     if (opts.from) {
         const mod = await loadPlugin(opts.from,'input');
-        objectStream = mod.stream2readable(readableStream);
+        objectStream = mod.stream2readable(readableStream, {
+            path: inputFile
+        });
     }
     else {
         console.error(`Need --from`);
