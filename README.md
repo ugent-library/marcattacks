@@ -1,6 +1,6 @@
 # marcattacks!
 
-<img src="logo.jpg" width="10%">
+<img src="https://codeberg.org/phochste/marcattacks/media/branch/main/logo.jpg" width="10%">
 
 Turn your MARC exports into something else.
 
