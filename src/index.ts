@@ -122,126 +122,133 @@ function configureJSONLogger(output: string) {
 }
 
 async function main() : Promise<void> {
-    const url = program.args[0];
+    try {
+        const url = program.args[0];
 
-    if (! url) {
-        console.error(`need an input file`);
-        process.exit(2);
-    }
+        if (! url) {
+            console.error(`need an input file`);
+            process.exit(2);
+        }
 
-    let inputFile : URL;
+        let inputFile : URL;
 
-    if (fs.existsSync(url)) {
-        const filePath = path.resolve(process.cwd(), url);
-        inputFile = pathToFileURL(filePath);
-    }
-    else {
-        inputFile = new URL(url);
-    }
-
-    logger.info(`using: ${getCleanURL(inputFile)}`);
-
-    let readableStream;
-
-    if (inputFile.protocol.startsWith("http")) {
-        readableStream = await httpReadStream(inputFile.toString());
-    }
-    else if (inputFile.protocol.startsWith("s3")) {
-        readableStream = await s3ReaderStream(inputFile,{});
-    }
-    else if (inputFile.protocol === 'sftp:') {
-        const config = makeSftpConfig(inputFile,opts);
-
-        let remotePath;
-
-        if (inputFile.pathname.match(/\/@latest:\w+$/)) {
-            const remoteDir = inputFile.pathname.replace(/\/@latest.*/,"");
-            const extension = inputFile.pathname.replace(/.*\/@latest:/,"");
-            remotePath = await sftpLatestFile(config,remoteDir,extension);
+        if (fs.existsSync(url)) {
+            const filePath = path.resolve(process.cwd(), url);
+            inputFile = pathToFileURL(filePath);
         }
         else {
-            remotePath = inputFile.pathname;
+            inputFile = new URL(url);
         }
 
-        readableStream = await sftpReadStream(remotePath, config);
-    }
-    else {
-        readableStream = fs.createReadStream(inputFile);
-    }
+        logger.info(`using: ${getCleanURL(inputFile)}`);
 
-    let objectStream : Readable;
-   
-    if (opts.from) {
-        const mod = await loadPlugin(opts.from,'input');
-        objectStream = await mod.stream2readable(readableStream, {
-            path: inputFile
-        });
-    }
-    else {
-        console.error(`Need --from`);
-        process.exit(1);
-    }
+        let readableStream;
 
-    let resultStream = objectStream;
-
-    if (opts.map) {
-        const mod = await loadPlugin(opts.map,'transform');
-        const transformer : Transform = await mod.transform(opts.fix);
-        resultStream = objectStream.pipe(transformer);
-    }
-
-    let outStream : Writable;
-
-    if (opts.out === '@slow') {
-        outStream = new SlowWritable({ delayMs: 100 });
-    }
-    else if (opts.out) {
-        if (opts.out.startsWith("sftp")) {
-            const url = new URL(opts.out);
-
-            if (process.env.SFTP_USERNAME) {
-                url.username = process.env.SFTP_USERNAME;
-            }
-
-            if (process.env.SFTP_PASSWORD) {
-                url.password = process.env.SFTP_PASSWORD;
-            }
-
-            const config = makeSftpConfig(url,opts);
-            logger.info(`put ${getCleanURL(url)}`);
-            outStream = await sftpWriteStream(url.href, config);
+        if (inputFile.protocol.startsWith("http")) {
+            readableStream = await httpReadStream(inputFile.toString());
         }
-        else if (opts.out.startsWith("s3")) {
-            const url = new URL(opts.out);
+        else if (inputFile.protocol.startsWith("s3")) {
+            readableStream = await s3ReaderStream(inputFile,{});
+        }
+        else if (inputFile.protocol === 'sftp:') {
+            const config = makeSftpConfig(inputFile,opts);
 
-            if (process.env.S3_ACCESS_KEY) {
-                url.username = process.env.S3_ACCESS_KEY;
+            let remotePath;
+
+            if (inputFile.pathname.match(/\/@latest:\w+$/)) {
+                const remoteDir = inputFile.pathname.replace(/\/@latest.*/,"");
+                const extension = inputFile.pathname.replace(/.*\/@latest:/,"");
+                remotePath = await sftpLatestFile(config,remoteDir,extension);
+            }
+            else {
+                remotePath = inputFile.pathname;
             }
 
-            if (process.env.S3_SECRET_KEY) {
-                url.password = process.env.S3_SECRET_KEY;
-            }
-
-            logger.info(`put ${getCleanURL(url)}`);
-            outStream = await s3WriterStream(url,{});
+            readableStream = await sftpReadStream(remotePath, config);
         }
         else {
-            outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
+            readableStream = fs.createReadStream(inputFile);
         }
-    }
-    else {
-        outStream = process.stdout;
-    }
 
-    if (opts.to) {
-        try {
-            const mod = await loadPlugin(opts.to,'output');
-            mod.readable2writable(resultStream, outStream);
-            await finished(outStream);
+        let objectStream : Readable;
+    
+        if (opts.from) {
+            const mod = await loadPlugin(opts.from,'input');
+            objectStream = await mod.stream2readable(readableStream, {
+                path: inputFile
+            });
         }
-        catch (e) {
-            logger.warn(`process exited with: ${e}`);
+        else {
+            console.error(`Need --from`);
+            process.exit(1);
         }
+
+        let resultStream = objectStream;
+
+        if (opts.map) {
+            const mod = await loadPlugin(opts.map,'transform');
+            const transformer : Transform = await mod.transform(opts.fix);
+            resultStream = objectStream.pipe(transformer);
+        }
+
+        let outStream : Writable;
+
+        if (opts.out === '@slow') {
+            outStream = new SlowWritable({ delayMs: 100 });
+        }
+        else if (opts.out) {
+            if (opts.out.startsWith("sftp")) {
+                const url = new URL(opts.out);
+
+                if (process.env.SFTP_USERNAME) {
+                    url.username = process.env.SFTP_USERNAME;
+                }
+
+                if (process.env.SFTP_PASSWORD) {
+                    url.password = process.env.SFTP_PASSWORD;
+                }
+
+                const config = makeSftpConfig(url,opts);
+                logger.info(`put ${getCleanURL(url)}`);
+                outStream = await sftpWriteStream(url.href, config);
+            }
+            else if (opts.out.startsWith("s3")) {
+                const url = new URL(opts.out);
+
+                if (process.env.S3_ACCESS_KEY) {
+                    url.username = process.env.S3_ACCESS_KEY;
+                }
+
+                if (process.env.S3_SECRET_KEY) {
+                    url.password = process.env.S3_SECRET_KEY;
+                }
+
+                logger.info(`put ${getCleanURL(url)}`);
+                outStream = await s3WriterStream(url,{});
+            }
+            else {
+                outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
+            }
+        }
+        else {
+            outStream = process.stdout;
+        }
+
+        if (opts.to) {
+            try {
+                const mod = await loadPlugin(opts.to,'output');
+                mod.readable2writable(resultStream, outStream);
+                await finished(outStream);
+            }
+            catch (e) {
+                logger.warn(`process exited with: ${e}`);
+                process.exit(2);
+            }
+        }
+    }
+    catch (e) {
+        logger.error(`process exited with: ${e}`);
+        process.exit(3);
     }
 }
 

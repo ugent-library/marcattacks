@@ -38,6 +38,10 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
         }
     });
 
+    rl.on('error', (error) => {
+        logger.error(`readline error ${error}`);
+    });
+
     rl.on('close', () => {
         readableStream.push(null);
         logger.info(`processed ${recordNum} records`);

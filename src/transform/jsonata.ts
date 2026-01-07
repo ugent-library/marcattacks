@@ -22,12 +22,6 @@ export async function transform(q: string) : Promise<Transform> {
             expression.registerFunction('marcmap', (code) => {
                 return marcmap(data['record'],code,{});
             });
-<<<<<<< HEAD:src/transform/json.ts
-            expression.registerFunction('strip', (value) => {
-                return value ? strip(value) : value;
-            });
-=======
->>>>>>> 69f2223e4706e5fb1e262dacdaf64f78d38239e2:src/transform/jsonata.ts
             expression.registerFunction('genid', () => {
                 return genid();
             });

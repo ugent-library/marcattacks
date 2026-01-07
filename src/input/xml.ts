@@ -1,4 +1,4 @@
-import { Readable } from 'stream';
+import { pipeline, Readable } from 'stream';
 import sax from 'sax';
 import log4js from 'log4js';
 
@@ -105,7 +105,9 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
     }); 
 
     parser.on("error", (err) => {
-        logger.error ("Parser error:", err);
+        logger.error ("Parser error:", err.message);
+        stream.destroy(err);
+        parser.destroy(err);
     });
 
     parser.on('end', () => {
@@ -117,6 +119,12 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
         }
         logger.info(`processed ${recordNum} records`);
         readableStream.destroy();
+    });
+
+    // Replace stream.pipe(parser) with an error-aware listener
+    stream.on('error', (err) => {
+        logger.error("Source stream error:", err);
+        readableStream.destroy(err);
     });
 
     stream.pipe(parser);
