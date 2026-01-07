@@ -1,0 +1,390 @@
+[{
+  "publisher": {
+    "name": "Springer"
+  },
+  "keyword": [
+    "decentralization",
+    "linked data",
+    "notifications",
+    "Scholarly communication",
+    "Digital libraries",
+    "Open science"
+  ],
+  "copyright_statement": "No license (in copyright)",
+  "_id": "8762613",
+  "biblio_id": "8762613",
+  "vabb_id": "c:vabb:532705",
+  "affiliation": [
+    {
+      "ugent_id": "CA20",
+      "name": "Department of Research Affairs",
+      "path": [
+        {
+          "ugent_id": "UGent"
+        },
+        {
+          "ugent_id": "CA"
+        },
+        {
+          "ugent_id": "CA20"
+        }
+      ]
+    },
+    {
+      "path": [
+        {
+          "ugent_id": "UGent"
+        },
+        {
+          "ugent_id": "TW"
+        },
+        {
+          "ugent_id": "TW06"
+        }
+      ],
+      "name": "Department of Electronics and information systems",
+      "ugent_id": "TW06"
+    },
+    {
+      "path": [
+        {
+          "ugent_id": "ResearchCenter"
+        },
+        {
+          "ugent_id": "IMEC"
+        }
+      ],
+      "ugent_id": "IMEC",
+      "name": "Imec"
+    }
+  ],
+  "conference_type": "proceedingsPaper",
+  "editor": [
+    {
+      "name": "Gianmaria Silvello",
+      "name_last_first": "Silvello, Gianmaria",
+      "first_name": "Gianmaria",
+      "last_name": "Silvello"
+    },
+    {
+      "name": "Oscar Corcho",
+      "name_last_first": "Corcho, Oscar",
+      "first_name": "Oscar",
+      "last_name": "Corcho"
+    },
+    {
+      "name": "Paolo Manghi",
+      "name_last_first": "Manghi, Paolo",
+      "first_name": "Paolo",
+      "last_name": "Manghi"
+    },
+    {
+      "name": "Giorgio Maria Di Nunzio",
+      "name_last_first": "Di Nunzio, Giorgio Maria",
+      "last_name": "Di Nunzio",
+      "first_name": "Giorgio Maria"
+    },
+    {
+      "name_last_first": "Golub, Koraljka",
+      "name": "Koraljka Golub",
+      "last_name": "Golub",
+      "first_name": "Koraljka"
+    },
+    {
+      "last_name": "Ferro",
+      "first_name": "Nicola",
+      "name_last_first": "Ferro, Nicola",
+      "name": "Nicola Ferro"
+    },
+    {
+      "name_last_first": "Poggi, Antonella",
+      "name": "Antonella Poggi",
+      "first_name": "Antonella",
+      "last_name": "Poggi"
+    }
+  ],
+  "wos_id": "000867565900011",
+  "vabb_type": "VABB-5",
+  "title": "Event notifications in value-adding networks",
+  "isbn": [
+    "9783031168017",
+    "9783031168024"
+  ],
+  "date_updated": "2025-12-02 20:19:55",
+  "issn": [
+    "0302-9743",
+    "1611-3349"
+  ],
+  "conference": {
+    "end_date": "2022-09-23",
+    "start_date": "2022-09-20",
+    "location": "Padua, ITALY",
+    "name": "26th International Conference on Theory and Practice of Digital Libraries (TPDL)"
+  },
+  "related_dataset": [
+    {
+      "_id": "01GJ0EQG78GRY8BCHW2XZESQ1F"
+    }
+  ],
+  "volume": "13541",
+  "publication_status": "published",
+  "wos_type": "Proceedings Paper",
+  "type": "conference",
+  "series_title": "Lecture notes in computer science",
+  "publication_status_sort": 2,
+  "year": "2022",
+  "author": [
+    {
+      "last_name": "Hochstenbach",
+      "_id": "F5134A54-F0ED-11E1-A9DE-61C894A0A6B4",
+      "orcid_id": "0000-0001-8390-6171",
+      "name": "Patrick Hochstenbach",
+      "biblio_id": "F5134A54-F0ED-11E1-A9DE-61C894A0A6B4",
+      "name_last_first": "Hochstenbach, Patrick",
+      "affiliation": [
+        {
+          "path": [
+            {
+              "ugent_id": "UGent"
+            },
+            {
+              "ugent_id": "CA"
+            },
+            {
+              "ugent_id": "CA20"
+            }
+          ],
+          "ugent_id": "CA20"
+        },
+        {
+          "ugent_id": "TW06",
+          "path": [
+            {
+              "ugent_id": "UGent"
+            },
+            {
+              "ugent_id": "TW"
+            },
+            {
+              "ugent_id": "TW06"
+            }
+          ]
+        }
+      ],
+      "first_name": "Patrick",
+      "ugent_id": [
+        "000211557707",
+        "801001101817"
+      ]
+    },
+    {
+      "affiliation": [
+        {
+          "name": "Ghent University",
+          "ugent_id": "UGent",
+          "path": [
+            {
+              "ugent_id": "UGent"
+            }
+          ]
+        }
+      ],
+      "first_name": "Herbert",
+      "ugent_id": [
+        "976013412542"
+      ],
+      "last_name": "Van de Sompel",
+      "_id": "6E421B04-B25E-11E6-B104-2D2FD0AF0289",
+      "name": "Herbert Van de Sompel",
+      "biblio_id": "6E421B04-B25E-11E6-B104-2D2FD0AF0289",
+      "name_last_first": "Van de Sompel, Herbert"
+    },
+    {
+      "last_name": "Vander Sande",
+      "first_name": "Miel",
+      "name": "Miel Vander Sande",
+      "name_last_first": "Vander Sande, Miel"
+    },
+    {
+      "name": "Ruben Dedecker",
+      "biblio_id": "20497948-3DED-11E4-8AC5-DAE6B4D1D7B1",
+      "name_last_first": "Dedecker, Ruben",
+      "last_name": "Dedecker",
+      "_id": "20497948-3DED-11E4-8AC5-DAE6B4D1D7B1",
+      "ugent_id": [
+        "802002936510",
+        "000140979901"
+      ],
+      "affiliation": [
+        {
+          "ugent_id": "TW06",
+          "path": [
+            {
+              "ugent_id": "UGent"
+            },
+            {
+              "ugent_id": "TW"
+            },
+            {
+              "ugent_id": "TW06"
+            }
+          ]
+        }
+      ],
+      "first_name": "Ruben"
+    },
+    {
+      "affiliation": [
+        {
+          "ugent_id": "TW06",
+          "path": [
+            {
+              "ugent_id": "UGent"
+            },
+            {
+              "ugent_id": "TW"
+            },
+            {
+              "ugent_id": "TW06"
+            }
+          ]
+        }
+      ],
+      "first_name": "Ruben",
+      "ugent_id": [
+        "802000069754"
+      ],
+      "_id": "115DF312-F0EE-11E1-A9DE-61C894A0A6B4",
+      "last_name": "Verborgh",
+      "orcid_id": "0000-0002-8596-222X",
+      "name": "Ruben Verborgh",
+      "biblio_id": "115DF312-F0EE-11E1-A9DE-61C894A0A6B4",
+      "name_last_first": "Verborgh, Ruben"
+    }
+  ],
+  "jcr": {},
+  "page": {
+    "first": "133",
+    "last": "146"
+  },
+  "classification": "P1",
+  "status": "public",
+  "vabb_approved": 0,
+  "handle": "http://hdl.handle.net/1854/LU-8762613",
+  "language": [
+    "eng"
+  ],
+  "project": [
+    {
+      "publication_count": 21,
+      "end_date": "2023-12-31",
+      "iweto_id": "41L04520",
+      "abstract": "<p> Description of Proposed Work: Motivated by concerns regarding the status quo of both the Web and Web-based scholarly communication, as well as by proposals to bring about change, we envision an alternative scholarly communication system that is researcher-centric, institution-enabled, and aligned with Decentralized Web concepts and technologies. In this vision, researchers use a personal domain and associated storage space as their long-term scholarly hub, and the core functions of scholarly communication (registration, certification, awareness, archiving) are fulfilled in a decoupled manner, that is, each function can simultaneously be fulfilled by multiple parties in different ways. We propose a technical exploration into the nature and feasibility of such a scholarly communication system. We aim (1) to demonstrate that devising a novel interoperable scholarly communication infrastructure is feasible by leveraging existing technologies and standards, and (2) to deliver a technical blueprint for a future decentralized and decoupled scholarly Web. Our explorations will take the current environment into account so that results will be usable to improve upon the existing communication system. Moreover, because of the close alignment of the proposed work with the technology stack that is at the basis of the Decentralized Web movement, the insights gained may very well have an impact on the Web at large. </p>",
+      "start_date": "2020-01-01",
+      "_id": "41L04520",
+      "title": "Scholarly Communications in the Decentralized Web",
+      "gismo_id": "940f917f-2cf1-40ec-848c-6e13a099df4d"
+    }
+  ],
+  "subject": [
+    "Technology and Engineering"
+  ],
+  "created_by": {
+    "_id": "F5134A54-F0ED-11E1-A9DE-61C894A0A6B4",
+    "last_name": "Hochstenbach",
+    "name_last_first": "Hochstenbach, Patrick",
+    "orcid_id": "0000-0001-8390-6171",
+    "name": "Patrick Hochstenbach",
+    "biblio_id": "F5134A54-F0ED-11E1-A9DE-61C894A0A6B4",
+    "first_name": "Patrick",
+    "affiliation": [
+      {
+        "ugent_id": "CA20",
+        "path": [
+          {
+            "ugent_id": "UGent"
+          },
+          {
+            "ugent_id": "CA"
+          },
+          {
+            "ugent_id": "CA20"
+          }
+        ]
+      },
+      {
+        "path": [
+          {
+            "ugent_id": "UGent"
+          },
+          {
+            "ugent_id": "TW"
+          },
+          {
+            "ugent_id": "TW06"
+          }
+        ],
+        "ugent_id": "TW06"
+      }
+    ],
+    "ugent_id": [
+      "000211557707",
+      "801001101817"
+    ]
+  },
+  "abstract": [
+    "Linkages between research outputs are crucial in the scholarly knowledge graph. They include online citations, but also links between versions that differ according to various dimensions and links to resources that were used to arrive at research results. In current scholarly communication systems this information is only made available post factum and is obtained via elaborate batch processing. In this paper we report on work aimed at making linkages available in real-time, in which an alternative, decentralised scholarly communication network is considered that consists of interacting data nodes that host artifacts and service nodes that add value to artifacts. The first result of this work, the \"Event Notifications in Value-Adding Networks\" specification, details interoperability requirements for the exchange of real-time life-cycle information pertaining to artifacts using Linked Data Notifications. In an experiment, we applied our specification to one particular use-case: distributing Scholix data-literature links to a network of Belgian institutional repositories by a national service node. The results of our experiment confirm the potential of our approach and provide a framework to create a network of interacting nodes implementing the core scholarly functions (registration, certification, awareness and archiving) in a decentralized and decoupled way."
+  ],
+  "external": 0,
+  "file": [
+    {
+      "thumbnail_url": "https://biblio.ugent.be/publication/8762613/file/8762616/thumbnail.png",
+      "name": "Notifications_in_Value_Adding_Networks.pdf",
+      "url": "https://biblio.ugent.be/publication/8762613/file/8762616.pdf",
+      "_id": "8762616",
+      "access": "open",
+      "content_type": "application/pdf",
+      "size": "448014",
+      "kind": "fullText",
+      "publication_version": "acceptedVersion",
+      "sha256": "69f664fb78694243911a166b7569edb0a31d3e083b73b3b6950584a3f3395683"
+    },
+    {
+      "content_type": "application/pdf",
+      "access": "restricted",
+      "_id": "8768978",
+      "name": "publisher_version.pdf",
+      "url": "https://biblio.ugent.be/publication/8762613/file/8768978.pdf",
+      "thumbnail_url": "https://biblio.ugent.be/publication/8762613/file/8768978/thumbnail.png",
+      "sha256": "386990697dd57734809f956baf89dad3fffde444b7472a459828476a8ebc83a3",
+      "publication_version": "publishedVersion",
+      "size": "748197",
+      "kind": "fullText"
+    }
+  ],
+  "parent": {
+    "title": "LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)"
+  },
+  "doi": [
+    "10.1007/978-3-031-16802-4_11"
+  ],
+  "abstract_full": [
+    {
+      "text": "Linkages between research outputs are crucial in the scholarly knowledge graph. They include online citations, but also links between versions that differ according to various dimensions and links to resources that were used to arrive at research results. In current scholarly communication systems this information is only made available post factum and is obtained via elaborate batch processing. In this paper we report on work aimed at making linkages available in real-time, in which an alternative, decentralised scholarly communication network is considered that consists of interacting data nodes that host artifacts and service nodes that add value to artifacts. The first result of this work, the \"Event Notifications in Value-Adding Networks\" specification, details interoperability requirements for the exchange of real-time life-cycle information pertaining to artifacts using Linked Data Notifications. In an experiment, we applied our specification to one particular use-case: distributing Scholix data-literature links to a network of Belgian institutional repositories by a national service node. The results of our experiment confirm the potential of our approach and provide a framework to create a network of interacting nodes implementing the core scholarly functions (registration, certification, awareness and archiving) in a decentralized and decoupled way.",
+      "lang": "eng"
+    }
+  ],
+  "vabb_year": [
+    "2023"
+  ],
+  "date_created": "2022-08-03 11:36:17",
+  "cite": {
+    "mla": "  <div class=\"csl-entry\">Hochstenbach, Patrick, et al. “Event Notifications in Value-Adding Networks.” <i>LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)</i>, edited by Gianmaria Silvello et al., vol. 13541, Springer, 2022, pp. 133–46, doi:10.1007/978-3-031-16802-4_11.</div>\n",
+    "chicago-author-date": "  <div class=\"csl-entry\">Hochstenbach, Patrick, Herbert Van de Sompel, Miel Vander Sande, Ruben Dedecker, and Ruben Verborgh. 2022. “Event Notifications in Value-Adding Networks.” In <i>LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)</i>, edited by Gianmaria Silvello, Oscar Corcho, Paolo Manghi, Giorgio Maria Di Nunzio, Koraljka Golub, Nicola Ferro, and Antonella Poggi, 13541:133–46. Springer. https://doi.org/10.1007/978-3-031-16802-4_11.</div>\n",
+    "apa": "  <div class=\"csl-entry\">Hochstenbach, P., Van de Sompel, H., Vander Sande, M., Dedecker, R., &#38; Verborgh, R. (2022). Event notifications in value-adding networks. In G. Silvello, O. Corcho, P. Manghi, G. M. Di Nunzio, K. Golub, N. Ferro, &#38; A. Poggi (Eds.), <i>LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)</i> (Vol. 13541, pp. 133–146). https://doi.org/10.1007/978-3-031-16802-4_11</div>\n",
+    "bof": "  <div class=\"csl-entry\">Hochstenbach, Patrick, Herbert Van de Sompel, Miel Vander Sande, Ruben Dedecker, and Ruben Verborgh. 2022. “Event Notifications in Value-Adding Networks.” In <i>LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)</i>, ed by. Gianmaria Silvello, Oscar Corcho, Paolo Manghi, Giorgio Maria Di Nunzio, Koraljka Golub, Nicola Ferro, and Antonella Poggi, 13541:133–146. Springer. doi:10.1007/978-3-031-16802-4_11.</div>\n",
+    "fwo": "  <div class=\"csl-entry\">Hochstenbach, Patrick, Herbert Van de Sompel, Miel Vander Sande, Ruben Dedecker, and Ruben Verborgh. 2022. “Event Notifications in Value-Adding Networks.” In <i>LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)</i>, ed by. Gianmaria Silvello, Oscar Corcho, Paolo Manghi, Giorgio Maria Di Nunzio, Koraljka Golub, Nicola Ferro, and Antonella Poggi, 13541:133–146. Springer. doi:10.1007/978-3-031-16802-4_11.</div>\n",
+    "vancouver": "  <div class=\"csl-entry\">\n    <div class=\"csl-left-margin\">1. </div><div class=\"csl-right-inline\">Hochstenbach P, Van de Sompel H, Vander Sande M, Dedecker R, Verborgh R. Event notifications in value-adding networks. In: Silvello G, Corcho O, Manghi P, Di Nunzio GM, Golub K, Ferro N, et al., editors. LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022). Springer; 2022. p. 133–46.</div>\n   </div>\n",
+    "ieee": "  <div class=\"csl-entry\">\n    <div class=\"csl-left-margin\">[1]</div><div class=\"csl-right-inline\">P. Hochstenbach, H. Van de Sompel, M. Vander Sande, R. Dedecker, and R. Verborgh, “Event notifications in value-adding networks,” in <i>LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)</i>, Padua, ITALY, 2022, vol. 13541, pp. 133–146.</div>\n  </div>\n"
+  }
+}]

@@ -4,7 +4,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export function stream2readable(stream: Readable) : Readable {
+export async function stream2readable(stream: Readable, _opts: any) : Promise<Readable> {
     let recordNum = 0;
 
     const rl = readline.createInterface({input: stream, crlfDelay: Infinity});

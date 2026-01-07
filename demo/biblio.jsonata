@@ -1,0 +1,285 @@
+(
+    /*** start helper functions ***/
+
+    /* If no _id exists for an object create a 'genid' (an RDF blank node that looks like an IRI) */
+    /* genid() is a built-in we defined somewhere in the Javascript code base */
+    $fixObjectId := function($obj) {
+        $obj ? ($exists($obj._id) ? $obj : $merge([$obj, {"_id": $genid()}])) : undefined
+    };
+
+    /* The same as fixObjectId, but now for an array of objects */
+    $fixObjectArrayId := function($arr) {
+        $arr ?
+            $arr[].(
+                $exists(_id) ? $ : $merge([$, {"_id": $genid()}])
+            )
+            : undefined
+    };
+
+    /* In the biblio dataset, some objects use the 'url' field as identifier, also here the genid trick */
+    $fixObjectArrayUrl := function($arr) {
+        $arr ?
+            $arr[].(
+                $exists(url) ? $ : $merge([$, {"url": $genid()}])
+            )
+            : undefined
+    };
+
+    /* In general, we try to avoid regular blank nodes in massive RDF dumps */
+
+    /*** end helper functions ***/
+
+    $merge([
+        $
+        ,
+        /* Fixing fields */
+        { 
+            "@type": "https://biblio.ugent.be/ns#" & classification,
+            "affiliation": $fixObjectArrayId(affiliation),
+            /* Fix authors and nested affiliations getting rid of blank nodes */
+            "author": author[].(
+                $authorFixed := $fixObjectId($);
+                $merge([
+                    $authorFixed, 
+                    { 
+                        "affiliation": $fixObjectArrayId($authorFixed.affiliation[]) 
+                    }
+                ])
+            ),
+            "date_created": (date_created ~> $replace(" ", "T")) & "Z",
+            "date_updated": (date_created ~> $replace(" ", "T")) & "Z",
+            "conference": $fixObjectId(conference),
+            /* Fix editors of blank nodes */
+            "editor": editor[].(
+                $editorFixed := $fixObjectId($);
+                $merge([
+                    $editorFixed, 
+                    { 
+                        "affiliation": $fixObjectArrayId($editorFixed.affiliation[]) 
+                    }
+                ])
+            ),
+            "file": $fixObjectArrayUrl(file),
+            /* Fix promoters of blank nodes */
+            "promoter": promoter[].(
+                $promoterFixed := $fixObjectId($);
+                $merge([
+                    $promoterFixed, 
+                    { 
+                        "affiliation": $fixObjectArrayId($promoterFixed.affiliation[]) 
+                    }
+                ])
+            ),
+            "publisher": $fixObjectId(publisher),
+            "page": $fixObjectId(page)
+        }
+        , 
+        /* Add the JSON-LD context */
+        {
+            "@context" : {
+            "@version" : 1.1,
+            "@base" : "https://biblio.ugent.be/publication/" ,
+            "genid" : "https://biblio.ugent.be/.well-known/genid/",
+            "bibo" : "http://purl.org/ontology/bibo/",
+            "dc" : "http://purl.org/dc/elements/1.1/",
+            "dcmi" : "http://purl.org/dc/dcmitype/",
+            "dcterms" : "http://purl.org/dc/terms/",
+            "event" : "http://purl.org/NET/c4dm/event.owl#" ,
+            "foaf" : "http://xmlns.com/foaf/0.1/",
+            "orcid" : "http://orcid.org/",
+            "schema" : "http://schema.org/",
+            "ugent" : "http://lib.ugent.be/biblio/",
+            "xsd" : "http://www.w3.org/2001/XMLSchema#",
+
+            "_id": "@id",
+            "abstract" : "schema:abstract",
+            "affiliation" : {
+                "@id" : "schema:sourceOrganization",
+                "@context" : {
+                    "ugent_id" : {
+                        "@type" : "@id",
+                        "@id" : "foaf:member",
+                        "@context" : {
+                            "@base" : "https://biblio.ugent.be/organization/"
+                        }
+                    }
+                }
+            },
+            "author" : {
+                "@id" : "schema:author",
+                "@context" : {
+                    "@base" : "http://biblio.ugent.be/person/",
+                    "last_name" : "foaf:familyName",
+                    "ugent_id" : {
+                        "@context" : {
+                            "@base" : "http://biblio.ugent.be/person/"
+                        },
+                        "@id" : "foaf:publications",
+                        "@type" : "@id"
+                    },
+                    "biblio_id" : {
+                        "@type" : "@id",
+                        "@context" : {
+                            "@base" : "http://biblio.ugent.be/person/"
+                        },
+                        "@id" : "schema:identifier"
+                    },
+                    "orcid_id" : {
+                        "@type" : "@id",
+                        "@context" : {
+                            "@base" : "http://orcid.org/"
+                        },
+                        "@id" : "schema:identifier"
+                    },
+                    "first_name" : "foaf:givenName",
+                    "name" : "foaf:name"
+                }
+            },
+            "classification" : {
+                "@id" : "ugent:classification",
+                "@context" : {
+                    "@base" : "http://biblio.ugent.be/classification/"
+                },
+                "@type" : "@id"
+            },
+            "conference" : {
+                "@id" : "bibo:presentedAt" ,
+                "@context" : {
+                    "location" : "event:place" ,
+                    "name" : "dc:title" ,
+                    "organizer" : "bibo:organizer" ,
+                    "start_time" : "event:time"
+                }
+            } ,
+            "date_created" : {
+                "@id": "schema:dateCreated",
+                "@type": "xsd:dateTime"
+            },
+            "date_updated" : {
+                "@id": "schema:dateModified",
+                "@type": "xsd:dateTime"
+            },
+            "doi" : "bibo:doi",
+            "editor" : {
+                "@id" : "schema:editor" ,
+                "@context" : {
+                    "@base" : "http://biblio.ugent.be/person/",
+                    "name" : "foaf:name",
+                    "first_name" : "foaf:givenName",
+                    "orcid_id" : {
+                    "@type" : "@id",
+                    "@context" : {
+                        "@base" : "http://orcid.org/"
+                    },
+                    "@id" : "schema:identifier"
+                    },
+                    "biblio_id" : {
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "schema:identifier",
+                    "@type" : "@id"
+                    },
+                    "ugent_id" : {
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "foaf:publications",
+                    "@type" : "@id"
+                    },
+                    "last_name" : "foaf:familyName"
+                }
+            },
+            "file" : {
+                "@context" : {
+                    "_id" : null,
+                    "url" : "@id",
+                    "kind" : {
+                        "@type" : "@id",
+                        "@context" : {
+                            "@base" : "http://lib.ugent.be/biblio/"
+                        },
+                        "@id" : "dc:type"
+                    },
+                    "size" : "dcterms:extent",
+                    "content_type" : "dc:format",
+                    "access" : {
+                        "@context" : {
+                            "@base" : "http://lib.ugent.be/biblio/"
+                        },
+                        "@id" : "dcterms:accessRight",
+                        "@type" : "@id"
+                    }
+                },
+                "@id" : "dcterms:hasPart"
+            },
+            "handle" : {
+                "@id" : "schema:sameAs",
+                "@type" : "@id"
+            },
+            "issn" : "bibo:issn" ,
+            "isbn" : "bibo:isbn" ,
+            "issue" : "bibo:issue" ,
+            "language" : "dc:language",
+            "page" : {
+                "@id" : "schema:pagination",
+                "@context" : {
+                    "first" : "schema:pageStart",
+                    "last" : "schema:pageEnd"
+                }
+            },
+            "publisher" : {
+                "@id" : "schema:publisher" ,
+                "@context" : {
+                    "name" : "dcterms:publisher",
+                    "location" : "bibo:based_near"
+                }
+            },
+            "promoter" : {
+                "@id" : "ugent:promoter",
+                "@context" : {
+                    "@base" : "http://biblio.ugent.be/person/",
+                    "name" : "foaf:name",
+                    "first_name" : "foaf:givenName",
+                    "orcid_id" : {
+                    "@type" : "@id",
+                    "@context" : {
+                        "@base" : "http://orcid.org/"
+                    },
+                    "@id" : "schema:identifier"
+                    },
+                    "biblio_id" : {
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "schema:identifier",
+                    "@type" : "@id"
+                    },
+                    "ugent_id" : {
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "foaf:publications",
+                    "@type" : "@id"
+                    },
+                    "last_name" : "foaf:familyName"
+                }
+            },
+            "subject" : "dcterms:subject" ,
+            "title" : "schema:name",
+            "type" : {
+                "@id" : "dc:type",
+                "@context" : {
+                    "@base" : "http://biblio.ugent.be/type/"
+                },
+                "@type" : "@id"
+            },
+            "volume" : "bibo:volume",
+            "year" : {
+                "@type" : "xsd:dateTime",
+                "@id" : "dc:date"
+            }
+        }
+        }
+    ])
+)

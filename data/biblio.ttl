@@ -1,0 +1,108 @@
+<https://biblio.ugent.be/.well-known/genid/6361369f-0fc1-4ed0-912a-91ded46d25be> <http://purl.org/dc/terms/publisher> "Springer".
+<https://biblio.ugent.be/.well-known/genid/7da8e09d-4fd6-4502-aa00-cbed0d535a4c> <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/CA20>.
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/7da8e09d-4fd6-4502-aa00-cbed0d535a4c>.
+<https://biblio.ugent.be/.well-known/genid/51b972d7-e0ac-40a7-bff6-72a3e5b2ac13> <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/TW06>.
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/51b972d7-e0ac-40a7-bff6-72a3e5b2ac13>.
+<https://biblio.ugent.be/.well-known/genid/41c8b772-997e-47e9-ad39-694a223a9616> <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/IMEC>.
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/41c8b772-997e-47e9-ad39-694a223a9616>.
+<https://biblio.ugent.be/.well-known/genid/7968573c-9d0c-4f3c-b3a9-8f7a41605ad3> <http://xmlns.com/foaf/0.1/name> "Gianmaria Silvello";
+    <http://xmlns.com/foaf/0.1/givenName> "Gianmaria";
+    <http://xmlns.com/foaf/0.1/familyName> "Silvello".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/editor> <https://biblio.ugent.be/.well-known/genid/7968573c-9d0c-4f3c-b3a9-8f7a41605ad3>.
+<https://biblio.ugent.be/.well-known/genid/593342a4-db25-4e14-9dcf-924cd3650b42> <http://xmlns.com/foaf/0.1/name> "Oscar Corcho";
+    <http://xmlns.com/foaf/0.1/givenName> "Oscar";
+    <http://xmlns.com/foaf/0.1/familyName> "Corcho".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/editor> <https://biblio.ugent.be/.well-known/genid/593342a4-db25-4e14-9dcf-924cd3650b42>.
+<https://biblio.ugent.be/.well-known/genid/64090fde-3840-48ac-9ec3-da7f421c9226> <http://xmlns.com/foaf/0.1/name> "Paolo Manghi";
+    <http://xmlns.com/foaf/0.1/givenName> "Paolo";
+    <http://xmlns.com/foaf/0.1/familyName> "Manghi".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/editor> <https://biblio.ugent.be/.well-known/genid/64090fde-3840-48ac-9ec3-da7f421c9226>.
+<https://biblio.ugent.be/.well-known/genid/5c0e0a4f-0784-4e45-83f9-4ed002a8473f> <http://xmlns.com/foaf/0.1/name> "Giorgio Maria Di Nunzio";
+    <http://xmlns.com/foaf/0.1/familyName> "Di Nunzio";
+    <http://xmlns.com/foaf/0.1/givenName> "Giorgio Maria".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/editor> <https://biblio.ugent.be/.well-known/genid/5c0e0a4f-0784-4e45-83f9-4ed002a8473f>.
+<https://biblio.ugent.be/.well-known/genid/0363975d-84a6-4f6f-933f-8c79b7e50701> <http://xmlns.com/foaf/0.1/name> "Koraljka Golub";
+    <http://xmlns.com/foaf/0.1/familyName> "Golub";
+    <http://xmlns.com/foaf/0.1/givenName> "Koraljka".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/editor> <https://biblio.ugent.be/.well-known/genid/0363975d-84a6-4f6f-933f-8c79b7e50701>.
+<https://biblio.ugent.be/.well-known/genid/e3f00568-c002-40f7-9511-c4876988f381> <http://xmlns.com/foaf/0.1/familyName> "Ferro";
+    <http://xmlns.com/foaf/0.1/givenName> "Nicola";
+    <http://xmlns.com/foaf/0.1/name> "Nicola Ferro".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/editor> <https://biblio.ugent.be/.well-known/genid/e3f00568-c002-40f7-9511-c4876988f381>.
+<https://biblio.ugent.be/.well-known/genid/e2cd5f58-d75e-4875-ac2a-ec70b4d52e9f> <http://xmlns.com/foaf/0.1/name> "Antonella Poggi";
+    <http://xmlns.com/foaf/0.1/givenName> "Antonella";
+    <http://xmlns.com/foaf/0.1/familyName> "Poggi".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/editor> <https://biblio.ugent.be/.well-known/genid/e2cd5f58-d75e-4875-ac2a-ec70b4d52e9f>;
+    <http://schema.org/name> "Event notifications in value-adding networks";
+    <http://purl.org/ontology/bibo/isbn> "9783031168017", "9783031168024";
+    <http://schema.org/dateModified> "2022-08-03T11:36:17+01:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+    <http://purl.org/ontology/bibo/issn> "0302-9743", "1611-3349".
+<https://biblio.ugent.be/.well-known/genid/1a5631df-392e-41fa-be54-64316e1670c2> <http://purl.org/NET/c4dm/event.owl#place> "Padua, ITALY";
+    <http://purl.org/dc/elements/1.1/title> "26th International Conference on Theory and Practice of Digital Libraries (TPDL)".
+<https://biblio.ugent.be/publication/8762613> <http://purl.org/ontology/bibo/presentedAt> <https://biblio.ugent.be/.well-known/genid/1a5631df-392e-41fa-be54-64316e1670c2>;
+    <http://purl.org/ontology/bibo/volume> "13541";
+    <http://purl.org/dc/elements/1.1/type> <http://biblio.ugent.be/type/conference>;
+    <http://purl.org/dc/elements/1.1/date> "2022"^^<http://www.w3.org/2001/XMLSchema#dateTime>.
+<http://biblio.ugent.be/person/F5134A54-F0ED-11E1-A9DE-61C894A0A6B4> <http://schema.org/identifier> <http://orcid.org/0000-0001-8390-6171>;
+    <http://xmlns.com/foaf/0.1/name> "Patrick Hochstenbach";
+    <http://schema.org/identifier> <http://biblio.ugent.be/person/F5134A54-F0ED-11E1-A9DE-61C894A0A6B4>.
+<https://biblio.ugent.be/.well-known/genid/cfd99296-4f4b-41fc-b884-22262f07bc25> <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/CA20>.
+<http://biblio.ugent.be/person/F5134A54-F0ED-11E1-A9DE-61C894A0A6B4> <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/cfd99296-4f4b-41fc-b884-22262f07bc25>.
+<https://biblio.ugent.be/.well-known/genid/3365dfad-5705-4901-9751-371e010e10cb> <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/TW06>.
+<http://biblio.ugent.be/person/F5134A54-F0ED-11E1-A9DE-61C894A0A6B4> <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/3365dfad-5705-4901-9751-371e010e10cb>;
+    <http://xmlns.com/foaf/0.1/givenName> "Patrick";
+    <http://xmlns.com/foaf/0.1/publications> <http://biblio.ugent.be/person/000211557707>, <http://biblio.ugent.be/person/801001101817>;
+    <http://xmlns.com/foaf/0.1/familyName> "Hochstenbach".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/author> <http://biblio.ugent.be/person/F5134A54-F0ED-11E1-A9DE-61C894A0A6B4>.
+<https://biblio.ugent.be/.well-known/genid/ec269943-01b5-418d-af7a-d133dac6b7e9> <http://xmlns.com/foaf/0.1/name> "Ghent University";
+    <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/UGent>.
+<http://biblio.ugent.be/person/6E421B04-B25E-11E6-B104-2D2FD0AF0289> <http://xmlns.com/foaf/0.1/name> "Herbert Van de Sompel";
+    <http://schema.org/identifier> <http://biblio.ugent.be/person/6E421B04-B25E-11E6-B104-2D2FD0AF0289>;
+    <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/ec269943-01b5-418d-af7a-d133dac6b7e9>;
+    <http://xmlns.com/foaf/0.1/givenName> "Herbert";
+    <http://xmlns.com/foaf/0.1/publications> <http://biblio.ugent.be/person/976013412542>;
+    <http://xmlns.com/foaf/0.1/familyName> "Van de Sompel".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/author> <http://biblio.ugent.be/person/6E421B04-B25E-11E6-B104-2D2FD0AF0289>.
+<https://biblio.ugent.be/.well-known/genid/22d36f7f-9226-4c99-bd75-6b37678dcc15> <http://xmlns.com/foaf/0.1/familyName> "Vander Sande";
+    <http://xmlns.com/foaf/0.1/givenName> "Miel";
+    <http://xmlns.com/foaf/0.1/name> "Miel Vander Sande".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/author> <https://biblio.ugent.be/.well-known/genid/22d36f7f-9226-4c99-bd75-6b37678dcc15>.
+<http://biblio.ugent.be/person/20497948-3DED-11E4-8AC5-DAE6B4D1D7B1> <http://xmlns.com/foaf/0.1/publications> <http://biblio.ugent.be/person/802002936510>, <http://biblio.ugent.be/person/000140979901>.
+<https://biblio.ugent.be/.well-known/genid/ee725ace-fd0e-4bd4-af29-78f2d573013f> <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/TW06>.
+<http://biblio.ugent.be/person/20497948-3DED-11E4-8AC5-DAE6B4D1D7B1> <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/ee725ace-fd0e-4bd4-af29-78f2d573013f>;
+    <http://xmlns.com/foaf/0.1/givenName> "Ruben";
+    <http://xmlns.com/foaf/0.1/name> "Ruben Dedecker";
+    <http://schema.org/identifier> <http://biblio.ugent.be/person/20497948-3DED-11E4-8AC5-DAE6B4D1D7B1>;
+    <http://xmlns.com/foaf/0.1/familyName> "Dedecker".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/author> <http://biblio.ugent.be/person/20497948-3DED-11E4-8AC5-DAE6B4D1D7B1>.
+<https://biblio.ugent.be/.well-known/genid/a1c8655d-6c11-4ef0-bd5a-3cbb38433ed1> <http://xmlns.com/foaf/0.1/member> <https://biblio.ugent.be/organization/TW06>.
+<http://biblio.ugent.be/person/115DF312-F0EE-11E1-A9DE-61C894A0A6B4> <http://xmlns.com/foaf/0.1/familyName> "Verborgh";
+    <http://schema.org/identifier> <http://orcid.org/0000-0002-8596-222X>;
+    <http://xmlns.com/foaf/0.1/name> "Ruben Verborgh";
+    <http://schema.org/identifier> <http://biblio.ugent.be/person/115DF312-F0EE-11E1-A9DE-61C894A0A6B4>;
+    <http://schema.org/sourceOrganization> <https://biblio.ugent.be/.well-known/genid/a1c8655d-6c11-4ef0-bd5a-3cbb38433ed1>;
+    <http://xmlns.com/foaf/0.1/givenName> "Ruben";
+    <http://xmlns.com/foaf/0.1/publications> <http://biblio.ugent.be/person/802000069754>.
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/author> <http://biblio.ugent.be/person/115DF312-F0EE-11E1-A9DE-61C894A0A6B4>.
+<https://biblio.ugent.be/.well-known/genid/a45a9652-74dd-49f1-b4de-9ef2562e6606> <http://schema.org/pageStart> "133";
+    <http://schema.org/pageEnd> "146".
+<https://biblio.ugent.be/publication/8762613> <http://schema.org/pagination> <https://biblio.ugent.be/.well-known/genid/a45a9652-74dd-49f1-b4de-9ef2562e6606>;
+    <http://lib.ugent.be/biblio/classification> <http://biblio.ugent.be/classification/P1>;
+    <http://schema.org/sameAs> <http://hdl.handle.net/1854/LU-8762613>;
+    <http://purl.org/dc/elements/1.1/language> "eng";
+    <http://purl.org/dc/terms/subject> "Technology and Engineering";
+    <http://schema.org/abstract> "Linkages between research outputs are crucial in the scholarly knowledge graph. They include online citations, but also links between versions that differ according to various dimensions and links to resources that were used to arrive at research results. In current scholarly communication systems this information is only made available post factum and is obtained via elaborate batch processing. In this paper we report on work aimed at making linkages available in real-time, in which an alternative, decentralised scholarly communication network is considered that consists of interacting data nodes that host artifacts and service nodes that add value to artifacts. The first result of this work, the \"Event Notifications in Value-Adding Networks\" specification, details interoperability requirements for the exchange of real-time life-cycle information pertaining to artifacts using Linked Data Notifications. In an experiment, we applied our specification to one particular use-case: distributing Scholix data-literature links to a network of Belgian institutional repositories by a national service node. The results of our experiment confirm the potential of our approach and provide a framework to create a network of interacting nodes implementing the core scholarly functions (registration, certification, awareness and archiving) in a decentralized and decoupled way.".
+<https://biblio.ugent.be/publication/8762613/file/8762616.pdf> <http://purl.org/dc/terms/accessRight> <http://lib.ugent.be/biblio/open>;
+    <http://purl.org/dc/elements/1.1/format> "application/pdf";
+    <http://purl.org/dc/terms/extent> "448014";
+    <http://purl.org/dc/elements/1.1/type> <http://lib.ugent.be/biblio/fullText>.
+<https://biblio.ugent.be/publication/8762613> <http://purl.org/dc/terms/hasPart> <https://biblio.ugent.be/publication/8762613/file/8762616.pdf>.
+<https://biblio.ugent.be/publication/8762613/file/8768978.pdf> <http://purl.org/dc/terms/extent> "748197";
+    <http://purl.org/dc/elements/1.1/type> <http://lib.ugent.be/biblio/fullText>;
+    <http://purl.org/dc/elements/1.1/format> "application/pdf";
+    <http://purl.org/dc/terms/accessRight> <http://lib.ugent.be/biblio/restricted>.
+<https://biblio.ugent.be/publication/8762613> <http://purl.org/dc/terms/hasPart> <https://biblio.ugent.be/publication/8762613/file/8768978.pdf>;
+    <http://purl.org/ontology/bibo/doi> "10.1007/978-3-031-16802-4_11";
+    <http://schema.org/dateCreated> "2022-08-03T11:36:17+01:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+    a <https://biblio.ugent.be/ns#P1>;
+    <http://schema.org/publisher> <https://biblio.ugent.be/.well-known/genid/6361369f-0fc1-4ed0-912a-91ded46d25be>.

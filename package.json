@@ -1,6 +1,6 @@
 {
   "name": "marcattacks",
-  "version": "1.0.0",
+  "version": "1.6.2",
   "main": "index.js",
   "type": "module",
   "author": "",
@@ -8,10 +8,25 @@
   "bin": {
     "marcattacks": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:ts": "npx tsc",
-    "build:watch": "npx tsc -w"
+    "build:watch": "npx tsc -w",
+    "demo:alephseq": "npx marcattacks --to alephseq data/sample.xml",
+    "demo:json": "npx marcattacks --to json data/sample.xml",
+    "demo:jsonl": "npx marcattacks --to jsonl data/sample.xml",
+    "demo:rdf": "npx marcattacks --to rdf --map marc2rdf data/sample.xml",
+    "demo:jsonld": "npx marcattacks --to jsonl --fix ./demo/marc2rdf.jsonata data/sample.xml",
+    "demo:n3": "npx marcattacks --from rdf ./data/output.ttl --to rdf --map notation3 --fix ./demo/allnames.n3",
+    "demo:biblio:one": "npx marcattacks --from json --to rdf --fix ./demo/biblio.jsonata ./data/biblio.json",
+    "demo:biblio:all": "npx marcattacks --from jsonl --to rdf --fix ./demo/biblio.jsonata --info https://biblio.ugent.be/exports/publications.json",
+    "docker:build": "docker build . -t hochstenbach/marcattacks:v0.0.1",
+    "docker:run": "docker run --rm -v `pwd`/data:/app/data -it hochstenbach/marcattacks:v0.0.1 --to rdf --map rdf data/sample.xml",
+    "docker:push": "docker push hochstenbach/marcattacks:v0.0.1",
+    "postversion": "npm publish && git push && git push --tags"
   },
   "keywords": [],
   "license": "MIT",
@@ -22,6 +37,7 @@
     "@types/sax": "^1.2.7",
     "@types/ssh2-sftp-client": "^9.0.5",
     "@types/stream-json": "^1.7.8",
+    "@types/streamify-string": "^1.0.4",
     "eslint": "^9.39.1",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
@@ -30,14 +46,19 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
     "commander": "^14.0.2",
+    "dotenv": "^17.2.3",
+    "eyeling": "^1.7.20",
     "fast-xml-parser": "^5.3.2",
     "jsonata": "^2.1.0",
+    "jsonld": "^9.0.0",
     "log4js": "^6.9.1",
     "n3": "^1.26.0",
+    "rdf-parse": "^4.0.0",
     "sax": "^1.4.3",
     "ssh2-sftp-client": "^12.0.1",
     "stream-chain": "^3.4.0",
     "stream-json": "^1.9.1",
+    "streamify-string": "^1.0.1",
     "uuid": "^13.0.0"
   }
 }

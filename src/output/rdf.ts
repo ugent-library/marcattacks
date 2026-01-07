@@ -1,63 +1,55 @@
 import { Readable, Writable } from 'stream';
+import { writeString, parseString } from '../util/rdf_parse.js';
+import { isRecord } from '../types/quad.js';
 import N3 from 'n3';
 
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-const { DataFactory } = N3;
-const { namedNode, literal, blankNode } = DataFactory;
+export async function readable2writable(readable: Readable, writable: Writable): Promise<void> {
+    let writer: N3.Writer | undefined;
+    let counter = 0;
 
-export function readable2writable(readable: Readable, writable: Writable) : void {
-    let writer : N3.Writer;
+    logger.debug(`start`);
 
-    readable.on('data', (data: any)  => {   
-        let prefixes = data['prefixes'];
+    try {
+        for await (const data of readable) {
+            counter++;
 
-        if (!writer) {
-            writer = new N3.Writer(writable, { end: false, prefixes });
-        }
+            if (isRecord(data)) {
+                logger.debug(`[${counter}] is a Record`);
+                const prefixes = data['prefixes'];
 
-        let quads : any[] = data['quads'];
+                if (!writer) {
+                    writer = new N3.Writer(writable, { end: false, prefixes });
+                }
+                await writeString(data, undefined, writer);
+            } 
+            else if (Object.hasOwn(data, "@context")) {
+                logger.debug(`[${counter}] is a JSON-LD`);
+                const dataNew = await parseString(JSON.stringify(data), "data.jsonld");
 
-        if (!quads) return;
-
-        for (let i = 0 ; i < quads.length ; i++) {
-            if (quads[i].subject && quads[i].predicate && quads[i].object) {
-                // ok
+                if (!writer) {
+                    writer = new N3.Writer(writable, { end: false });
+                }
+                await writeString(dataNew, undefined, writer);
+            } 
+            else {
+                logger.warn(`[${counter}] is not a Record or a JSON-LD`);
+                // Consider if you need to initialize a writer here if one doesn't exist
             }
-            else return;
-            
-            let subject   = { type: 'NamedNode', value: '', ...quads[i].subject};
-            let predicate = { type: 'NamedNode', value: '', ...quads[i].predicate};
-            let object    = { type: 'NamedNode', value: '', ...quads[i].object};
-
-            let subjectValue = 
-                subject.type === 'NamedNode' ? namedNode(subject.value) 
-                : subject.type === 'BlankNode' ? blankNode(subject.value)
-                : namedNode(subject.value);
-            
-            let predicateValue = 
-                predicate.type === 'NamedNode' ? namedNode(predicate.value) 
-                : namedNode(predicate.value);
-            
-            let objectValue = 
-                object.type === 'NamedNode' ? namedNode(object.value) 
-                : object.type === 'BlankNode' ? blankNode(object.value)
-                : object.type === 'Literal' && object.as ? literal(object.value, namedNode(object.as))
-                : object.type === 'Literal' ? literal(object.value)
-                : namedNode(object.value);
-
-            writer.addQuad(
-                subjectValue,
-                predicateValue,
-                objectValue
-            );
         }
-    });
 
-    readable.on('end', () => {
-        writer.end();
+        logger.debug(`end ${counter}`);
+        if (writer) {
+            writer.end();
+        } else {
+            logger.error(`no writer defined?!`);
+        }
+    } catch (err) {
+        logger.error("Stream processing error:", err);
+    } finally {
         writable.end();
-    });
+    }
 }

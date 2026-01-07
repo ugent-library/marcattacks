@@ -1,0 +1,64 @@
+(
+    /******start helper functions****/
+    $strip := function ($str) {
+        $replace($str,/\s*[\,.:\/]$/,"")
+    };
+
+    $marcmap0 := function ($path) {
+        $marcmap($path)[0]
+    };
+
+    $creatorid := function () {
+       ( 
+        $id := $marcmap("1000")[0];
+        $contains($id,/\(viaf\).*/) ?
+            $replace($id,/.*\(viaf\)(.*)/, "https://viaf.org/viaf/$1") :
+            $genid()
+       )
+    };
+
+    $typeLookupTable := {
+        "_": "CreativeWork", /* default */
+        "book": "Book",
+        "catalog": "Book",
+        "correspondence": "CreativeWork",
+        "dissertation": "Thesis",
+        "ephemera": "CreativeWork",
+        "image": "VisualWork",
+        "manuscript": "Book",
+        "map": "Map",
+        "master": "Thesis",
+        "periodical": "Periodical",
+        "phd": "Thesis"
+    };
+
+    $typeLookup := function ($val) {(
+        $v := $lookup($typeLookupTable,$val);
+        $v ? $v : $typeLookupTable._ 
+    )};
+    /******end helper functions******/
+
+    { 
+        "@context": {
+            "my": "http://lib.ugent.be/catalog/",
+            "genid": "http://lib.ugent.be/.well-known/genid/",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "@vocab": "http://schema.org/"
+        },
+        "@id": "my:" & $marcmap0("001"),
+        "@type": $typeLookup($marcmap0("920a")),
+        "dc:title": $marcmap("245ab") ~> $join(" ") ~> $strip() ,
+        "dc:creator": {
+            "@id": $creatorid(),
+            "@type": "Person",
+            "name": $marcmap0("100a") ~> $strip()
+        },
+        "dc:subject": $marcmap("500a") ~> $map(function ($val) {
+            { 
+                "@id": $genid(),
+                "@type": "Subject",
+                "name": $val 
+            }
+        })
+    }
+)

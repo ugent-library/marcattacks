@@ -1,6 +1,6 @@
 # marcattacks!
 
-<img src="logo.jpg" width="10%">
+<img src="https://codeberg.org/phochste/marcattacks/media/branch/main/logo.jpg" width="10%">
 
 Turn your MARC exports into something else.
 
@@ -36,7 +36,7 @@ marcattacks --to alephseq <file>
 Generate RDF:
 
 ```
-marcattacks --to rdf --map rdf <file>
+marcattacks --to rdf --map marc2rdf <file>
 ```
 
 Generate XML:
@@ -87,6 +87,7 @@ use `s3s://...` for using a SSL layer.
 - alephseq (Aleph sequential)
 - json
 - jsonl
+- rdf
 
 ### Output (--to)
 
@@ -98,9 +99,20 @@ use `s3s://...` for using a SSL layer.
 
 ### Transform (--map)
 
-- rdf
+- jsonata : _default_ A jsonata fixer
+- marc2rdf : A mapper from MARC to RDF
+- notation3 : A [Notation3](https://w3c.github.io/N3/spec/) reasoner 
 
-Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
+Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
+
+### Fix (--fix)
+
+Provide a fix file to the mapper. See examples:
+
+- `npm run demo:jsonld`
+- `npm run demo:n3`
+- `npm run biblio:one`
+- `npm run biblio:all`
 
 ### Writable (--out)
 
@@ -109,3 +121,12 @@ Provide your own transformers using JavaScript plugins. See: ./plugin/demo.js fo
 - sftp://username@host:port/path
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
  
+### Logging
+
+Logging messages can be provided with the `--info`, `--debug` and `--trace` options.
+
+Default the logging format is a text format that is written to stderr. This logging format and the output stream can be changed with the `--log` option:
+
+- `--log json` : write logs in a JSON format
+- `--log stdout` : write logs to the stdout
+- `--log json+stdout` : write logs in a JSON format and to the stdout
