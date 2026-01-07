@@ -17,3 +17,11 @@ export interface Record {
     };
     quads: Quad[]
 }
+
+export function isRecord(data: any) : data is Record {
+    return (
+        data !== null &&
+        typeof data === 'object' &&
+        Array.isArray(data.quads)
+    );
+}

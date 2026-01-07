@@ -216,9 +216,14 @@ async function main() : Promise<void> {
     }
 
     if (opts.to) {
-        const mod = await loadPlugin(opts.to,'output');
-        mod.readable2writable(resultStream, outStream);
-        await finished(outStream);
+        try {
+            const mod = await loadPlugin(opts.to,'output');
+            mod.readable2writable(resultStream, outStream);
+            await finished(outStream);
+        }
+        catch (e) {
+            logger.warn(`process exited with: ${e}`);
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 import { Transform } from "stream";
 import { parseString , writeString } from "../util/rdf_parse.js";
-import type { Record } from "../types/quad.js";
+import { type Record, isRecord } from "../types/quad.js";
 import fs from "fs";
 import log4js from 'log4js';
 import eyeling from 'eyeling';
@@ -41,14 +41,6 @@ export async function transform(n3file: string) : Promise<Transform> {
             }
         }
     });
-}
-
-function isRecord(data: any) : data is Record {
-    return (
-        data !== null &&
-        typeof data === 'object' &&
-        Array.isArray(data.quads)
-    );
 }
 
 async function makeRdfData(data: any) : Promise<Record> {

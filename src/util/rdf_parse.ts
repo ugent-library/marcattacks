@@ -55,18 +55,21 @@ export async function parseStream(readable: Readable, path: string) : Promise<Re
     });
 }
 
-export async function writeString(data: Record, format:string = "text/turtle") : Promise<string> {
-    return new Promise<string>( (resolve, reject) => {
+export async function writeString(data: Record, format?:string, writer?: N3.Writer) : Promise<string> {
+    let internalWriter = false;
+
+    if (!writer) {
         let prefixes = data['prefixes'];
+        writer = new N3.Writer({ end: false, prefixes , format });
+        internalWriter = true;
+    }
 
-        let writer = new N3.Writer({ end: false, prefixes , format });
-
+    return new Promise<string>( (resolve, reject) => {
         let quads : any[] = data['quads'];
 
         if (!quads) resolve("");
 
         for (let i = 0 ; i < quads.length ; i++) {
-
             if (quads[i].subject && quads[i].predicate && quads[i].object) {
                 // ok
             }
@@ -100,11 +103,16 @@ export async function writeString(data: Record, format:string = "text/turtle") :
             );
         }
 
-        writer.end( (error,result) => {
-            if (error)
-                reject(error);
-            else
-                resolve(result);
-        });
+        if (internalWriter) {
+            writer.end( (error,result) => {
+                if (error)
+                    reject(error);
+                else
+                    resolve(result);
+            });
+        }
+        else {
+            resolve("");
+        }
     });
 }
