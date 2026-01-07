@@ -167,25 +167,25 @@
                     "name" : "foaf:name",
                     "first_name" : "foaf:givenName",
                     "orcid_id" : {
-                    "@type" : "@id",
-                    "@context" : {
-                        "@base" : "http://orcid.org/"
-                    },
-                    "@id" : "schema:identifier"
+                        "@type" : "@id",
+                        "@context" : {
+                            "@base" : "http://orcid.org/"
+                        },
+                        "@id" : "schema:identifier"
                     },
                     "biblio_id" : {
-                    "@context" : {
-                        "@base" : "http://biblio.ugent.be/person/"
-                    },
-                    "@id" : "schema:identifier",
-                    "@type" : "@id"
+                        "@context" : {
+                            "@base" : "http://biblio.ugent.be/person/"
+                        },
+                        "@id" : "schema:identifier",
+                        "@type" : "@id"
                     },
                     "ugent_id" : {
-                    "@context" : {
-                        "@base" : "http://biblio.ugent.be/person/"
-                    },
-                    "@id" : "foaf:publications",
-                    "@type" : "@id"
+                        "@context" : {
+                            "@base" : "http://biblio.ugent.be/person/"
+                        },
+                        "@id" : "foaf:publications",
+                        "@type" : "@id"
                     },
                     "last_name" : "foaf:familyName"
                 }
@@ -242,25 +242,25 @@
                     "name" : "foaf:name",
                     "first_name" : "foaf:givenName",
                     "orcid_id" : {
-                    "@type" : "@id",
-                    "@context" : {
-                        "@base" : "http://orcid.org/"
-                    },
-                    "@id" : "schema:identifier"
+                        "@type" : "@id",
+                        "@context" : {
+                            "@base" : "http://orcid.org/"
+                        },
+                        "@id" : "schema:identifier"
                     },
                     "biblio_id" : {
-                    "@context" : {
-                        "@base" : "http://biblio.ugent.be/person/"
-                    },
-                    "@id" : "schema:identifier",
-                    "@type" : "@id"
+                        "@context" : {
+                            "@base" : "http://biblio.ugent.be/person/"
+                        },
+                        "@id" : "schema:identifier",
+                        "@type" : "@id"
                     },
                     "ugent_id" : {
-                    "@context" : {
-                        "@base" : "http://biblio.ugent.be/person/"
-                    },
-                    "@id" : "foaf:publications",
-                    "@type" : "@id"
+                        "@context" : {
+                            "@base" : "http://biblio.ugent.be/person/"
+                        },
+                        "@id" : "foaf:publications",
+                        "@type" : "@id"
                     },
                     "last_name" : "foaf:familyName"
                 }
