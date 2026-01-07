@@ -32,8 +32,11 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
     let sattrib : SubfieldAttribute = {};
     let type : MARCType;
     let text : string = '';
+    let hasError = false;
         
     parser.on('opentag', (node: sax.Tag) => {
+        if (hasError) return; 
+
         const localName = node.name.replaceAll(/^\w+:/g,'');
 
         if (localName === 'collection') {
@@ -63,10 +66,14 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
     });
 
     parser.on('text', (t: string) => {
+        if (hasError) return; 
+
         text += t;
     });
 
     parser.on('closetag', (tag: string) => {
+        if (hasError) return; 
+
         const localName = tag.replaceAll(/^\w+:/g,'');
         if (localName === 'leader') {
             record.push(['LDR',' ',' ','_',text]);
@@ -105,9 +112,14 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
     }); 
 
     parser.on("error", (err) => {
+        if (hasError) return; 
+        hasError = true;
+
         logger.error ("Parser error:", err.message);
+
         stream.destroy(err);
-        parser.destroy(err);
+        parser.end();
+        readableStream.destroy(err);
     });
 
     parser.on('end', () => {
@@ -121,13 +133,24 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
         readableStream.destroy();
     });
 
-    // Replace stream.pipe(parser) with an error-aware listener
-    stream.on('error', (err) => {
-        logger.error("Source stream error:", err);
-        readableStream.destroy(err);
+    stream.on('data', (chunk) => {
+        if (hasError) return; 
+
+        parser.write(chunk);
     });
 
-    stream.pipe(parser);
+    stream.on('end', () => {
+        if (hasError) return; 
+        parser.end();
+    });
+
+    stream.on('error', (err) => {
+        if (hasError) return; 
+    
+        logger.error("Source stream error:", err);
+        parser.end(); // End the parser instead of destroying
+        readableStream.destroy(err);
+    });
 
     return readableStream;
 }   
