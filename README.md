@@ -111,6 +111,8 @@ Provide a fix file to the mapper. See examples:
 
 - `npm run demo:jsonld`
 - `npm run demo:n3`
+- `npm run biblio:one`
+- `npm run biblio:all`
 
 ### Writable (--out)
 

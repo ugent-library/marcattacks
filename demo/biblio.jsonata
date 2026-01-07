@@ -1,13 +1,21 @@
 (
     /*** start helper functions ***/
-    $fixObject := function($obj) {
+    $fixObjectId := function($obj) {
         $obj ? ($exists($obj._id) ? $obj : $merge([$obj, {"_id": $genid()}])) : undefined
     };
 
-    $fixObjectArray := function($arr) {
+    $fixObjectArrayId := function($arr) {
         $arr ?
             $arr[].(
                 $exists(_id) ? $ : $merge([$, {"_id": $genid()}])
+            )
+            : undefined
+    };
+
+    $fixObjectArrayUrl := function($arr) {
+        $arr ?
+            $arr[].(
+                $exists(url) ? $ : $merge([$, {"url": $genid()}])
             )
             : undefined
     };
@@ -19,23 +27,41 @@
         /* Fixing fields */
         { 
             "@type": "https://biblio.ugent.be/ns#" & classification,
-            "affiliation": $fixObjectArray(affiliation),
+            "affiliation": $fixObjectArrayId(affiliation),
             /* Fix authors and nested affiliations using an object constructor */
             "author": author[].(
-                $authorFixed := $fixObject($);
+                $authorFixed := $fixObjectId($);
                 $merge([
                     $authorFixed, 
                     { 
-                        "affiliation": $fixObjectArray($authorFixed.affiliation[]) 
+                        "affiliation": $fixObjectArrayId($authorFixed.affiliation[]) 
                     }
                 ])
             ),
-            "date_created": (date_created ~> $replace(" ", "T")) & "+01:00",
-            "date_updated": (date_created ~> $replace(" ", "T")) & "+01:00",
-            "conference": $fixObject(conference),
-            "editor": $fixObjectArray(editor),
-            "publisher": $fixObject(publisher),
-            "page": $fixObject(page)
+            "date_created": (date_created ~> $replace(" ", "T")) & "Z",
+            "date_updated": (date_created ~> $replace(" ", "T")) & "Z",
+            "conference": $fixObjectId(conference),
+            "editor": editor[].(
+                $editorFixed := $fixObjectId($);
+                $merge([
+                    $editorFixed, 
+                    { 
+                        "affiliation": $fixObjectArrayId($editorFixed.affiliation[]) 
+                    }
+                ])
+            ),
+            "file": $fixObjectArrayUrl(file),
+            "promoter": promoter[].(
+                $promoterFixed := $fixObjectId($);
+                $merge([
+                    $promoterFixed, 
+                    { 
+                        "affiliation": $fixObjectArrayId($promoterFixed.affiliation[]) 
+                    }
+                ])
+            ),
+            "publisher": $fixObjectId(publisher),
+            "page": $fixObjectId(page)
         }
         , 
         /* Add the JSON-LD context */
@@ -159,20 +185,20 @@
                     "_id" : null,
                     "url" : "@id",
                     "kind" : {
-                    "@type" : "@id",
-                    "@context" : {
-                        "@base" : "http://lib.ugent.be/biblio/"
-                    },
-                    "@id" : "dc:type"
+                        "@type" : "@id",
+                        "@context" : {
+                            "@base" : "http://lib.ugent.be/biblio/"
+                        },
+                        "@id" : "dc:type"
                     },
                     "size" : "dcterms:extent",
                     "content_type" : "dc:format",
                     "access" : {
-                    "@context" : {
-                        "@base" : "http://lib.ugent.be/biblio/"
-                    },
-                    "@id" : "dcterms:accessRight",
-                    "@type" : "@id"
+                        "@context" : {
+                            "@base" : "http://lib.ugent.be/biblio/"
+                        },
+                        "@id" : "dcterms:accessRight",
+                        "@type" : "@id"
                     }
                 },
                 "@id" : "dcterms:hasPart"
@@ -196,7 +222,7 @@
                 "@id" : "schema:publisher" ,
                 "@context" : {
                     "name" : "dcterms:publisher",
-                    "location" : "fifo:based_near"
+                    "location" : "bibo:based_near"
                 }
             },
             "promoter" : {

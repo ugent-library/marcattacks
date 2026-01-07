@@ -1,4 +1,4 @@
-[{
+{
   "publisher": {
     "name": "Springer"
   },
@@ -387,4 +387,4 @@
     "vancouver": "  <div class=\"csl-entry\">\n    <div class=\"csl-left-margin\">1. </div><div class=\"csl-right-inline\">Hochstenbach P, Van de Sompel H, Vander Sande M, Dedecker R, Verborgh R. Event notifications in value-adding networks. In: Silvello G, Corcho O, Manghi P, Di Nunzio GM, Golub K, Ferro N, et al., editors. LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022). Springer; 2022. p. 133–46.</div>\n   </div>\n",
     "ieee": "  <div class=\"csl-entry\">\n    <div class=\"csl-left-margin\">[1]</div><div class=\"csl-right-inline\">P. Hochstenbach, H. Van de Sompel, M. Vander Sande, R. Dedecker, and R. Verborgh, “Event notifications in value-adding networks,” in <i>LINKING THEORY AND PRACTICE OF DIGITAL LIBRARIES (TPDL 2022)</i>, Padua, ITALY, 2022, vol. 13541, pp. 133–146.</div>\n  </div>\n"
   }
-}]
+}
