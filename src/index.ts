@@ -139,7 +139,7 @@ async function main() : Promise<void> {
         inputFile = new URL(url);
     }
 
-    logger.info(`using: ${inputFile}`);
+    logger.info(`using: ${getCleanURL(inputFile)}`);
 
     let readableStream;
 
@@ -199,12 +199,12 @@ async function main() : Promise<void> {
         if (opts.out.startsWith("sftp")) {
             const url = new URL(opts.out);
             const config = makeSftpConfig(url,opts);
-            logger.info(`put ${url}`);
+            logger.info(`put ${getCleanURL(url)}`);
             outStream = await sftpWriteStream(url.href, config);
         }
         else if (opts.out.startsWith("s3")) {
             const url = new URL(opts.out);
-            logger.info(`put ${url}`);
+            logger.info(`put ${getCleanURL(url)}`);
             outStream = await s3WriterStream(url,{});
         }
         else {
@@ -225,6 +225,13 @@ async function main() : Promise<void> {
             logger.warn(`process exited with: ${e}`);
         }
     }
+}
+
+function getCleanURL(url: URL) : URL {
+    const tempUrl = new URL(url.href); // Clone to avoid mutating original
+    tempUrl.username = '***';
+    tempUrl.password = '***';
+    return tempUrl;
 }
 
 function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
