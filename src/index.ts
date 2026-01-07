@@ -198,12 +198,30 @@ async function main() : Promise<void> {
     else if (opts.out) {
         if (opts.out.startsWith("sftp")) {
             const url = new URL(opts.out);
+
+            if (process.env.SFTP_USERNAME) {
+                url.username = process.env.SFTP_USERNAME;
+            }
+
+            if (process.env.SFTP_PASSWORD) {
+                url.password = process.env.SFTP_PASSWORD;
+            }
+
             const config = makeSftpConfig(url,opts);
             logger.info(`put ${getCleanURL(url)}`);
             outStream = await sftpWriteStream(url.href, config);
         }
         else if (opts.out.startsWith("s3")) {
             const url = new URL(opts.out);
+
+            if (process.env.S3_ACCESS_KEY) {
+                url.username = process.env.S3_ACCESS_KEY;
+            }
+
+            if (process.env.S3_SECRET_KEY) {
+                url.password = process.env.S3_SECRET_KEY;
+            }
+
             logger.info(`put ${getCleanURL(url)}`);
             outStream = await s3WriterStream(url,{});
         }
