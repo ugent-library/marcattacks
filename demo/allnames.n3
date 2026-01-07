@@ -1,0 +1,15 @@
+@prefix : <http://example.org/>.
+@prefix schema: <https://schema.org/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix genid: <https://lib.ugent.be/.well-known/genid/>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix bibo: <http://purl.org/ontology/bibo/>.
+
+{
+  ?Record schema:author ?Author.
+  ?Author schema:name ?Name.
+}
+=>
+{
+  :result :is ?Name.
+}.

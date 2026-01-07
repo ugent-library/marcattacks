@@ -99,14 +99,18 @@ use `s3s://...` for using a SSL layer.
 
 ### Transform (--map)
 
-- jsonata (_default_: A jsonata fixer)
-- marc2rdf (A mapper from MARC to RDF)
+- jsonata : _default_ A jsonata fixer
+- marc2rdf : A mapper from MARC to RDF
+- notation3 : A [Notation3](https://w3c.github.io/N3/spec/) reasoner 
 
 Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
 
 ### Fix (--fix)
 
-Provide a (jsonata) fix file to apply to the input data. See: ./demo/demo.jsonata for an example.
+Provide a fix file to the mapper. See examples:
+
+- `npm run demo:jsonld`
+- `npm run demo:n3`
 
 ### Writable (--out)
 

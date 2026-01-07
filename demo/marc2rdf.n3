@@ -1,0 +1,67 @@
+@prefix : <http://example.org/ns#> .
+@prefix list: <http://www.w3.org/2000/10/swap/list#> .
+@prefix log: <http://www.w3.org/2000/10/swap/log#> .
+
+# marcid: return the record id 
+{ ?Record :marcid ?Result }
+<=
+{
+  (?Record "001") :marcfield0 ?F001.
+  ?F001 :marcctrl ?ID. 
+  ( "http://lib.ugent.be/record" ?ID ) string:concatenation ?IRI_ID.
+  ?Result log:uri ?IRI_ID.
+}.
+
+# marcctrl: return the control value of a field
+{ ?Field :marcctrl ?Result }
+<=
+{
+  (?Field 3) list:memberAt "_" .
+  (?Field 4) list:memberAt ?Result.
+}.
+
+# marcfield0: collect the first row of a marc field
+{ ( ?Record ?Field) :marcfield0 ?Result }
+<=
+{
+  ( ?Record ?Field) :marcfield ?F.
+  ?F list:first ?Result.
+}.
+
+# marcfield: collect all data for a marc field
+{ ( ?Record ?Field) :marcfield ?Result}
+<=
+{
+  ( ?Record ?Field ()) :marcfield_acc ?Result.
+}.
+
+{ ( () ?Field ?Acc ) :marcfield_acc ?Acc}
+<= true.
+
+{ ( ?L ?Field ?Acc ) :marcfield_acc ?Result }
+<=
+{
+  ?L list:firstRest (?H ?T).
+  ( ?H 0 ) list:memberAt ?Field.
+  ( ?Acc (?H) ) list:append ?AccNew.
+  (?T ?Field ?AccNew) :marcfield_acc ?Result.
+}.
+
+{ (?L ?Field ?Acc) :marcfield_acc ?Result }
+<=
+{
+  ?L list:firstRest (?H ?T).
+  ( ?H 0 ) list:memberAt ?X.
+  ?Field log:notEqualTo ?X.
+  (?T ?Field ?Acc) :marcfield_acc ?Result.
+}.
+# end marcfield
+
+{
+  ?X :record ?Record.
+  ?Record :marcid ?ID. 
+}
+=>
+{
+  :result :is ?ID .
+}. 

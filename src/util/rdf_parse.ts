@@ -1,17 +1,22 @@
 import { rdfParser } from "rdf-parse";
 import type { Record, Quad } from "../types/quad.js";
-import type { Readable } from "stream";
+import type { Readable, Writable } from "stream";
+import streamify from "streamify-string";
+import N3 from 'n3';
+
+const { DataFactory } = N3;
+const { namedNode, literal, blankNode } = DataFactory;
 
 export async function parseString(data:string, path: string) : Promise<Record> {
-    const textStream = require('streamify-string')(data);
+    const textStream = streamify(data);
     return await parseStream(textStream,path);
 }
 
-export async function parseStream(data: Readable, path: string) : Promise<Record> {
+export async function parseStream(readable: Readable, path: string) : Promise<Record> {
     return new Promise<Record>( (resolve,reject) => {
         let record : Record = { prefixes: {} , quads: [] };
 
-        rdfParser.parse(data, { path })
+        rdfParser.parse(readable, { path })
             .on('data', (quad) => {
                 const part : Quad = {
                     "subject": {
@@ -47,5 +52,59 @@ export async function parseStream(data: Readable, path: string) : Promise<Record
             .on('end', () => {
                 resolve(record);
             });
+    });
+}
+
+export async function writeString(data: Record, format:string = "text/turtle") : Promise<string> {
+    return new Promise<string>( (resolve, reject) => {
+        let prefixes = data['prefixes'];
+
+        let writer = new N3.Writer({ end: false, prefixes , format });
+
+        let quads : any[] = data['quads'];
+
+        if (!quads) resolve("");
+
+        for (let i = 0 ; i < quads.length ; i++) {
+
+            if (quads[i].subject && quads[i].predicate && quads[i].object) {
+                // ok
+            }
+            else continue;
+                
+            let subject   = { type: 'NamedNode', value: '', ...quads[i].subject};
+            let predicate = { type: 'NamedNode', value: '', ...quads[i].predicate};
+            let object    = { type: 'NamedNode', value: '', ...quads[i].object};
+
+            let subjectValue = 
+                subject.type === 'NamedNode' ? namedNode(subject.value) 
+                : subject.type === 'BlankNode' ? blankNode(subject.value)
+                : namedNode(subject.value);
+                
+            let predicateValue = 
+                predicate.type === 'NamedNode' ? namedNode(predicate.value) 
+                : namedNode(predicate.value);
+                
+            let objectValue = 
+                object.type === 'NamedNode' ? namedNode(object.value) 
+                : object.type === 'BlankNode' ? blankNode(object.value)
+                : object.type === 'Literal' && object.language ? literal(object.value, object.language)
+                : object.type === 'Literal' && object.as ? literal(object.value, namedNode(object.as))
+                : object.type === 'Literal' ? literal(object.value)
+                : namedNode(object.value);
+
+            writer.addQuad(
+                subjectValue,
+                predicateValue,
+                objectValue
+            );
+        }
+
+        writer.end( (error,result) => {
+            if (error)
+                reject(error);
+            else
+                resolve(result);
+        });
     });
 }
