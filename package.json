@@ -43,8 +43,10 @@
     "@aws-sdk/client-s3": "^3.940.0",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
+    "eyeling": "^1.7.20",
     "fast-xml-parser": "^5.3.2",
     "jsonata": "^2.1.0",
+    "jsonld": "^9.0.0",
     "log4js": "^6.9.1",
     "n3": "^1.26.0",
     "rdf-parse": "^4.0.0",
@@ -52,6 +54,7 @@
     "ssh2-sftp-client": "^12.0.1",
     "stream-chain": "^3.4.0",
     "stream-json": "^1.9.1",
+    "streamify-string": "^1.0.1",
     "uuid": "^13.0.0"
   }
 }

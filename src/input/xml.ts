@@ -8,7 +8,7 @@ type MARCType = 'leader' | 'control' | 'field' | 'subfield' | undefined;
 
 const logger = log4js.getLogger();
 
-export function stream2readable(stream: Readable) : Readable {
+export async function stream2readable(stream: Readable) : Promise<Readable> {
     let recordNum = 0;
 
     let sourcePaused = false;
