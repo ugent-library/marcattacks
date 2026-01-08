@@ -142,7 +142,7 @@ async function main() : Promise<void> {
 
         logger.info(`using: ${getCleanURL(inputFile)}`);
 
-        let readableStream;
+        let readableStream : Readable;
         
         if (inputFile.protocol.startsWith("http")) {
             readableStream = await httpReadStream(inputFile.toString());
