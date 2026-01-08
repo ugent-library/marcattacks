@@ -88,15 +88,15 @@ use `s3s://...` for using an SSL layer.
 - jsonl
 - marc (ISO2709)
 - rdf
-- xml
+- xml (MARCXML)
 
 ### Output (--to)
 
-- xml
 - alephseq (Aleph sequential)
 - json
 - jsonl
 - rdf
+- xml (MARCXML)
 
 ### Transform (--map)
 
