@@ -1,8 +1,20 @@
 {
   "name": "marcattacks",
   "version": "1.9.0",
-  "description": "",
-  "keywords": [],
+  "description": "A powerful streaming MARC21 to RDF converter with JSONata transformation and S3 support.",
+  "keywords": [
+    "marc21",
+    "iso2709",
+    "rdf",
+    "bibframe",
+    "jsonata",
+    "notation3",
+    "linked-data",
+    "marcxml",
+    "streaming",
+    "s3",
+    "metadata-conversion"
+  ],
   "main": "index.js",
   "type": "module",
   "author": "",
