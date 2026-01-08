@@ -14,6 +14,7 @@ import fs from 'fs';
 import { s3ReaderStream, s3WriterStream } from './s3stream.js';
 import dotenv from 'dotenv';
 import { finished } from 'node:stream/promises';
+import { createGunzip } from 'zlib';
 
 program.version('0.1.0')
     .argument('<file>')
@@ -23,6 +24,7 @@ program.version('0.1.0')
     .option('-m,--map <map>','data mapper','jsonata')
     .option('--fix <what>','jsonata')
     .option('-o,--out <file>','output file')
+    .option('-z','compressed')
     .option('--key <keyfile>', 'private key file')
     .option('--log <format>','logging format')
     .option('--info','output debugging messages')
@@ -173,11 +175,20 @@ async function main() : Promise<void> {
             readableStream = fs.createReadStream(inputFile);
         }
 
+        let inputStream : Readable;
+
+        if (opts.z) {
+            inputStream = getDecompressedStream(readableStream); 
+        }
+        else {
+            inputStream = readableStream;
+        }
+
         let objectStream : Readable;
     
         if (opts.from) {
             const mod = await loadPlugin(opts.from,'input');
-            objectStream = await mod.stream2readable(readableStream, {
+            objectStream = await mod.stream2readable(inputStream, {
                 path: inputFile
             });
             objectStream.on('error', (error) => {
@@ -286,4 +297,16 @@ function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
     if (privateKey) { config.privateKey = privateKey}
 
     return config;
+}
+
+function getDecompressedStream(sourceStream: Readable) : Readable {
+  const gunzip = createGunzip();
+  
+  // Forward errors from the source to the gunzip stream
+  sourceStream.on('error', (err) => {
+    logger.error("gunzip error: ", err.message);
+    gunzip.emit('error', err);
+  });
+
+  return sourceStream.pipe(gunzip);
 }

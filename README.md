@@ -77,7 +77,7 @@ An S3 path
 marcattacks s3://accessKey:secretKey@host:port/bucket/key
 ```
 
-use `s3s://...` for using a SSL layer.
+use `s3s://...` for using an SSL layer.
 
 ## Formats
 
@@ -122,7 +122,7 @@ Provide a fix file to the mapper. See examples:
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
 - stdin://local
  
-### Logging
+### Logging (--info,--debug,--log)
 
 Logging messages can be provided with the `--info`, `--debug` and `--trace` options.
 
@@ -131,3 +131,7 @@ Default the logging format is a text format that is written to stderr. This logg
 - `--log json` : write logs in a JSON format
 - `--log stdout` : write logs to the stdout
 - `--log json+stdout` : write logs in a JSON format and to the stdout
+
+### Compression (-z)
+
+- `-z` : the input file is gzipped
