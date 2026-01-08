@@ -1,15 +1,8 @@
 {
   "name": "marcattacks",
   "version": "1.8.0",
-  "description": "Turn your MARC exports into something else.",
-  "keywords": [
-    "marc",
-    "rdf",
-    "etl",
-    "linked-data",
-    "library-science",
-    "metadata-conversion"
-  ],
+  "description": "",
+  "keywords": [],
   "main": "index.js",
   "type": "module",
   "author": "",
@@ -37,9 +30,7 @@
     "docker:push": "docker push hochstenbach/marcattacks:v0.0.1",
     "postversion": "npm publish && git push && git push --tags"
   },
-  "keywords": [],
   "license": "MIT",
-  "description": "",
   "devDependencies": {
     "@types/n3": "^1.26.1",
     "@types/node": "^24.10.1",
@@ -61,6 +52,7 @@
     "jsonata": "^2.1.0",
     "jsonld": "^9.0.0",
     "log4js": "^6.9.1",
+    "marcjs": "^3.0.2",
     "n3": "^1.26.0",
     "rdf-parse": "^4.0.0",
     "sax": "^1.4.3",

@@ -31,7 +31,7 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
 
         logger.debug(line);
 
-        if (line.match(/^\d+\s[\x20-\x7E]{5}\sL\s.*/u)) {
+        if (line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
             // ok
         }
         else {
@@ -56,6 +56,7 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
                 rl.pause();
                 sourcePaused = true; 
             }
+            
             rec = [];
             recordNum++;
 

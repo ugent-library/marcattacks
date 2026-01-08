@@ -83,11 +83,12 @@ use `s3s://...` for using an SSL layer.
 
 ### Input (--from)
 
-- xml
 - alephseq (Aleph sequential)
 - json
 - jsonl
+- marc (ISO2709)
 - rdf
+- xml
 
 ### Output (--to)
 
