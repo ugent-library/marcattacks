@@ -1,6 +1,15 @@
 {
   "name": "marcattacks",
   "version": "1.8.0",
+  "description": "Turn your MARC exports into something else.",
+  "keywords": [
+    "marc",
+    "rdf",
+    "etl",
+    "linked-data",
+    "library-science",
+    "metadata-conversion"
+  ],
   "main": "index.js",
   "type": "module",
   "author": "",
