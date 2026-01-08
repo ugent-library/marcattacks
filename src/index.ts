@@ -179,6 +179,7 @@ async function main() : Promise<void> {
             });
             objectStream.on('error', () => {
                 logger.error('stream processing error');
+                process.exitCode = 2;
             });
         }
         else {
@@ -250,7 +251,7 @@ async function main() : Promise<void> {
         }
     }
     catch (e) {
-        logger.error(`process exited with: ${e}`);
+        logger.error(`process crashed with: ${e}`);
         process.exit(3);
     }
 }
