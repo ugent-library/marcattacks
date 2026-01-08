@@ -6,6 +6,7 @@ const logger = log4js.getLogger();
 
 export async function stream2readable(stream: Readable, _opts: any) : Promise<Readable> {
     let recordNum = 0;
+    let hasError = false;
 
     const rl = readline.createInterface({input: stream, crlfDelay: Infinity});
 
@@ -23,26 +24,40 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
     });
 
     rl.on('line', (line) => {
-        const ok = readableStream.push(JSON.parse(line));
-
-        if (!ok) {
-             logger.debug("backpressure on");
-             rl.pause();
-             sourcePaused = true; 
-        }
+        if (hasError) return;
 
         recordNum++;
 
-        if (recordNum % 1000 === 0) {
-            logger.info(`record: ${recordNum}`);
+        try {
+            const ok = readableStream.push(JSON.parse(line));
+
+            if (!ok) {
+                logger.debug("backpressure on");
+                rl.pause();
+                sourcePaused = true; 
+            }
+
+            recordNum++;
+
+            if (recordNum % 1000 === 0) {
+                logger.info(`record: ${recordNum}`);
+            }
+        } catch (error) {
+            hasError = true;
+            logger.error(`JSON parse error at line ${recordNum + 1}: ${error}`);
+            stream.destroy();
+            rl.close();
+            readableStream.destroy(error instanceof Error ? error : new Error(String(error)));
         }
     });
 
     rl.on('error', (error) => {
+        if (hasError) return;
         logger.error(`readline error ${error}`);
     });
 
     rl.on('close', () => {
+        if (hasError) return;
         readableStream.push(null);
         logger.info(`processed ${recordNum} records`);
     });

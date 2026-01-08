@@ -177,6 +177,9 @@ async function main() : Promise<void> {
             objectStream = await mod.stream2readable(readableStream, {
                 path: inputFile
             });
+            objectStream.on('error', () => {
+                logger.error('stream processing error');
+            });
         }
         else {
             console.error(`Need --from`);

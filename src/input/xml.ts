@@ -116,10 +116,9 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
         hasError = true;
 
         logger.error ("Parser error:", err.message);
-
         stream.destroy(err);
         parser.end();
-        readableStream.destroy(err);
+        readableStream.destroy(err instanceof Error ? err : new Error(String(err)));
     });
 
     parser.on('end', () => {
