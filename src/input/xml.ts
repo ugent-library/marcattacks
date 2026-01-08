@@ -116,25 +116,20 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
         hasError = true;
 
         logger.error ("Parser error:", err.message);
-        stream.destroy(err);
+        stream.destroy();
         parser.end();
         readableStream.destroy(err instanceof Error ? err : new Error(String(err)));
     });
 
     parser.on('end', () => {
-        const ok = readableStream.push(null);
-        if (!ok) {
-            logger.debug("backpressure on");
-            stream.pause();
-            sourcePaused = true;
-        }
+        if (hasError) return;
+
         logger.info(`processed ${recordNum} records`);
-        readableStream.destroy();
+        readableStream.push(null);
     });
 
     stream.on('data', (chunk) => {
         if (hasError) return; 
-
         parser.write(chunk);
     });
 
@@ -145,9 +140,11 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
 
     stream.on('error', (err) => {
         if (hasError) return; 
+        hasError = true;
     
         logger.error("Source stream error:", err);
-        parser.end(); // End the parser instead of destroying
+        stream.destroy();
+        parser.end();
         readableStream.destroy(err);
     });
 
