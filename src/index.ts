@@ -177,8 +177,8 @@ async function main() : Promise<void> {
             objectStream = await mod.stream2readable(readableStream, {
                 path: inputFile
             });
-            objectStream.on('error', () => {
-                logger.error('stream processing error');
+            objectStream.on('error', (error) => {
+                logger.error("input stream processing error: ", error.message);
                 process.exitCode = 2;
             });
         }
@@ -199,6 +199,9 @@ async function main() : Promise<void> {
 
         if (opts.out === '@slow') {
             outStream = new SlowWritable({ delayMs: 100 });
+        }
+        else if (opts.out === '@errors') {
+            outStream = new SlowWritable({ simulateErrorEveryN: 2 });
         }
         else if (opts.out) {
             if (opts.out.startsWith("sftp")) {
@@ -244,15 +247,15 @@ async function main() : Promise<void> {
                 mod.readable2writable(resultStream, outStream);
                 await finished(outStream);
             }
-            catch (e) {
-                logger.warn(`process exited with: ${e}`);
-                process.exit(2);
+            catch (error) {
+                logger.error("output stream processing error: ", error);
+                process.exitCode = 3;
             }
         }
     }
     catch (e) {
         logger.error(`process crashed with: ${e}`);
-        process.exit(3);
+        process.exitCode = 8;
     }
 }
 
