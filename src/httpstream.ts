@@ -2,6 +2,9 @@ import { Readable } from 'stream';
 import * as http from 'http';
 import * as https from 'https';
 import { URL } from 'url';
+import log4js from 'log4js';
+
+const logger = log4js.getLogger();
 
 export function httpReadStream(urlString: string): Promise<Readable> {
     return new Promise((resolve, reject) => {
@@ -24,9 +27,13 @@ export function httpReadStream(urlString: string): Promise<Readable> {
                 resolve(res);
             });
 
-            req.on('error', reject);
+            req.on('error', (error) => {
+                logger.error("http request error: ", error);
+                reject(error);
+            });
         }
         catch (error) {
+            logger.error("http stream error: ", error);
             reject(error);
         }
     });

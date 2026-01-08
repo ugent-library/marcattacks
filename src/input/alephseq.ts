@@ -29,7 +29,9 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
     rl.on('line', (line) => {
         if (hasError) return;
 
-        if (line.match(/^\d{+}\s\w{5}\sL\s.*/)) {
+        logger.debug(line);
+
+        if (line.match(/^\d+\s[\x20-\x7E]{5}\sL\s.*/u)) {
             // ok
         }
         else {
