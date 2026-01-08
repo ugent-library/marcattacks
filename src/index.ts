@@ -143,7 +143,7 @@ async function main() : Promise<void> {
         logger.info(`using: ${getCleanURL(inputFile)}`);
 
         let readableStream;
-
+        
         if (inputFile.protocol.startsWith("http")) {
             readableStream = await httpReadStream(inputFile.toString());
         }
@@ -165,6 +165,9 @@ async function main() : Promise<void> {
             }
 
             readableStream = await sftpReadStream(remotePath, config);
+        }
+        else if (inputFile.protocol === 'stdin:') {
+            readableStream = process.stdin;
         }
         else {
             readableStream = fs.createReadStream(inputFile);

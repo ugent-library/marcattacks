@@ -120,6 +120,7 @@ Provide a fix file to the mapper. See examples:
 - _file path_
 - sftp://username@host:port/path
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
+- stdin://local
  
 ### Logging
 
