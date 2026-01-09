@@ -35,6 +35,7 @@
     "demo:rdf": "npx marcattacks --to rdf --map marc2rdf data/sample.xml",
     "demo:jsonld": "npx marcattacks --to jsonl --fix ./demo/marc2rdf.jsonata data/sample.xml",
     "demo:n3": "npx marcattacks --from rdf ./data/output.ttl --to rdf --map notation3 --fix ./demo/allnames.n3",
+    "demo:n3:marc": "npx marcattacks --from alephseq ./data/one.alephseq --to rdf --map notation3 --fix ./demo/marc2rdf.n3",
     "demo:biblio:one": "npx marcattacks --from json --to rdf --fix ./demo/biblio.jsonata ./data/biblio.json",
     "demo:biblio:all": "npx marcattacks --from jsonl --to rdf --fix ./demo/biblio.jsonata --info https://biblio.ugent.be/exports/publications.json",
     "docker:build": "docker build . -t hochstenbach/marcattacks:v0.0.1",

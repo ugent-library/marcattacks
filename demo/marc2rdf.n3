@@ -1,6 +1,47 @@
 @prefix : <http://example.org/ns#> .
 @prefix list: <http://www.w3.org/2000/10/swap/list#> .
 @prefix log: <http://www.w3.org/2000/10/swap/log#> .
+@prefix string: <http://www.w3.org/2000/10/swap/string#> .
+
+{
+  ?X :record ?Record.
+  ?Record :marcid ?ID. 
+  (?Record "245") :marcfield0 ?F245.
+  (?F245 2) :splice ?SP.
+  #(?F245 "a") :marcsubf ?F245a
+}
+=>
+{
+  :result :is ?SP.
+}. 
+
+## Helper functions
+
+# :splice splice a list
+{ (?List ?Idx) :splice ?Result }
+<=
+{
+  (?List ?Idx ()) :splice ?Result.
+}.
+
+{ (() ?Idx ?Acc) :splice ?Acc }
+<= true.
+
+{ (?List 0 ?Acc) :splice ?List }
+<= 
+{
+   ?List list:length ?X.
+   ?X log:notEqualTo 0.
+}.
+
+{ (?List ?Idx ?Acc) :splice ?Result }
+<=
+{
+  ?List list:firstRest (?H ?T).
+  (?Idx -1) math:sum ?IdxNew.
+  (?Acc (?H) ) list:concatenation ?Acc2.
+  (?T ?IdxNew ?Acc2) :splice ?Result.
+}.
 
 # marcid: return the record id 
 { ?Record :marcid ?Result }
@@ -20,6 +61,35 @@
   (?Field 4) list:memberAt ?Result.
 }.
 
+# marcsubf: return all values matching a subfield regex
+{ ( ?Field ?Regex) :marcsubf ?Result }
+<=
+{
+  ( ?Field ?Regex ()) :marcsubf ?Result.
+} .
+
+{ ( () ?Regex ?Acc ) :marcsubf ?Acc } 
+<= true.
+
+{ ( ?Field ?Regex ?Acc ) :marcsubf ?Result }
+<=
+{
+    ?Field list:firstRest (?Subf ?Rest).
+    ?Rest list:firstRest (?Value ?Tail).
+    ?Subf string:matches ?Regex.
+    ( ?Acc (?Value)) list:concatenation ?Acc2.
+    ( ?Tail ?Regex ?Acc2 ) :marcsubf ?Result.
+}.
+
+{ ( ?Field ?Regex ?Acc ) :marcsubf ?Result }
+<=
+{
+    ?Field list:firstRest (?Subf ?Rest).
+    ?Rest list:firstRest (?Value ?Tail).
+    ?Subf string:notMatches ?Regex.
+    ( ?Tail ?Regex ?Acc ) :marcsubf ?Result.
+}.
+
 # marcfield0: collect the first row of a marc field
 { ( ?Record ?Field) :marcfield0 ?Result }
 <=
@@ -32,36 +102,29 @@
 { ( ?Record ?Field) :marcfield ?Result}
 <=
 {
-  ( ?Record ?Field ()) :marcfield_acc ?Result.
+  ( ?Record ?Field ()) :marcfield ?Result.
 }.
 
-{ ( () ?Field ?Acc ) :marcfield_acc ?Acc}
+{ ( () ?Field ?Acc ) :marcfield ?Acc}
 <= true.
 
-{ ( ?L ?Field ?Acc ) :marcfield_acc ?Result }
+{ ( ?L ?Field ?Acc ) :marcfield ?Result }
 <=
 {
   ?L list:firstRest (?H ?T).
   ( ?H 0 ) list:memberAt ?Field.
   ( ?Acc (?H) ) list:append ?AccNew.
-  (?T ?Field ?AccNew) :marcfield_acc ?Result.
+  (?T ?Field ?AccNew) :marcfield ?Result.
 }.
 
-{ (?L ?Field ?Acc) :marcfield_acc ?Result }
+{ (?L ?Field ?Acc) :marcfield ?Result }
 <=
 {
   ?L list:firstRest (?H ?T).
   ( ?H 0 ) list:memberAt ?X.
   ?Field log:notEqualTo ?X.
-  (?T ?Field ?Acc) :marcfield_acc ?Result.
+  (?T ?Field ?Acc) :marcfield ?Result.
 }.
-# end marcfield
 
-{
-  ?X :record ?Record.
-  ?Record :marcid ?ID. 
-}
-=>
-{
-  :result :is ?ID .
-}. 
+## End Helper functions
+
