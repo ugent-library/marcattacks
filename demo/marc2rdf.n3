@@ -2,17 +2,21 @@
 @prefix list: <http://www.w3.org/2000/10/swap/list#> .
 @prefix log: <http://www.w3.org/2000/10/swap/log#> .
 @prefix string: <http://www.w3.org/2000/10/swap/string#> .
+@prefix math: <http://www.w3.org/2000/10/swap/math#> .
 
 {
   ?X :record ?Record.
   ?Record :marcid ?ID. 
-  (?Record "245") :marcfield0 ?F245.
-  (?F245 2) :splice ?SP.
-  #(?F245 "a") :marcsubf ?F245a
+  
+  (?Record "245" "a") :marcmap ?Title.
+  (?Record "650" "a") :marcmap ?Subject.
+  (?Record "920" "a") :marcmap ?Type.
 }
 =>
 {
-  :result :is ?SP.
+  :result :title ?Title.
+  :result :type ?Type.
+  :result :subject ?Subject.
 }. 
 
 ## Helper functions
@@ -21,26 +25,37 @@
 { (?List ?Idx) :splice ?Result }
 <=
 {
-  (?List ?Idx ()) :splice ?Result.
+  ( ?X {
+      ?List list:iterate (?Num ?X).
+      ?Num math:notLessThan ?Idx.
+      } ?Result ) log:collectAllIn _:x.
 }.
 
-{ (() ?Idx ?Acc) :splice ?Acc }
+# :join a list with a separator
+{ (?List ?Sep) :join ?Result }
+<=
+{
+  (?List ?Sep "") :join ?Result.
+}.
+
+{ ( () ?Sep ?Acc ) :join ?Acc }
 <= true.
 
-{ (?List 0 ?Acc) :splice ?List }
-<= 
-{
-   ?List list:length ?X.
-   ?X log:notEqualTo 0.
-}.
-
-{ (?List ?Idx ?Acc) :splice ?Result }
+{ ( ?List ?Sep ?Acc ) :join ?Result }
 <=
 {
   ?List list:firstRest (?H ?T).
-  (?Idx -1) math:sum ?IdxNew.
-  (?Acc (?H) ) list:concatenation ?Acc2.
-  (?T ?IdxNew ?Acc2) :splice ?Result.
+  ?Acc log:equalTo "".
+  ( ?T ?Sep ?H ) :join ?Result .
+}.
+
+{ ( ?List ?Sep ?Acc ) :join ?Result }
+<=
+{
+  ?List list:firstRest (?H ?T).
+  ?Acc log:notEqualTo "".
+  ( ?Acc ?Sep ?H) string:append ?AccNew.
+  ( ?T ?Sep ?AccNew ) :join ?Result .
 }.
 
 # marcid: return the record id 
@@ -65,26 +80,27 @@
 { ( ?Field ?Regex) :marcsubf ?Result }
 <=
 {
-  ( ?Field ?Regex ()) :marcsubf ?Result.
+  ( ?Field 3) :splice ?FieldData.
+  ( ?FieldData ?Regex ()) :marcsubf ?Result.
 } .
 
 { ( () ?Regex ?Acc ) :marcsubf ?Acc } 
 <= true.
 
-{ ( ?Field ?Regex ?Acc ) :marcsubf ?Result }
+{ ( ?FieldData ?Regex ?Acc ) :marcsubf ?Result }
 <=
 {
-    ?Field list:firstRest (?Subf ?Rest).
+    ?FieldData list:firstRest (?Subf ?Rest).
     ?Rest list:firstRest (?Value ?Tail).
     ?Subf string:matches ?Regex.
-    ( ?Acc (?Value)) list:concatenation ?Acc2.
+    ( ?Acc (?Value)) list:append ?Acc2.
     ( ?Tail ?Regex ?Acc2 ) :marcsubf ?Result.
 }.
 
-{ ( ?Field ?Regex ?Acc ) :marcsubf ?Result }
+{ ( ?FieldData ?Regex ?Acc ) :marcsubf ?Result }
 <=
 {
-    ?Field list:firstRest (?Subf ?Rest).
+    ?FieldData list:firstRest (?Subf ?Rest).
     ?Rest list:firstRest (?Value ?Tail).
     ?Subf string:notMatches ?Regex.
     ( ?Tail ?Regex ?Acc ) :marcsubf ?Result.
@@ -126,5 +142,12 @@
   (?T ?Field ?Acc) :marcfield ?Result.
 }.
 
+{ ( ?Record ?Tag ?Subfield ) :marcmap ?Result }
+<=
+{
+  (?Record ?Tag) :marcfield ?FL.
+  ?FL list:member ?F. 
+  (?F ?Subfield) :marcsubf ?T .
+  (?T " ") :join ?Result.
+}.
 ## End Helper functions
-
