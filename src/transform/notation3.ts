@@ -1,6 +1,7 @@
 import { Transform } from "stream";
 import { parseString , writeString } from "../util/rdf_parse.js";
 import { type Record, isRecord } from "../types/quad.js";
+import * as marc_n3_helpders from "../util/marc_n3_helpers.js";
 import fs from "fs";
 import log4js from 'log4js';
 import eyeling from 'eyeling';
@@ -29,6 +30,8 @@ export async function transform(n3file: string) : Promise<Transform> {
                 let rdfText = await writeString(rdfData);
                 // Inject the n3 rules
                 rdfText += "\n\n###RULES\n" + n3;
+                // Inject helpers
+                rdfText += "\n\n##HELPERS\n" + marc_n3_helpders.code;
                 // Reason
                 const rdfOutput = eyeling.reason({ proofComments: false }, rdfText);
                 // Turn it back into JSON

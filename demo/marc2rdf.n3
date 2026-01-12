@@ -1,16 +1,13 @@
 @prefix : <http://example.org/ns#> .
-@prefix list: <http://www.w3.org/2000/10/swap/list#> .
-@prefix log: <http://www.w3.org/2000/10/swap/log#> .
-@prefix string: <http://www.w3.org/2000/10/swap/string#> .
-@prefix math: <http://www.w3.org/2000/10/swap/math#> .
+@prefix marc: <https://codeberg.org/phochste/marcattacks#> .
 
 {
   ?X :record ?Record.
-  ?Record :marcid ?ID. 
+  ?Record marc:marcid ?ID. 
   
-  (?Record "245" "a") :marcmap ?Title.
-  (?Record "650" "a") :marcmap ?Subject.
-  (?Record "920" "a") :marcmap ?Type.
+  (?Record "245" "a") marc:marcmap ?Title.
+  (?Record "650" "a") marc:marcmap ?Subject.
+  (?Record "920" "a") marc:marcmap ?Type.
 }
 =>
 {
@@ -19,135 +16,3 @@
   :result :subject ?Subject.
 }. 
 
-## Helper functions
-
-# :splice splice a list
-{ (?List ?Idx) :splice ?Result }
-<=
-{
-  ( ?X {
-      ?List list:iterate (?Num ?X).
-      ?Num math:notLessThan ?Idx.
-      } ?Result ) log:collectAllIn _:x.
-}.
-
-# :join a list with a separator
-{ (?List ?Sep) :join ?Result }
-<=
-{
-  (?List ?Sep "") :join ?Result.
-}.
-
-{ ( () ?Sep ?Acc ) :join ?Acc }
-<= true.
-
-{ ( ?List ?Sep ?Acc ) :join ?Result }
-<=
-{
-  ?List list:firstRest (?H ?T).
-  ?Acc log:equalTo "".
-  ( ?T ?Sep ?H ) :join ?Result .
-}.
-
-{ ( ?List ?Sep ?Acc ) :join ?Result }
-<=
-{
-  ?List list:firstRest (?H ?T).
-  ?Acc log:notEqualTo "".
-  ( ?Acc ?Sep ?H) string:append ?AccNew.
-  ( ?T ?Sep ?AccNew ) :join ?Result .
-}.
-
-# marcid: return the record id 
-{ ?Record :marcid ?Result }
-<=
-{
-  (?Record "001") :marcfield0 ?F001.
-  ?F001 :marcctrl ?ID. 
-  ( "http://lib.ugent.be/record" ?ID ) string:concatenation ?IRI_ID.
-  ?Result log:uri ?IRI_ID.
-}.
-
-# marcctrl: return the control value of a field
-{ ?Field :marcctrl ?Result }
-<=
-{
-  (?Field 3) list:memberAt "_" .
-  (?Field 4) list:memberAt ?Result.
-}.
-
-# marcsubf: return all values matching a subfield regex
-{ ( ?Field ?Regex) :marcsubf ?Result }
-<=
-{
-  ( ?Field 3) :splice ?FieldData.
-  ( ?FieldData ?Regex ()) :marcsubf ?Result.
-} .
-
-{ ( () ?Regex ?Acc ) :marcsubf ?Acc } 
-<= true.
-
-{ ( ?FieldData ?Regex ?Acc ) :marcsubf ?Result }
-<=
-{
-    ?FieldData list:firstRest (?Subf ?Rest).
-    ?Rest list:firstRest (?Value ?Tail).
-    ?Subf string:matches ?Regex.
-    ( ?Acc (?Value)) list:append ?Acc2.
-    ( ?Tail ?Regex ?Acc2 ) :marcsubf ?Result.
-}.
-
-{ ( ?FieldData ?Regex ?Acc ) :marcsubf ?Result }
-<=
-{
-    ?FieldData list:firstRest (?Subf ?Rest).
-    ?Rest list:firstRest (?Value ?Tail).
-    ?Subf string:notMatches ?Regex.
-    ( ?Tail ?Regex ?Acc ) :marcsubf ?Result.
-}.
-
-# marcfield0: collect the first row of a marc field
-{ ( ?Record ?Field) :marcfield0 ?Result }
-<=
-{
-  ( ?Record ?Field) :marcfield ?F.
-  ?F list:first ?Result.
-}.
-
-# marcfield: collect all data for a marc field
-{ ( ?Record ?Field) :marcfield ?Result}
-<=
-{
-  ( ?Record ?Field ()) :marcfield ?Result.
-}.
-
-{ ( () ?Field ?Acc ) :marcfield ?Acc}
-<= true.
-
-{ ( ?L ?Field ?Acc ) :marcfield ?Result }
-<=
-{
-  ?L list:firstRest (?H ?T).
-  ( ?H 0 ) list:memberAt ?Field.
-  ( ?Acc (?H) ) list:append ?AccNew.
-  (?T ?Field ?AccNew) :marcfield ?Result.
-}.
-
-{ (?L ?Field ?Acc) :marcfield ?Result }
-<=
-{
-  ?L list:firstRest (?H ?T).
-  ( ?H 0 ) list:memberAt ?X.
-  ?Field log:notEqualTo ?X.
-  (?T ?Field ?Acc) :marcfield ?Result.
-}.
-
-{ ( ?Record ?Tag ?Subfield ) :marcmap ?Result }
-<=
-{
-  (?Record ?Tag) :marcfield ?FL.
-  ?FL list:member ?F. 
-  (?F ?Subfield) :marcsubf ?T .
-  (?T " ") :join ?Result.
-}.
-## End Helper functions
