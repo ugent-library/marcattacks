@@ -1,18 +1,20 @@
 @prefix : <http://example.org/ns#> .
+@prefix log: <http://www.w3.org/2000/10/swap/log#> .
+@prefix string: <http://www.w3.org/2000/10/swap/string#> .
 @prefix marc: <https://codeberg.org/phochste/marcattacks#> .
 
 {
   ?X :record ?Record.
   ?Record marc:marcid ?ID. 
-  
+
   (?Record "245" "a") marc:marcmap ?Title.
   (?Record "650" "a") marc:marcmap ?Subject.
   (?Record "920" "a") marc:marcmap ?Type.
 }
 =>
 {
-  :result :title ?Title.
-  :result :type ?Type.
-  :result :subject ?Subject.
+  ?ID :title ?Title.
+  ?ID :type ?Type.
+  ?ID :subject ?Subject.
 }. 
 
