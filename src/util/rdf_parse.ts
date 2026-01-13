@@ -15,9 +15,25 @@ export async function parseString(data:string, path: string) : Promise<Record> {
 export async function parseStream(readable: Readable, path: string) : Promise<Record> {
     return new Promise<Record>( (resolve,reject) => {
         let record : Record = { prefixes: {} , quads: [] };
+        let graphSet = new Set<string>();
 
         rdfParser.parse(readable, { path })
             .on('data', (quad) => {
+
+                // Ignore named graphs
+                if (quad.graph.termType === 'DefaultGraph') {
+                    // We are ok
+                }
+                else {
+                    graphSet.add(quad.graph.value);
+                    return;
+                }
+
+                // Also ignore triples mentioning the graphSet
+                if (graphSet.has(quad.subject.value) || graphSet.has(quad.object.value)) {
+                    return;
+                }
+
                 const part : Quad = {
                     "subject": {
                         "type": quad.subject.termType,

@@ -32,10 +32,18 @@ export async function transform(n3file: string) : Promise<Transform> {
                 rdfText += "\n\n###RULES\n" + n3;
                 // Inject helpers
                 rdfText += "\n\n##HELPERS\n" + marc_n3_helpders.code;
+
+                logger.debug(rdfText);
+
                 // Reason
                 const rdfOutput = eyeling.reason({ proofComments: false }, rdfText);
                 // Turn it back into JSON
-                const newData = await parseString(rdfOutput, "data.ttl");
+
+                logger.debug(rdfOutput);
+
+                const newData = await parseString(rdfOutput, "data.n3");
+
+                logger.debug(newData);
 
                 callback(null, newData);
             }
