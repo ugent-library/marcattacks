@@ -9,8 +9,8 @@
 }
 =>
 {
-  { (?Record "245" "a") marc:map ?Title.   } => { ?ID :title ?Title. }.
-  { (?Record "650" "a") marc:map ?Subject. } => { ?ID :subject ?Subject. }.
-  { (?Record "920" "a") marc:map ?Type.    } => { ?ID :type ?Type. }.
+  { (?Record "245" "a") marc:map ?Val } => { ?ID :title ?Val }.
+  { (?Record "650" "a") marc:map ?Val } => { ?ID :subject ?Val }.
+  { (?Record "920" "a") marc:map ?Val } => { ?ID :type ?Val }.
 }. 
 
