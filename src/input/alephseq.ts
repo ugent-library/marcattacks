@@ -20,6 +20,9 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
                 sourcePaused = false;
             }
         } ,
+        destroy() {
+            stream.destroy();
+        } ,
         objectMode: true 
     });
 
@@ -59,10 +62,6 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
             
             rec = [];
             recordNum++;
-
-            if (recordNum % 1000 === 0) {
-                logger.info(`record: ${recordNum}`);
-            }
         }
 
         const tag  = data?.substring(0,3);
@@ -95,12 +94,7 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
         readableStream.push({
             record: rec
         });
-        recordNum++;
-        if (recordNum % 1000 === 0) {
-            logger.info(`record: ${recordNum}`);
-        }
         readableStream.push(null);
-        logger.info(`processed ${recordNum} records`);
     });
 
     return readableStream;

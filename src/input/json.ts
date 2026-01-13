@@ -5,8 +5,6 @@ import log4js from 'log4js';
 const logger = log4js.getLogger();
 
 export async function stream2readable(stream: Readable, _opts: any) : Promise<Readable> {
-    let recordNum = 0;
-
     const pipeline = stream.pipe(streamArray.withParser());
 
     let sourcePaused = false;
@@ -19,6 +17,9 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
                 sourcePaused = false;
             }
         } ,
+        destroy() {
+            stream.destroy();
+        } ,
         objectMode: true 
     });
 
@@ -30,16 +31,9 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
             pipeline.pause();
             sourcePaused = true;
         }
-
-        recordNum++;
-
-        if (recordNum % 1000 === 0) {
-            logger.info(`record: ${recordNum}`);
-        }
     });
 
     pipeline.on('end', () => {
-        logger.info(`processed ${recordNum} records`);
         readableStream.push(null);
     });
 

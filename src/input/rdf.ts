@@ -8,7 +8,12 @@ import log4js from 'log4js';
 const logger = log4js.getLogger();
 
 export async function stream2readable(stream: Readable, opts: any) : Promise<Readable> {
-    const readableStream = new Readable({objectMode: true});
+    const readableStream = new Readable({
+        objectMode: true ,
+        destroy() {
+            stream.destroy();
+        }
+    });
 
     const record : Record = await parseStream(stream, opts.path.href);
 

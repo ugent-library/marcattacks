@@ -21,6 +21,9 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
                 sourcePaused = false;
             }
         } ,
+        destroy() {
+            stream.destroy();
+        } ,
         objectMode: true 
     });
 

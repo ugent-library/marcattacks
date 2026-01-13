@@ -13,8 +13,9 @@ import path from "node:path";
 import fs from 'fs';
 import { s3ReaderStream, s3WriterStream } from './s3stream.js';
 import dotenv from 'dotenv';
-import { finished } from 'node:stream/promises';
+import { pipeline } from 'node:stream/promises';
 import { createGunzip } from 'zlib';
+import { createCountableSkippedStream, createVerboseStream } from './util/stream_helpers.js';
 
 program.version('0.1.0')
     .argument('<file>')
@@ -25,6 +26,8 @@ program.version('0.1.0')
     .option('--fix <what>','jsonata')
     .option('-o,--out <file>','output file')
     .option('-z','compressed')
+    .option('--count <num>', 'output only <num> records')
+    .option('--skip <num>', 'skip first <num> records')
     .option('--key <keyfile>', 'private key file')
     .option('--key-env <env>','private key environment variable')
     .option('--log <format>','logging format')
@@ -193,9 +196,15 @@ async function main() : Promise<void> {
             objectStream = await mod.stream2readable(inputStream, {
                 path: inputFile
             });
-            objectStream.on('error', (error) => {
-                logger.error("input stream processing error: ", error.message);
-                process.exitCode = 2;
+            objectStream.on('error', (error: any) => {
+                if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
+                    inputStream.destroy();
+                }
+                else {
+                    logger.error("input stream processing error: ", error.message);
+                    inputStream.destroy();
+                    process.exitCode = 2;
+                }
             });
         }
         else {
@@ -203,12 +212,23 @@ async function main() : Promise<void> {
             process.exit(1);
         }
 
-        let resultStream = objectStream;
+        const stages: (Readable | Transform | Writable)[] = [objectStream];
+
+        if (opts.count || opts.skip) {
+            stages.push( 
+                createCountableSkippedStream(
+                    opts.count,
+                    opts.skip
+                )
+            );
+        }
+
+        stages.push(createVerboseStream());
 
         if (opts.map) {
             const mod = await loadPlugin(opts.map,'transform');
             const transformer : Transform = await mod.transform(opts.fix);
-            resultStream = objectStream.pipe(transformer);
+            stages.push(transformer);
         }
 
         let outStream : Writable;
@@ -258,14 +278,20 @@ async function main() : Promise<void> {
         }
 
         if (opts.to) {
+            const mod = await loadPlugin(opts.to,'output');
+            stages.push(await mod.transform());
+            stages.push(outStream);
             try {
-                const mod = await loadPlugin(opts.to,'output');
-                mod.readable2writable(resultStream, outStream);
-                await finished(outStream);
+                await pipeline(stages);
+                logger.info("pipeline finished cleanly");
             }
-            catch (error) {
-                logger.error("output stream processing error: ", error);
-                process.exitCode = 3;
+            catch (err : any) {
+                if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
+                    logger.info("Stream closed by limiter.");
+                } else {
+                    logger.error("pipeline error:", err);
+                    process.exitCode = 3;
+                }
             }
         }
     }

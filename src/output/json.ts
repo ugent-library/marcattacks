@@ -1,38 +1,41 @@
-import { Readable, Writable } from 'stream';
+import { Transform } from 'stream';
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export function readable2writable(readable: Readable, writable: Writable) : void {
+export async function transform() : Promise<Transform> {
     let isFirst = true;
+    let hasClosed = false;
 
-    const ok = writable.write("[");
+    return new Transform({
+        objectMode: true,
+        transform(data: any, _encoding, callback) {
+            let output = "";
 
-    readable.on('data', (data: any) => {
-        let output = "";
+            if (isFirst) {
+                output += "[";
+            }
+            else {
+                output += ',';
+            }
 
-        if (!isFirst) {
-            output += ',';
+            output += JSON.stringify(data);
+
+            isFirst = false;
+
+            logger.debug(`adding ${output.length} bytes`);
+            callback(null,output);
+        },
+        flush(callback) {
+            // Push the closing bracket to the buffer
+            if (!isFirst && !hasClosed) {
+                this.push("]");
+                hasClosed = true;
+            }
+            callback();
+        },
+        destroy(err, callback) {
+            callback(err);
         }
-
-        output += JSON.stringify(data);
-
-        const ok = writable.write(output);
-
-        if (!ok) {
-            logger.debug("backpressure on");
-            readable.pause();
-            writable.once('drain' , () => {
-                logger.debug("backpressure off");
-                readable.resume();
-            });
-        }
-        
-        isFirst = false;
-    });
-
-    readable.on('close', () => {
-        writable.write("]");
-        writable.end();
     });
 }

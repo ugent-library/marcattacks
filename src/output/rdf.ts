@@ -1,4 +1,4 @@
-import { Readable, Writable } from 'stream';
+import { Transform } from 'stream';
 import { writeString, parseString } from '../util/rdf_parse.js';
 import { isRecord } from '../types/quad.js';
 import N3 from 'n3';
@@ -7,22 +7,23 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function readable2writable(readable: Readable, writable: Writable): Promise<void> {
+export async function transform(): Promise<Transform> {
     let writer: N3.Writer | undefined;
     let counter = 0;
 
-    logger.debug(`start`);
-
-    try {
-        for await (const data of readable) {
+    return new Transform({
+        objectMode: true,
+        async transform(data: any, _encoding, callback) {
             counter++;
 
             if (isRecord(data)) {
                 logger.debug(`[${counter}] is a Record`);
-                const prefixes = data['prefixes'];
-
                 if (!writer) {
-                    writer = new N3.Writer(writable, { end: false, prefixes });
+                    writer = new N3.Writer({ 
+                        end: false, 
+                        prefixes: data['prefixes'] || {},
+                        write: (chunk: string) => this.push(chunk)
+                    });
                 }
                 await writeString(data, undefined, writer);
             } 
@@ -31,7 +32,11 @@ export async function readable2writable(readable: Readable, writable: Writable):
                 const dataNew = await parseString(JSON.stringify(data), "data.jsonld");
 
                 if (!writer) {
-                    writer = new N3.Writer(writable, { end: false });
+                    writer = new N3.Writer({ 
+                        end: false, 
+                        prefixes: data['prefixes'] || {},
+                        write: (chunk: string) => this.push(chunk)
+                    });
                 }
                 await writeString(dataNew, undefined, writer);
             } 
@@ -39,17 +44,14 @@ export async function readable2writable(readable: Readable, writable: Writable):
                 logger.warn(`[${counter}] is not a Record or a JSON-LD`);
                 // Consider if you need to initialize a writer here if one doesn't exist
             }
+        },
+        flush(callback) {
+            writer?.end();
+            callback();
+        },
+        destroy(err, callback) {
+            writer?.end();
+            callback(err);
         }
-
-        logger.debug(`end ${counter}`);
-        if (writer) {
-            writer.end();
-        } else {
-            logger.error(`no writer defined?!`);
-        }
-    } catch (err) {
-        logger.error("Stream processing error:", err);
-    } finally {
-        writable.end();
-    }
+    });
 }

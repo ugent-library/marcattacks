@@ -20,6 +20,9 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
                 sourcePaused = false;
             }
         } ,
+        destroy() {
+            stream.destroy();
+        } ,
         objectMode: true 
     });
 
@@ -38,10 +41,6 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
             }
 
             recordNum++;
-
-            if (recordNum % 1000 === 0) {
-                logger.info(`record: ${recordNum}`);
-            }
         } catch (error) {
             hasError = true;
             logger.error(`JSON parse error at line ${recordNum + 1}: ${error}`);
@@ -59,7 +58,6 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
     rl.on('close', () => {
         if (hasError) return;
         readableStream.push(null);
-        logger.info(`processed ${recordNum} records`);
     });
 
     return readableStream;

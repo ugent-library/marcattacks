@@ -19,6 +19,9 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
                 sourcePaused = false;
             }
         } ,
+        destroy() {
+            stream.destroy();
+        } ,
         objectMode: true 
     });
 
