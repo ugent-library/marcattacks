@@ -1,5 +1,8 @@
 import { Client } from "ssh2";
 import { Readable , Writable } from "stream";
+import log4js from 'log4js';
+
+const logger = log4js.getLogger();
 
 export interface SftpConfig {
   host: string;
@@ -10,6 +13,8 @@ export interface SftpConfig {
 }
 
 export async function sftpReadStream(remotePath: string, config: SftpConfig): Promise<Readable> {
+    logger.debug(`sftp config:`, config);
+
     return new Promise((resolve, reject) => {
         const conn = new Client();
 
@@ -39,6 +44,8 @@ export async function sftpReadStream(remotePath: string, config: SftpConfig): Pr
 }
 
 export async function sftpWriteStream(remotePath: string, config: SftpConfig): Promise<Writable> {
+    logger.debug(`sftp config:`, config);
+
     return new Promise((resolve, reject) => {
         const conn = new Client();
 
@@ -68,6 +75,8 @@ export async function sftpWriteStream(remotePath: string, config: SftpConfig): P
 }
 
 export async function sftpLatestFile(config: SftpConfig, remoteDir: string, extension: string): Promise<string> {
+    logger.debug(`sftp config:`, config);
+
     return new Promise((resolve, reject) => {
         const conn = new Client();
 

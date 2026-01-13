@@ -26,6 +26,7 @@ program.version('0.1.0')
     .option('-o,--out <file>','output file')
     .option('-z','compressed')
     .option('--key <keyfile>', 'private key file')
+    .option('--key-env <env>','private key environment variable')
     .option('--log <format>','logging format')
     .option('--info','output debugging messages')
     .option('--debug','output more debugging messages')
@@ -74,6 +75,8 @@ if (opts.trace) {
 if (opts.config) {
     dotenv.config({ path: opts.config , quiet: true });
 }
+
+logger.info('here');
 
 main();
 
@@ -154,7 +157,6 @@ async function main() : Promise<void> {
         }
         else if (inputFile.protocol === 'sftp:') {
             const config = makeSftpConfig(inputFile,opts);
-
             let remotePath;
 
             if (inputFile.pathname.match(/\/@latest:\w+$/)) {
@@ -220,7 +222,7 @@ async function main() : Promise<void> {
         else if (opts.out) {
             if (opts.out.startsWith("sftp")) {
                 const url = new URL(opts.out);
-
+                
                 if (process.env.SFTP_USERNAME) {
                     url.username = process.env.SFTP_USERNAME;
                 }
@@ -285,6 +287,9 @@ function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
 
     if (opts.key) {
         privateKey = fs.readFileSync(opts.key,{ encoding: 'utf-8'});
+    }
+    else if (opts.keyEnv) {
+        privateKey = process.env[opts.keyEnv];
     }
 
     let config: SftpConfig = {
