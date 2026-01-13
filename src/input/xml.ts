@@ -9,8 +9,6 @@ type MARCType = 'leader' | 'control' | 'field' | 'subfield' | undefined;
 const logger = log4js.getLogger();
 
 export async function stream2readable(stream: Readable) : Promise<Readable> {
-    let recordNum = 0;
-
     let sourcePaused = false;
 
     const readableStream = new Readable({
@@ -106,11 +104,6 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
             }
 
             record = [];
-            recordNum++;
-
-            if (recordNum % 1000 === 0) {
-                logger.info(`record: ${recordNum}`);
-            }
         }
     }); 
 
@@ -127,7 +120,6 @@ export async function stream2readable(stream: Readable) : Promise<Readable> {
     parser.on('end', () => {
         if (hasError) return;
 
-        logger.info(`processed ${recordNum} records`);
         readableStream.push(null);
     });
 

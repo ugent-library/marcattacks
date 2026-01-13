@@ -5,8 +5,6 @@ import log4js from 'log4js';
 const logger = log4js.getLogger();
 
 export async function stream2readable(stream: Readable, _opts: any) : Promise<Readable> {
-    let recordNum = 0;
-    let hasError = false;
     let sourcePaused = false;
 
     const parser = Marc.createStream('Iso2709', 'Parser');
@@ -26,12 +24,6 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
     });
 
     parser.on('data', (record) => {
-        recordNum++;
-
-        if (recordNum % 1000 === 0) {
-            logger.info(`record: ${recordNum}`);
-        }
-
         let rec : string[][] = [];
 
         rec.push([ 'LDR' , ' ' , ' ' , '_', record.leader]);
@@ -70,11 +62,7 @@ export async function stream2readable(stream: Readable, _opts: any) : Promise<Re
     });
 
     parser.on('close', () => {
-        if (recordNum % 1000 === 0) {
-            logger.info(`record: ${recordNum}`);
-        }
         readableStream.push(null);
-        logger.info(`processed ${recordNum} records`);
     });
     
     stream.pipe(parser);

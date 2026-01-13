@@ -61,26 +61,36 @@ export function createCountableSkippedStream(
 export function createVerboseStream() : Transform {
     let recordNum = 0;
     let flushed = false;
+    const start = performance.now();
     return new Transform({
         objectMode: true,
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
             recordNum++;
 
             if (recordNum % 1000 === 0) {
-                logger.info(`record: ${recordNum}`);
+                const end = performance.now();
+                const duration = (end - start)/1000;
+                const speed = recordNum/duration;
+            logger.info(`record: ${recordNum} (${speed.toFixed(0)} rec/sec)`);
             }
             callback(null,chunk);
         } ,
         flush(callback) {
             if (!flushed) {
-                logger.info(`process ${recordNum} records`);
+                const end = performance.now();
+                const duration = (end - start)/1000;
+                const speed = recordNum/duration;
+                logger.info(`process ${recordNum} records in ${duration.toFixed(2)} seconds (${speed.toFixed(0)} recs/sec)`);
                 flushed = true;
             }
             callback();
         } ,
         destroy(err,callback) {
             if (!flushed) {
-                logger.info(`process ${recordNum} records`);
+                const end = performance.now();
+                const duration = (end - start)/1000;
+                const speed = recordNum/duration;
+                logger.info(`process ${recordNum} records in ${duration.toFixed(2)} seconds (${speed.toFixed(0)} recs/sec)`);
                 flushed = true;
             }
             callback(err);
