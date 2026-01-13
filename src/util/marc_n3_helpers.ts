@@ -7,7 +7,7 @@ export const code =`
 
 ## Helper functions
 
-# marc:splice splice a list
+# marc:splice - splice a list
 { (?List ?Idx) marc:splice ?Result }
 <=
 {
@@ -17,7 +17,7 @@ export const code =`
       } ?Result ) log:collectAllIn _:x.
 }.
 
-# marc:join a list with a separator
+# marc:join - join a list with a separator
 { (?List ?Sep) marc:join ?Result }
 <=
 {
@@ -44,96 +44,96 @@ export const code =`
   ( ?T ?Sep ?AccNew ) marc:join ?Result .
 }.
 
-# marcid: return the record id 
-{ ?Record marc:marcid ?Result }
+# marc:id - return the record id 
+{ ?Record marc:id ?Result }
 <=
 {
-  (?Record "001") marc:marcfield0 ?F001.
-  ?F001 marc:marcctrl ?ID. 
+  (?Record "001") marc:field0 ?F001.
+  ?F001 marc:ctrl ?ID. 
   ( "http://lib.ugent.be/record/" ?ID ) string:concatenation ?IRI_ID.
   ?Result log:uri ?IRI_ID.
 }.
 
-# marcctrl: return the control value of a field
-{ ?Field marc:marcctrl ?Result }
+# marc:ctrl - return the control value of a field
+{ ?Field marc:ctrl ?Result }
 <=
 {
   (?Field 3) list:memberAt "_" .
   (?Field 4) list:memberAt ?Result.
 }.
 
-# marcsubf: return all values matching a subfield regex
-{ ( ?Field ?Regex) marc:marcsubf ?Result }
+# marc:subf - return all values matching a subfield regex
+{ ( ?Field ?Regex) marc:subf ?Result }
 <=
 {
   ( ?Field 3) marc:splice ?FieldData.
-  ( ?FieldData ?Regex ()) marc:marcsubf ?Result.
+  ( ?FieldData ?Regex ()) marc:subf ?Result.
 } .
 
-{ ( () ?Regex ?Acc ) marc:marcsubf ?Acc } 
+{ ( () ?Regex ?Acc ) marc:subf ?Acc } 
 <= true.
 
-{ ( ?FieldData ?Regex ?Acc ) marc:marcsubf ?Result }
+{ ( ?FieldData ?Regex ?Acc ) marc:subf ?Result }
 <=
 {
     ?FieldData list:firstRest (?Subf ?Rest).
     ?Rest list:firstRest (?Value ?Tail).
     ?Subf string:matches ?Regex.
     ( ?Acc (?Value)) list:append ?Acc2.
-    ( ?Tail ?Regex ?Acc2 ) marc:marcsubf ?Result.
+    ( ?Tail ?Regex ?Acc2 ) marc:subf ?Result.
 }.
 
-{ ( ?FieldData ?Regex ?Acc ) marc:marcsubf ?Result }
+{ ( ?FieldData ?Regex ?Acc ) marc:subf ?Result }
 <=
 {
     ?FieldData list:firstRest (?Subf ?Rest).
     ?Rest list:firstRest (?Value ?Tail).
     ?Subf string:notMatches ?Regex.
-    ( ?Tail ?Regex ?Acc ) marc:marcsubf ?Result.
+    ( ?Tail ?Regex ?Acc ) marc:subf ?Result.
 }.
 
-# marcfield0: collect the first row of a marc field
-{ ( ?Record ?Field) marc:marcfield0 ?Result }
+# marc:field0 - collect the first row of a marc field
+{ ( ?Record ?Field) marc:field0 ?Result }
 <=
 {
-  ( ?Record ?Field) marc:marcfield ?F.
+  ( ?Record ?Field) marc:field ?F.
   ?F list:first ?Result.
 }.
 
-# marcfield: collect all data for a marc field
-{ ( ?Record ?Field) marc:marcfield ?Result}
+# marc:field - collect all data for a marc field
+{ ( ?Record ?Field) marc:field ?Result}
 <=
 {
-  ( ?Record ?Field ()) marc:marcfield ?Result.
+  ( ?Record ?Field ()) marc:field ?Result.
 }.
 
-{ ( () ?Field ?Acc ) marc:marcfield ?Acc}
+{ ( () ?Field ?Acc ) marc:field ?Acc}
 <= true.
 
-{ ( ?L ?Field ?Acc ) marc:marcfield ?Result }
+{ ( ?L ?Field ?Acc ) marc:field ?Result }
 <=
 {
   ?L list:firstRest (?H ?T).
   ( ?H 0 ) list:memberAt ?Field.
   ( ?Acc (?H) ) list:append ?AccNew.
-  (?T ?Field ?AccNew) marc:marcfield ?Result.
+  (?T ?Field ?AccNew) marc:field ?Result.
 }.
 
-{ (?L ?Field ?Acc) marc:marcfield ?Result }
+{ (?L ?Field ?Acc) marc:field ?Result }
 <=
 {
   ?L list:firstRest (?H ?T).
   ( ?H 0 ) list:memberAt ?X.
   ?Field log:notEqualTo ?X.
-  (?T ?Field ?Acc) marc:marcfield ?Result.
+  (?T ?Field ?Acc) marc:field ?Result.
 }.
 
-{ ( ?Record ?Tag ?Subfield ) marc:marcmap ?Result }
+{ ( ?Record ?Tag ?Subfield ) marc:map ?Result }
 <=
 {
-  (?Record ?Tag) marc:marcfield ?FL.
+  (?Record ?Tag) marc:field ?FL.
   ?FL list:member ?F. 
-  (?F ?Subfield) marc:marcsubf ?T .
+  (?F ?Subfield) marc:subf ?T .
   (?T " ") marc:join ?Result.
 }.
 ## End Helper functions

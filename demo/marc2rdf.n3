@@ -5,11 +5,11 @@
 
 {
   ?X :record ?Record.
-  ?Record marc:marcid ?ID. 
+  ?Record marc:id ?ID. 
 
-  (?Record "245" "a") marc:marcmap ?Title.
-  (?Record "650" "a") marc:marcmap ?Subject.
-  (?Record "920" "a") marc:marcmap ?Type.
+  (?Record "245" "a") marc:map ?Title.
+  (?Record "650" "a") marc:map ?Subject.
+  (?Record "920" "a") marc:map ?Type.
 }
 =>
 {
