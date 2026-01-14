@@ -179,11 +179,11 @@ async function main() : Promise<void> {
 
         const stages: (Readable | Transform | Writable)[] = [readableStream];
 
-        if (opts.z) {
+        if (opts.z || inputFile.pathname.endsWith(".gz")) {
             stages.push(createUncompressedStream()); 
         }
 
-        if (opts.tar) {
+        if (opts.tar || inputFile.pathname.match(/.tar(.\w+$)?$/)) {
             stages.push(await createUntarredStream());
         }
 
