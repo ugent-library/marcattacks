@@ -52,6 +52,7 @@
     "@types/ssh2-sftp-client": "^9.0.5",
     "@types/stream-json": "^1.7.8",
     "@types/streamify-string": "^1.0.4",
+    "@types/tar-stream": "^3.1.4",
     "eslint": "^9.39.1",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
@@ -74,6 +75,7 @@
     "stream-chain": "^3.4.0",
     "stream-json": "^1.9.1",
     "streamify-string": "^1.0.1",
+    "tar-stream": "^3.1.7",
     "uuid": "^13.0.0"
   }
 }

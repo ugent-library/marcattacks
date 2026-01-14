@@ -14,8 +14,12 @@ import fs from 'fs';
 import { s3ReaderStream, s3WriterStream } from './s3stream.js';
 import dotenv from 'dotenv';
 import { pipeline } from 'node:stream/promises';
-import { createGunzip } from 'zlib';
-import { createCountableSkippedStream, createVerboseStream } from './util/stream_helpers.js';
+import { 
+    createCountableSkippedStream, 
+    createUntarredStream, 
+    createUncompressedStream,
+    createVerboseStream 
+} from './util/stream_helpers.js';
 
 program.version('0.1.0')
     .argument('<file>')
@@ -25,7 +29,8 @@ program.version('0.1.0')
     .option('-m,--map <map>','data mapper','jsonata')
     .option('--fix <what>','jsonata')
     .option('-o,--out <file>','output file')
-    .option('-z','compressed')
+    .option('--z','uncompress input')
+    .option('--tar','untar input')
     .option('--count <num>', 'output only <num> records')
     .option('--skip <num>', 'skip first <num> records')
     .option('--key <keyfile>', 'private key file')
@@ -181,7 +186,11 @@ async function main() : Promise<void> {
         const stages: (Readable | Transform | Writable)[] = [readableStream];
 
         if (opts.z) {
-            stages.push(createGunzip()); 
+            stages.push(createUncompressedStream()); 
+        }
+
+        if (opts.tar) {
+            stages.push(await createUntarredStream());
         }
 
         if (opts.from) {

@@ -1,5 +1,7 @@
 import { Readable, Transform, type TransformCallback } from 'stream';
 import log4js from 'log4js';
+import { createGunzip } from 'zlib';
+import tar from 'tar-stream';
 
 const logger = log4js.getLogger();
 
@@ -99,4 +101,79 @@ export function createVerboseStream() : Transform {
             callback(err);
         }
     });
+}
+
+/**
+ * Creates an uncompressed stream
+ */
+export function createUncompressedStream() : Transform {
+    return createGunzip();
+}
+
+/**
+ * Creates an untarred stream
+ */
+export async function createUntarredStream(): Promise<Transform> {
+    const extract = tar.extract();
+
+    const transformStream = new Transform({
+        objectMode: true,
+
+        transform(chunk: any, encoding: string, callback: TransformCallback) {
+            // Ensure chunk is a Buffer (tar-stream expects binary data)
+            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding as BufferEncoding);
+            
+            // Don't pass callback directly - let it be called after write completes
+            const writeSuccessful = extract.write(buffer);
+            
+            if (!writeSuccessful) {
+                // Backpressure handling
+                extract.once('drain', callback);
+            } else {
+                callback();
+            }
+        },
+
+        flush(callback: TransformCallback) {
+            extract.end();
+            extract.once('finish', callback);
+        }
+    });
+
+    extract.on('entry', (header, stream, next) => {
+        logger.info(`extracting ${header.name} from tar stream`);
+        
+        const chunks: Buffer[] = [];
+
+        stream.on('data', (chunk) => {
+            logger.debug(`received chunk of size ${chunk.length}`);
+            chunks.push(chunk);
+        });
+        
+        stream.on('end', () => {
+            const buffer = Buffer.concat(chunks);
+            logger.debug(`end of entry ${header.name}, total size: ${buffer.length}`);
+            transformStream.push(buffer.toString('utf-8'));
+            next();
+        });
+
+        stream.on('error', (err) => {
+            logger.error(`error reading entry ${header.name}:`, err);
+            next(err);
+        });
+
+        stream.resume(); 
+    });
+
+    extract.on('finish', () => {
+        logger.debug('All tar entries processed');
+        transformStream.push(null); // Signal end of stream
+    });
+
+    extract.on('error', (err) => {
+        logger.error('tar extract error:', err);
+        transformStream.destroy(err);
+    });
+
+    return transformStream;
 }
