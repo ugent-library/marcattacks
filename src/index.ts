@@ -183,7 +183,7 @@ async function main() : Promise<void> {
             stages.push(createUncompressedStream()); 
         }
 
-        if (opts.tar || inputFile.pathname.match(/.tar(.\w+$)?$/)) {
+        if (opts.tar || inputFile.pathname.match(/.tar(.\w+$)?$/) || inputFile.pathname.endsWith(".tgz")) {
             stages.push(await createUntarredStream());
         }
 
