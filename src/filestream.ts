@@ -28,7 +28,8 @@ export async function fileLatestFile(url: URL) : Promise<URL> {
 
            for (let i = 0 ; i < files.length ; i++) {
             if (files[i]?.toLowerCase().endsWith(extension)) {
-                resolve(new URL("file://" + directory + '/' + files[i]));
+                logger.info(`resolved as file://${directory}${files[i]}`);
+                resolve(new URL("file://" + directory + files[i]));
                 return;
             }
            }
