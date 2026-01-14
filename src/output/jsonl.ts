@@ -7,7 +7,7 @@ export async function transform() : Promise<Transform> {
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {
-            const output = JSON.stringify(data);
+            const output = JSON.stringify(data) + "\n";
             logger.trace(`adding ${output.length} bytes`);
             callback(null,output);
         }
