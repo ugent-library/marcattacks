@@ -3,7 +3,7 @@
 import log4js from 'log4js';
 import { program } from 'commander';
 import { loadPlugin } from './plugin-loader.js';
-import { sftpReadStream , sftpWriteStream , sftpLatestFile , type SftpConfig } from './sftpstream.js';
+import { sftpLatestFile, sftpReadStream , sftpWriteStream } from './sftpstream.js';
 import { httpReadStream } from './httpstream.js';
 import { Readable } from 'stream';
 import { pathToFileURL } from "node:url";
@@ -11,7 +11,7 @@ import type { Transform, Writable } from 'node:stream';
 import { SlowWritable } from './slow-writable.js';
 import path from "node:path";
 import fs from 'fs';
-import { s3ReaderStream, s3WriterStream } from './s3stream.js';
+import { s3LatestObject, s3ReadStream, s3WriteStream } from './s3stream.js';
 import dotenv from 'dotenv';
 import { pipeline } from 'node:stream/promises';
 import { 
@@ -20,6 +20,7 @@ import {
     createUncompressedStream,
     createVerboseStream 
 } from './util/stream_helpers.js';
+import { fileLatestFile, fileReadStream } from './filestream.js';
 
 program.version('0.1.0')
     .argument('<file>')
@@ -159,28 +160,21 @@ async function main() : Promise<void> {
             readableStream = await httpReadStream(inputFile.toString());
         }
         else if (inputFile.protocol.startsWith("s3")) {
-            readableStream = await s3ReaderStream(inputFile,{});
+            // optional resolve @latest
+            inputFile = await s3LatestObject(inputFile,opts);
+            readableStream = await s3ReadStream(inputFile,opts);
         }
         else if (inputFile.protocol === 'sftp:') {
-            const config = makeSftpConfig(inputFile,opts);
-            let remotePath;
-
-            if (inputFile.pathname.match(/\/@latest:\w+$/)) {
-                const remoteDir = inputFile.pathname.replace(/\/@latest.*/,"");
-                const extension = inputFile.pathname.replace(/.*\/@latest:/,"");
-                remotePath = await sftpLatestFile(config,remoteDir,extension);
-            }
-            else {
-                remotePath = inputFile.pathname;
-            }
-
-            readableStream = await sftpReadStream(remotePath, config);
+            // optional resolve @latest
+            inputFile = await sftpLatestFile(inputFile,opts);
+            readableStream = await sftpReadStream(inputFile,opts);
         }
         else if (inputFile.protocol === 'stdin:') {
             readableStream = process.stdin;
         }
         else {
-            readableStream = fs.createReadStream(inputFile);
+            inputFile = await fileLatestFile(inputFile);
+            readableStream = await fileReadStream(inputFile);
         }
 
         const stages: (Readable | Transform | Writable)[] = [readableStream];
@@ -253,9 +247,8 @@ async function main() : Promise<void> {
                     url.password = process.env.SFTP_PASSWORD;
                 }
 
-                const config = makeSftpConfig(url,opts);
                 logger.info(`put ${getCleanURL(url)}`);
-                outStream = await sftpWriteStream(url.href, config);
+                outStream = await sftpWriteStream(url, opts);
             }
             else if (opts.out.startsWith("s3")) {
                 const url = new URL(opts.out);
@@ -269,7 +262,7 @@ async function main() : Promise<void> {
                 }
 
                 logger.info(`put ${getCleanURL(url)}`);
-                outStream = await s3WriterStream(url,{});
+                outStream = await s3WriteStream(url,{});
             }
             else {
                 outStream = fs.createWriteStream(opts.out, { encoding: 'utf-8'});
@@ -308,26 +301,4 @@ function getCleanURL(url: URL) : URL {
     tempUrl.username = '***';
     tempUrl.password = '***';
     return tempUrl;
-}
-
-function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
-    let privateKey : string | undefined = undefined;
-
-    if (opts.key) {
-        privateKey = fs.readFileSync(opts.key,{ encoding: 'utf-8'});
-    }
-    else if (opts.keyEnv) {
-        privateKey = process.env[opts.keyEnv];
-    }
-
-    let config: SftpConfig = {
-        host: inputFile.hostname,
-        port: Number(inputFile.port) ?? 22,
-        username: inputFile.username
-    };
-
-    if (inputFile.password) { config.password = inputFile.password }
-    if (privateKey) { config.privateKey = privateKey}
-
-    return config;
 }

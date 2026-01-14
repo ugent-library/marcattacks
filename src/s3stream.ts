@@ -5,6 +5,8 @@ import {
     UploadPartCommand, 
     CreateMultipartUploadCommand, 
     CompleteMultipartUploadCommand, 
+    paginateListObjectsV2,
+    type _Object,
     type S3ClientConfig
 } from "@aws-sdk/client-s3";
 import { Readable, Writable } from "stream";
@@ -20,7 +22,7 @@ type S3Config = {
     secretAccessKey?: string;
 };
 
-export async function s3ReaderStream(url: URL, options: { range?: string }): Promise<Readable> {
+export async function s3ReadStream(url: URL, options: { range?: string }): Promise<Readable> {
     const config = parseURL(url);
 
     logger.debug(`s3 config:`,config);
@@ -112,7 +114,7 @@ export async function s3ReaderStream(url: URL, options: { range?: string }): Pro
     throw new Error("Unsupported S3 GetObject body type");
 }
 
-export function s3WriterStream(url: URL, options: { partSize?: number;}) : Promise<Writable> {
+export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promise<Writable> {
     return new Promise<Writable>( (resolve) => {
         const config = parseURL(url);
 
@@ -207,6 +209,70 @@ export function s3WriterStream(url: URL, options: { partSize?: number;}) : Promi
 
         resolve(writer);
     });
+}
+
+export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
+    if (! url.href.includes("@latest:")) {
+        return url; 
+    }
+
+    const bucket = url.pathname.replaceAll(/@latest:.*/g,"");
+    const extension = url.pathname.replaceAll(/.*@latest:/g,"");
+
+    const config = parseURL(url);
+
+    const s3Client = new S3Client(config);
+
+    const paginatorConfig = {
+        client: s3Client,
+        pageSize: 1000
+    };
+
+    const commandInput = {
+        Bucket: bucket,
+        // Optional: Prefix: 'uploads/' 
+    };
+
+    try {
+        let latestFile: _Object | null = null;
+        const targetExt = extension.toLowerCase();
+
+        // Iterate through all pages of the bucket
+        for await (const page of paginateListObjectsV2(paginatorConfig, commandInput)) {
+            const contents = page.Contents || [];
+            
+            for (const obj of contents) {
+                // Filter by extension
+                if (obj.Key?.toLowerCase().endsWith(targetExt)) {
+                    // Compare timestamps to keep only the newest
+                    if (!latestFile || (obj.LastModified! > latestFile.LastModified!)) {
+                        latestFile = obj;
+                    }
+                }
+            }
+        }
+
+        if (!latestFile || !latestFile.Key) {
+            throw new Error(`No file with extension "${extension}" found in bucket "${bucket}".`);
+        }
+
+        const url_parts : string[] = [];
+
+        url_parts.push(url.protocol);
+        url_parts.push(':/');
+        url_parts.push(url.hostname);
+        if (!(url.port === "80" || url.port === "443")) {
+            url_parts.push(':');
+            url_parts.push(url.port);
+        }
+        url_parts.push(bucket + '/' + latestFile.Key);
+
+        logger.info(`resolved as ${url_parts.join("")}`);
+        return new URL(url_parts.join(""));
+    } catch (error) {
+        console.error("Error finding latest S3 file:", error);
+        throw error;
+    }
 }
 
 function isNodeReadable(x: any): x is Readable {
