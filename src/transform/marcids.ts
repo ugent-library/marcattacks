@@ -10,7 +10,10 @@ export async function transform(_opts: any) : Promise<Transform> {
         transform(data: any, _encoding, callback) {
             let rec : string[][] = data['record'];
 
-            if (!rec) return;
+            if (!rec) {
+                callback(null);
+                return;
+            }
 
             let id = marcmap(rec,"001",{});
 
