@@ -122,7 +122,7 @@ Provide a fix file to the mapper. See examples:
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
 - stdin://local
  
-### Logging (--info,--debug,--log)
+### Logging (--info,--debug,--trace,--log)
 
 Logging messages can be provided with the `--info`, `--debug` and `--trace` options.
 
