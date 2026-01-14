@@ -133,6 +133,7 @@ Default the logging format is a text format that is written to stderr. This logg
 - `--log stdout` : write logs to the stdout
 - `--log json+stdout` : write logs in a JSON format and to the stdout
 
-### Compression (-z)
+### Compression (--z,--tar)
 
-- `-z` : the input file is gzipped
+- `--z` : the input file is gzipped
+- `--tar` : the input file is tarred
