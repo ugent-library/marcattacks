@@ -1,6 +1,9 @@
 import { Transform } from "stream";
 import { marcmap } from "../marcmap.js";
 
+/**
+ * Transform to a stream of marc-001 field ids
+ */
 export async function transform(_opts: any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
