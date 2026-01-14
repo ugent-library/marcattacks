@@ -134,5 +134,7 @@ Default the logging format is a text format that is written to stderr. This logg
 
 ### Compression (--z,--tar)
 
+Gzip and tar compression of input files can be automatically detected by file name extension. If no such extensions are provided the following flags can be set to force decompression:
+
 - `--z` : the input file is gzipped
 - `--tar` : the input file is tarred
