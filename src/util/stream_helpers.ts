@@ -67,11 +67,14 @@ export function createVerboseStream() : Transform {
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
             recordNum++;
 
+            logger.trace(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
+
             if (recordNum % 1000 === 0) {
                 const end = performance.now();
                 const duration = (end - start)/1000;
                 const speed = recordNum/duration;
-            logger.info(`record: ${recordNum} (${speed.toFixed(0)} rec/sec)`);
+                logger.debug(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
+                logger.info(`record: ${recordNum} (${speed.toFixed(0)} rec/sec)`);
             }
             callback(null,chunk);
         } ,

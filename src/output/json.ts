@@ -23,7 +23,7 @@ export async function transform() : Promise<Transform> {
 
             isFirst = false;
 
-            logger.debug(`adding ${output.length} bytes`);
+            logger.trace(`adding ${output.length} bytes`);
             callback(null,output);
         },
         flush(callback) {

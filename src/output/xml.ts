@@ -51,7 +51,7 @@ export async function transform() : Promise<Transform> {
 
             output += " </marc:record>\n";
 
-            logger.debug(`adding ${output.length} bytes`);
+            logger.trace(`adding ${output.length} bytes`);
 
             callback(null,output);
         },
@@ -59,7 +59,7 @@ export async function transform() : Promise<Transform> {
             if (!isFirst && !hasClosed) {
                 logger.debug("flushing");
                 let output = "</marc:collection>\n";
-                logger.debug(`adding ${output.length} bytes`);
+                logger.trace(`adding ${output.length} bytes`);
                 this.push(output); 
                 hasClosed = true;
             }

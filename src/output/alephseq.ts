@@ -40,7 +40,7 @@ export async function transform() : Promise<Transform> {
                 output += `${id} ${tag}${ind1}${ind2} L ${sf}\n`;
             }
 
-            logger.debug(`adding ${output.length} bytes`);
+            logger.trace(`adding ${output.length} bytes`);
             callback(null,output);
         }
     });

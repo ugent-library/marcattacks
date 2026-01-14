@@ -17,7 +17,7 @@ export async function transform(): Promise<Transform> {
             counter++;
 
             if (isRecord(data)) {
-                logger.debug(`[${counter}] is a Record`);
+                logger.trace(`[${counter}] is a Record`);
                 if (!writer) {
                     writer = new N3.Writer({ 
                         end: false, 
@@ -28,7 +28,7 @@ export async function transform(): Promise<Transform> {
                 await writeString(data, undefined, writer);
             } 
             else if (Object.hasOwn(data, "@context")) {
-                logger.debug(`[${counter}] is a JSON-LD`);
+                logger.trace(`[${counter}] is a JSON-LD`);
                 const dataNew = await parseString(JSON.stringify(data), "data.jsonld");
 
                 if (!writer) {
