@@ -1,101 +1,68 @@
-import { Readable } from "stream";
-import * as readline from 'node:readline'
+import { Transform, type TransformCallback } from "stream";
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function stream2readable(stream: Readable, _opts: any) : Promise<Readable> {
+export async function transform(_opts: any): Promise<Transform> {
     let recordNum = 0;
-    let hasError = false;
+    let rec: string[][] = [];
+    let previd: string = "";
+    let tail = "";
 
-    const rl = readline.createInterface({input: stream, crlfDelay: Infinity});
+    return new Transform({
+        objectMode: true,
 
-    let sourcePaused = false;
+        transform(chunk: any, _encoding: string, callback: TransformCallback) {
+            const data = tail + chunk.toString();
+            const lines = data.split(/\r?\n/);
 
-    const readableStream = new Readable({
-        read() {
-            if (sourcePaused) {
-                logger.debug("backpressure off");
-                rl.resume(); 
-                sourcePaused = false;
+            tail = lines.pop() || "";
+
+            for (const line of lines) {
+                if (line.length === 0) continue;
+
+                if (!line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
+                    const err = new Error(`syntax error in record ${recordNum + 1}`);
+                    logger.error(err.message);
+                    return callback(err);
+                }
+
+                const [id, ...rest] = line.split(" ");
+                const lineData = rest.join(" ");
+
+                if (previd && previd !== id) {
+                    this.push({ record: rec });
+                    rec = [];
+                    recordNum++;
+                }
+
+                const tag  = lineData?.substring(0, 3);
+                const ind1 = lineData?.substring(3, 4);
+                const ind2 = lineData?.substring(4, 5);
+                const sf   = lineData?.substring(8);
+                const parts = sf.split(/\$\$(.)/);
+
+                if (tag === 'FMT' || tag === 'LDR' || tag.startsWith("00")) {
+                    rec.push([tag, ind1, ind2, "_", ...parts]);
+                } else {
+                    rec.push([tag, ind1, ind2, ...parts.slice(1)]);
+                }
+                
+                previd = id!;
             }
-        } ,
-        destroy() {
-            stream.destroy();
-        } ,
-        objectMode: true 
-    });
 
-    let rec : string[][] = [];
-    let previd : string = "";
+            callback();
+        },
 
-    rl.on('line', (line) => {
-        if (hasError) return;
-
-        logger.debug(line);
-
-        if (line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
-            // ok
-        }
-        else {
-            logger.error(`syntax error in record ${recordNum + 1}`);
-            hasError = true;
-            stream.destroy();
-            rl.close();
-            readableStream.destroy(new Error(String('parse error')));
-            return;
-        }
-
-        const [id,...rest] = line.split(" ");
-        const data = rest.join(" ");
-
-        if (previd && previd !== id) {
-            const ok = readableStream.push({
-                record:  rec
-            });
-
-            if (!ok) {
-                logger.debug("backpressure on");
-                rl.pause();
-                sourcePaused = true; 
+        flush(callback: TransformCallback) {
+            if (tail) {
+                logger.warn("ignoring partial chunk of data: ", tail);
             }
             
-            rec = [];
-            recordNum++;
+            if (rec.length > 0) {
+                this.push({ record: rec });
+            }
+            callback();
         }
-
-        const tag  = data?.substring(0,3);
-        const ind1 = data?.substring(3,4);
-        const ind2 = data?.substring(4,5);
-        const sf   = data?.substring(8);
-        const parts = sf.split(/\$\$(.)/);
-
-        if (tag == 'FMT' || tag === 'LDR' || tag.startsWith("00")) {
-            rec.push([
-                tag,ind1,ind2
-            ].concat(["_"].concat(parts)));
-        }
-        else {
-            rec.push([
-                tag,ind1,ind2
-            ].concat(parts.slice(1)));
-        }
-        
-        previd = id!;
     });
-
-    rl.on('error', (error) => {
-        if (hasError) return;
-        logger.error(`readline error ${error}`);
-    });
-
-    rl.on('close', () => {
-        if (hasError) return;
-        readableStream.push({
-            record: rec
-        });
-        readableStream.push(null);
-    });
-
-    return readableStream;
 }

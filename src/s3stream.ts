@@ -81,7 +81,7 @@ export async function s3ReaderStream(url: URL, options: { range?: string }): Pro
     if (typeof Blob !== "undefined" && body instanceof Blob) {
         const stream = (body as Blob).stream();
         if (typeof (Readable as any).fromWeb === "function") {
-        return (Readable as any).fromWeb(stream);
+            return (Readable as any).fromWeb(stream);
         }
         // fallback same as above
         const reader = stream.getReader();

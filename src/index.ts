@@ -79,8 +79,6 @@ if (opts.config) {
     dotenv.config({ path: opts.config , quiet: true });
 }
 
-logger.info('here');
-
 main();
 
 function configureDefaultLogger(output: string) {
@@ -180,39 +178,34 @@ async function main() : Promise<void> {
             readableStream = fs.createReadStream(inputFile);
         }
 
-        let inputStream : Readable;
+        const stages: (Readable | Transform | Writable)[] = [readableStream];
 
         if (opts.z) {
-            inputStream = getDecompressedStream(readableStream); 
-        }
-        else {
-            inputStream = readableStream;
+            stages.push(createGunzip()); 
         }
 
-        let objectStream : Readable;
-    
         if (opts.from) {
             const mod = await loadPlugin(opts.from,'input');
-            objectStream = await mod.stream2readable(inputStream, {
-                path: inputFile
-            });
-            objectStream.on('error', (error: any) => {
+            const transformer = await mod.transform({path: inputFile});
+            transformer.on('error', (error: any) => {
                 if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-                    inputStream.destroy();
+                    stages[0]?.destroy();
                 }
                 else {
                     logger.error("input stream processing error: ", error.message);
-                    inputStream.destroy();
+                    stages[0]?.destroy();
                     process.exitCode = 2;
                 }
             });
+            transformer.on('finish', () => logger.debug('writeable finished'));
+            transformer.on('end', () => logger.debug('readable ended'));
+            transformer.on('close', () => logger.debug('stream closed'));
+            stages.push(transformer);
         }
         else {
             console.error(`Need --from`);
             process.exit(1);
         }
-
-        const stages: (Readable | Transform | Writable)[] = [objectStream];
 
         if (opts.count || opts.skip) {
             stages.push( 
@@ -328,16 +321,4 @@ function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
     if (privateKey) { config.privateKey = privateKey}
 
     return config;
-}
-
-function getDecompressedStream(sourceStream: Readable) : Readable {
-  const gunzip = createGunzip();
-  
-  // Forward errors from the source to the gunzip stream
-  sourceStream.on('error', (err) => {
-    logger.error("gunzip error: ", err.message);
-    gunzip.emit('error', err);
-  });
-
-  return sourceStream.pipe(gunzip);
 }

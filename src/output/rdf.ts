@@ -42,7 +42,6 @@ export async function transform(): Promise<Transform> {
             } 
             else {
                 logger.warn(`[${counter}] is not a Record or a JSON-LD`);
-                // Consider if you need to initialize a writer here if one doesn't exist
             }
         },
         flush(callback) {
