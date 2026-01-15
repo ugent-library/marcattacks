@@ -15,7 +15,7 @@
     "s3",
     "metadata-conversion"
   ],
-  "main": "index.js",
+  "main": "dist/attacker.js",
   "type": "module",
   "author": "",
   "repository": "https://codeberg.org/phochste/marcattacks.git",

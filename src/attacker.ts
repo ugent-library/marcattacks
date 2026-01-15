@@ -4,7 +4,7 @@ import { sftpLatestFile, sftpReadStream , sftpWriteStream } from './sftpstream.j
 import { httpReadStream } from './httpstream.js';
 import { Readable } from 'stream';
 import { pathToFileURL } from "node:url";
-import type { Transform, Writable } from 'node:stream';
+import { type Transform, type Writable } from 'node:stream';
 import { SlowWritable } from './slow-writable.js';
 import path from "node:path";
 import fs from 'fs';
@@ -109,7 +109,10 @@ export async function attack(url: string, opts: any) : Promise<void> {
 
         let outStream : Writable;
 
-        if (opts.out === '@slow') {
+        if (isWritableStream(opts.out)) {
+            outStream = opts.out;
+        }
+        else if (opts.out === '@slow') {
             outStream = new SlowWritable({ delayMs: 100 });
         }
         else if (opts.out === '@errors') {
@@ -181,4 +184,15 @@ function getCleanURL(url: URL) : URL {
     tempUrl.username = '***';
     tempUrl.password = '***';
     return tempUrl;
+}
+
+function isWritableStream(obj: any): boolean {
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    typeof obj.write === 'function' &&
+    typeof obj.end === 'function' &&
+    // internal state check
+    obj.writable !== false
+  );
 }
