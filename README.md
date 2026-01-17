@@ -102,6 +102,7 @@ use `s3s://...` for using an SSL layer.
 - alephseq (Aleph sequential)
 - json
 - jsonl
+- parquet
 - rdf
 - tsv
 - xml (MARCXML)
