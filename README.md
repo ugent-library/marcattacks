@@ -96,6 +96,7 @@ use `s3s://...` for using an SSL layer.
 - json
 - jsonl
 - rdf
+- tsv
 - xml (MARCXML)
 
 ### Transform (--map)
