@@ -3,7 +3,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform() : Promise<Transform> {
+export async function transform(param:any) : Promise<Transform> {
     let sortedKeys : string[];
 
     return new Transform({
@@ -14,7 +14,12 @@ export async function transform() : Promise<Transform> {
 
             if (! sortedKeys ) {
                 sortedKeys = Object.keys(data).sort();
-                output += sortedKeys.join("\t") + "\n";
+                if (param.header === "no") {
+                    // ok skipped header
+                }
+                else {
+                    output += sortedKeys.join("\t") + "\n";
+                }
             }
 
             sortedKeys.forEach( key => {

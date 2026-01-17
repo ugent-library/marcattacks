@@ -8,11 +8,11 @@ import eyeling from 'eyeling';
 
 const logger = log4js.getLogger();
 
-export async function transform(n3file: string) : Promise<Transform> {
+export async function transform(param: any) : Promise<Transform> {
     let n3 = null;
 
-    if (n3file && fs.existsSync(n3file)) {
-        n3 = fs.readFileSync(n3file,{ encoding: 'utf-8'});
+    if (param.fix && fs.existsSync(param.fix)) {
+        n3 = fs.readFileSync(param.fix,{ encoding: 'utf-8'});
     }
     else {
         logger.warn("no notation3 file provided or found, using empty rules");

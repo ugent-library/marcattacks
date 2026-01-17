@@ -5,6 +5,7 @@ import { program } from 'commander';
 import path from "node:path";
 import dotenv from 'dotenv';
 import { attack } from './attacker.js';
+import { asyncWrapProviders } from 'node:async_hooks';
 
 program.version('0.1.0')
     .argument('<file>')
@@ -13,6 +14,7 @@ program.version('0.1.0')
     .option('-t,--to <output>','output type','json')
     .option('-m,--map <map>','data mapper','jsonata')
     .option('--fix <what>','jsonata')
+    .option('-p,--param <key=value>','repeated params',collect,{})
     .option('-o,--out <file>','output file')
     .option('--z','uncompress input')
     .option('--tar','untar input')
@@ -131,5 +133,16 @@ async function main() : Promise<void> {
     catch (e) {
         logger.error(`process crashed with: ${e}`);
         process.exitCode = 8;
+    }
+}
+
+function collect(value:string, previous: any) {
+    const keyval = value.split("=",2);
+    if (keyval.length == 2 && keyval[0]) {
+        previous[keyval[0]] = keyval[1];
+        return previous;
+    }
+    else {
+        return previous;
     }
 }

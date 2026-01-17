@@ -4,14 +4,14 @@ import fs from "fs";
 import { marcmap , marcsubfields, marcForEachTag } from '../marcmap.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function transform(q: string) : Promise<Transform> {
-    let query = q;
+export async function transform(param: any) : Promise<Transform> {
+    let query = param.fix;
 
-    if (q && fs.existsSync(q)) {
-        query = fs.readFileSync(q,{ encoding: 'utf-8'});
+    if (param.fix && fs.existsSync(param.fix)) {
+        query = fs.readFileSync(param.fix,{ encoding: 'utf-8'});
     }
 
-    if (!q) {
+    if (!param.fix) {
         query = '$';
     }
 

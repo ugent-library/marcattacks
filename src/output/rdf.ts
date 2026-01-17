@@ -7,7 +7,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(): Promise<Transform> {
+export async function transform(_param:any): Promise<Transform> {
     let writer: N3.Writer | undefined;
     let counter = 0;
 

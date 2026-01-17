@@ -69,7 +69,7 @@ export async function attack(url: string, opts: any) : Promise<void> {
 
         if (opts.from) {
             const mod = await loadPlugin(opts.from,'input');
-            const transformer = await mod.transform({path: inputFile});
+            const transformer = await mod.transform(Object.assign({path: inputFile},opts.param));
             transformer.on('error', (error: any) => {
                 if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
                     stages[0]?.destroy();
@@ -103,7 +103,7 @@ export async function attack(url: string, opts: any) : Promise<void> {
 
         if (opts.map) {
             const mod = await loadPlugin(opts.map,'transform');
-            const transformer : Transform = await mod.transform(opts.fix);
+            const transformer : Transform = await mod.transform(opts.param);
             stages.push(transformer);
         }
 
@@ -157,7 +157,7 @@ export async function attack(url: string, opts: any) : Promise<void> {
 
         if (opts.to) {
             const mod = await loadPlugin(opts.to,'output');
-            stages.push(await mod.transform());
+            stages.push(await mod.transform(opts.param));
             stages.push(outStream);
             try {
                 await pipeline(stages);

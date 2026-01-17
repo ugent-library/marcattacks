@@ -107,9 +107,9 @@ use `s3s://...` for using an SSL layer.
 
 Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
 
-### Fix (--fix)
+### Param (--param)
 
-Provide a fix file to the mapper. See examples:
+Provide a params to the mapper, input and output. See examples:
 
 - `npm run demo:jsonld`
 - `npm run demo:n3`

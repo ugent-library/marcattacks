@@ -3,7 +3,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform() : Promise<Transform> {
+export async function transform(_param:any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {
