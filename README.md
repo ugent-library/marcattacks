@@ -30,7 +30,7 @@ marcattacks --to json ./data/sample.xml
 We can also do this for tar (and) gzipped files
 
 ```
-marcattacks --to json ./data/sample.tar,gz
+marcattacks --to json ./data/sample.tar.gz
 ```
 
 Generate Aleph sequential:
@@ -94,6 +94,7 @@ use `s3s://...` for using an SSL layer.
 - jsonl
 - marc (ISO2709)
 - rdf
+- tsv
 - xml (MARCXML)
 
 ### Output (--to)
@@ -127,7 +128,6 @@ Provide a params to the mapper, input and output. See examples:
 - _file path_
 - sftp://username@host:port/path
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
-- stdin://local
  
 ### Logging (--info,--debug,--trace,--log)
 
