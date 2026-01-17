@@ -24,31 +24,37 @@ npm link
 Generate JSON:
 
 ```
-marcattacks --to json <file>
+marcattacks --to json ./data/sample.xml
+```
+
+We can also do this for tar (and) gzipped files
+
+```
+marcattacks --to json ./data/sample.tar,gz
 ```
 
 Generate Aleph sequential:
 
 ```
-marcattacks --to alephseq <file>
+marcattacks --to alephseq ./data/sample.xml
 ```
 
 Generate RDF:
 
 ```
-marcattacks --to rdf --map marc2rdf <file>
+marcattacks --to rdf --map marc2rdf ./data/sample.xml
 ```
 
 Generate XML:
 
 ```
-marcattacks --to xml <file>
+marcattacks --from alephseq --to xml ./data/one.alephseq
 ```
 
 Transform the MARC input using a [JSONata](https://docs.jsonata.org/overview.html) expression or file:
 
 ```
-marcattacks <file> --fix ./demo/demo.jsonata
+marcattacks --param fix=./demo/demo.jsonata ./data/sample.xml
 ```
 
 ## Remote files

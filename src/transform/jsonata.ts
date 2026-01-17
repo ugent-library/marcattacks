@@ -1,8 +1,11 @@
 import { Transform } from "stream";
 import jsonata from "jsonata";
 import fs from "fs";
-import { marcmap , marcsubfields, marcForEachTag } from '../marcmap.js';
+import { marcmap } from '../marcmap.js';
 import { v4 as uuidv4 } from 'uuid';
+import log4js from 'log4js';
+
+const logger = log4js.getLogger();
 
 export async function transform(param: any) : Promise<Transform> {
     let query = param.fix;
@@ -15,6 +18,8 @@ export async function transform(param: any) : Promise<Transform> {
         query = '$';
     }
 
+    logger.debug(query);
+    
     return new Transform({
         objectMode: true,
         async transform(data: any, _encoding, callback) {

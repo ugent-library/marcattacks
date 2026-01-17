@@ -4,7 +4,7 @@
     { 
         "@id": "my:" & $marcmap("001")[0],
         "@type": $type = "book" ? "schema:Book" : "schema:CreativeWork",
-        "name": $marcmap("245ab") ~> $join(" ") ~> $strip() ,
+        "name": $marcmap("245ab") ~> $join(" ") ~> $trim() ,
         "subject": $marcmap("500a") ~> $map(function ($val) {
             { 
                 "@id": $genid(),
