@@ -109,8 +109,10 @@ use `s3s://...` for using an SSL layer.
 
 ### Transform (--map)
 
+- avram : A mapper from MARC to [Avram](https://format.gbv.de/schema/avram/specification) 
 - jsonata : _default_ A jsonata fixer
-- marc2rdf : A mapper from MARC to RDF
+- marcids : A mapper from MARC to a list of record ids
+- marc2rdf : A mapper from MARC to RDF (demonstrator)
 - notation3 : A [Notation3](https://w3c.github.io/N3/spec/) reasoner 
 
 Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
