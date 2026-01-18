@@ -1,16 +1,54 @@
 (
-    $type := $marcmap("920a")[0];
+    $marcmap0 := function($path) { $marcmap($path)[0] };
+    $marcmapstr := function($path) { $marcmap($path) ~> $join(" ") };
 
     { 
-        "@id": "my:" & $marcmap("001")[0],
-        "@type": $type = "book" ? "schema:Book" : "schema:CreativeWork",
-        "name": $marcmap("245ab") ~> $join(" ") ~> $trim() ,
-        "subject": $marcmap("500a") ~> $map(function ($val) {
-            { 
-                "@id": $genid(),
-                "@type": "schema:Subject",
-                "name": $val 
-            }
-        })
+        "id": $marcmap0("001"),
+        "type": $marcmap0("920a"),
+        "language": [
+            $substring($marcmapstr("008") , 35, 2) ,
+            $marcmap("041ad")
+        ],
+        "author": [
+            $marcmap("100aqbcdk"),
+            $marcmap("110abcdfgkln"),
+            $marcmap("111abcdfgklnpq")
+        ],
+        "title": $marcmap("245abchknps") ~> $join(" ") ~> $trim() ,
+        "title_additional": [
+            $marcmap("130"),
+            $marcmap("240abcdefgklmnopqrs"),
+            $marcmap("210ab"),
+            $marcmap("222ab"),
+            $marcmap("242abnp"),
+            $marcmap("243abcdefgklmnopqrs"),
+            $marcmap("246abcdefgnp"),
+            $marcmap("247abcdefgnp")
+        ][ $ != ""],
+        "title_added_entry": [
+            $marcmap("700gklmnoprst"),
+            $marcmap("710fgklmnopqrst"),
+            $marcmap("711fgklnpst"),
+            $marcmap("730abcdefgklmnopqrst"),
+            $marcmap("740anp")
+        ][$ != ""],
+        "title_series": [
+            $marcmap("440anpv"),
+            $marcmap("490av")
+        ][$ != ""],
+        "description": $marcmapstr("300ab"),
+        "note": $marcmap("500a"),
+        "published": [
+            $marcmap("260abcefg"),
+            $marcmap("264abcefg")
+        ],
+        "subject": [ 
+            $marcmap("600abcdfklmnopqrtxz"),
+            $marcmap("610abfklmnoprstxz"),
+            $marcmap("611abcdefgklnpqstxz"),
+            $marcmap("630adfgklmnoprstxz"),
+            $marcmap("650abcxz"),
+            $marcmap("651axz")
+        ]
     }
 )
