@@ -1,14 +1,16 @@
 (
     $marcmap0 := function($path) { $marcmap($path)[0] };
     $marcmapstr := function($path) { $marcmap($path) ~> $join(" ") };
+    $punctuation := function($data) { $replace($data,/\s*[:;.\/]\s*$/,"")};
 
     { 
         "id": $marcmap0("001"),
         "type": $marcmap0("920a"),
         "language": [
             $substring($marcmapstr("008") , 35, 2) ,
-            $marcmap("041ad")
-        ],
+            $marcmap("041a"),
+            $marcmap("041d")
+        ][ $ != "" ][],
         "author": [
             $marcmap("100aqbcdk"),
             $marcmap("110abcdfgkln"),
@@ -42,6 +44,8 @@
             $marcmap("260abcefg"),
             $marcmap("264abcefg")
         ],
+        "published_place": $marcmap0("260a") ~> $punctuation(),
+        "published_publisher": $marcmap0("260b") ~> $punctuation(),
         "subject": [ 
             $marcmap("600abcdfklmnopqrtxz"),
             $marcmap("610abfklmnoprstxz"),
