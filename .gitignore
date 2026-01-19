@@ -5,3 +5,4 @@ local.sh
 local/**
 .vscode/**
 .nvmrc
+.env
