@@ -56,13 +56,33 @@ export async function attack(url: string, opts: any) : Promise<number> {
             readableStream = await httpReadStream(inputFile.toString());
         }
         else if (inputFile.protocol.startsWith("s3")) {
+            const url = new URL(inputFile);
+
+            if (process.env.S3_ACCESS_KEY) {
+                url.username = process.env.S3_ACCESS_KEY;
+            }
+
+            if (process.env.S3_SECRET_KEY) {
+                url.password = process.env.S3_SECRET_KEY;
+            }
+
             // optional resolve @latest
-            inputFile = await s3LatestObject(inputFile,opts);
+            inputFile = await s3LatestObject(url,opts);
             readableStream = await s3ReadStream(inputFile,opts);
         }
         else if (inputFile.protocol === 'sftp:') {
+            const url = new URL(inputFile);
+
+            if (process.env.SFTP_USERNAME) {
+                url.username = process.env.SFTP_USERNAME;
+            }
+
+            if (process.env.SFTP_PASSWORD) {
+                url.password = process.env.SFTP_PASSWORD;
+            }
+
             // optional resolve @latest
-            inputFile = await sftpLatestFile(inputFile,opts);
+            inputFile = await sftpLatestFile(url,opts);
             readableStream = await sftpReadStream(inputFile,opts);
         }
         else if (inputFile.protocol === 'stdin:') {
