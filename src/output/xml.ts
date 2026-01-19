@@ -14,6 +14,7 @@ export async function transform(_param:any) : Promise<Transform> {
             let rec : string[][] = data['record'];
 
             if (!rec) {
+                logger.debug('skipped empty record');
                 callback()
                 return;
             }

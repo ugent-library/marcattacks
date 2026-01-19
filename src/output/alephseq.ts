@@ -26,10 +26,15 @@ export async function transform(_param:any) : Promise<Transform> {
                 let ind2 = rec[i]![2];
                 let sf = "";
 
+                if (tag! === 'FMT') {
+                    continue;
+                }
+                
                 for (let j = 3; j < rec[i]!.length ; j += 2) {
                     let code = rec[i]![j];
                     let val  = rec[i]![j+1];
-                    if (tag!.match(/^FMT|LDR|00./g)) {
+
+                    if (tag!.match(/^LDR|00./g)) {
                         sf += `${val}`;
                     }
                     else {
