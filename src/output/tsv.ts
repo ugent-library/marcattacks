@@ -9,6 +9,12 @@ export async function transform(param:any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {
+            if (Object.keys(data).length == 0) {
+                logger.debug('skipped empty record');
+                callback();
+                return;
+            }
+            
             let output = "";
             let fields : string[] = [];
 
