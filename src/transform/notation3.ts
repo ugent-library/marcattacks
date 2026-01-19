@@ -23,32 +23,37 @@ export async function transform(param: any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         async transform(data: any, _encoding, callback) {
-            const rdfData = await makeRdfData(data);
+            try {
+                const rdfData = await makeRdfData(data);
 
-            if (n3) {
-                // Prepare the eyeling input: first write Turtle
-                let rdfText = await writeString(rdfData);
-                // Inject the n3 rules
-                rdfText += "\n\n###RULES\n" + n3;
-                // Inject helpers
-                rdfText += "\n\n##HELPERS\n" + marc_n3_helpders.code;
+                if (n3) {
+                    // Prepare the eyeling input: first write Turtle
+                    let rdfText = await writeString(rdfData);
+                    // Inject the n3 rules
+                    rdfText += "\n\n###RULES\n" + n3;
+                    // Inject helpers
+                    rdfText += "\n\n##HELPERS\n" + marc_n3_helpders.code;
 
-                logger.debug(rdfText);
+                    logger.debug(rdfText);
 
-                // Reason
-                const rdfOutput = eyeling.reason({ proofComments: false }, rdfText);
-                // Turn it back into JSON
+                    // Reason
+                    const rdfOutput = eyeling.reason({ proofComments: false }, rdfText);
+                    // Turn it back into JSON
 
-                logger.debug(rdfOutput);
+                    logger.debug(rdfOutput);
 
-                const newData = await parseString(rdfOutput, "data.n3");
+                    const newData = await parseString(rdfOutput, "data.n3");
 
-                logger.debug(newData);
+                    logger.debug(newData);
 
-                callback(null, newData);
+                    callback(null, newData);
+                }
+                else {
+                    callback(null, rdfData);
+                }
             }
-            else {
-                callback(null, rdfData);
+            catch (err) {
+                callback(err as Error);
             }
         }
     });

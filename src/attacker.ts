@@ -20,7 +20,23 @@ import { fileLatestFile, fileReadStream } from './filestream.js';
 
 const logger = log4js.getLogger();
 
-export async function attack(url: string, opts: any) : Promise<void> {
+export class PipelineError extends Error {
+    public readonly statusCode: number;
+
+    constructor(message: string, statusCode: number) {
+        super(message);
+        this.statusCode = statusCode;
+
+        Object.setPrototypeOf(this, PipelineError.prototype);
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, this.constructor);
+        }
+    }
+}
+
+export async function attack(url: string, opts: any) : Promise<number> {
+    let result = 0;
     try {
         let inputFile : URL;
 
@@ -99,7 +115,8 @@ export async function attack(url: string, opts: any) : Promise<void> {
             );
         }
 
-        stages.push(createVerboseStream());
+        const verboseStream = createVerboseStream();
+        stages.push(verboseStream);
 
         if (opts.map) {
             const mod = await loadPlugin(opts.map,'transform');
@@ -161,6 +178,7 @@ export async function attack(url: string, opts: any) : Promise<void> {
             stages.push(outStream);
             try {
                 await pipeline(stages);
+                result = verboseStream.getCount();
                 logger.info("pipeline finished cleanly");
             }
             catch (err : any) {
@@ -168,15 +186,21 @@ export async function attack(url: string, opts: any) : Promise<void> {
                     logger.info("Stream closed by limiter.");
                 } else {
                     logger.error("pipeline error:", err);
-                    process.exitCode = 3;
+                    throw new PipelineError(err.message, 3);
                 }
             }
         }
     }
     catch (e) {
-        logger.error(`process crashed with: ${e}`);
-        process.exitCode = 8;
+        if (e instanceof PipelineError) {
+            throw (e);
+        }
+        else {
+            logger.error(`process crashed with: ${e}`);
+            throw (e);
+        }
     }
+    return result;
 }
 
 function getCleanURL(url: URL) : URL {

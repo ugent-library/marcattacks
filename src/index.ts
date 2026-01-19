@@ -4,7 +4,7 @@ import log4js from 'log4js';
 import { program } from 'commander';
 import path from "node:path";
 import dotenv from 'dotenv';
-import { attack } from './attacker.js';
+import { attack, PipelineError } from './attacker.js';
 import { asyncWrapProviders } from 'node:async_hooks';
 
 program.version('0.1.0')
@@ -128,11 +128,18 @@ async function main() : Promise<void> {
             process.exit(2);
         }
 
-        await attack(url,opts);
+        const result = await attack(url,opts);
+        logger.info(`total: ${result}`);
     }
     catch (e) {
-        logger.error(`process crashed with: ${e}`);
-        process.exitCode = 8;
+        if (e instanceof PipelineError) {
+            logger.error("pipeline error:", e);
+            process.exitCode = e.statusCode;
+        }
+        else {
+            logger.error("process crashed:", e);
+            process.exitCode = 8;
+        }
     }
 }
 

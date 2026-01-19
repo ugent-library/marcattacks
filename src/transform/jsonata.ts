@@ -23,15 +23,20 @@ export async function transform(param: any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         async transform(data: any, _encoding, callback) {
-            const expression = jsonata(query);
-            expression.registerFunction('marcmap', (code) => {
-                return marcmap(data['record'],code,{});
-            });
-            expression.registerFunction('genid', () => {
-                return genid();
-            });
-            data = await expression.evaluate(data);
-            callback(null,data);
+            try {
+                const expression = jsonata(query);
+                expression.registerFunction('marcmap', (code) => {
+                    return marcmap(data['record'],code,{});
+                });
+                expression.registerFunction('genid', () => {
+                    return genid();
+                });
+                data = await expression.evaluate(data);
+                callback(null,data);
+            }
+            catch (err) {
+                callback(err as Error);
+            }
         }
     });
 }

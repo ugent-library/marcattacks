@@ -60,11 +60,14 @@ export function createCountableSkippedStream(
 /**
  * Does nothing other than counting records
  */
-export function createVerboseStream() : Transform {
+interface VerboseStream extends Transform {
+    getCount(): number;
+}
+export function createVerboseStream() : VerboseStream {
     let recordNum = 0;
     let flushed = false;
     const start = performance.now();
-    return new Transform({
+    const transform = new Transform({
         objectMode: true,
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
             recordNum++;
@@ -100,7 +103,11 @@ export function createVerboseStream() : Transform {
             }
             callback(err);
         }
-    });
+    }) as VerboseStream;
+
+    transform.getCount = () => recordNum;
+
+    return transform;
 }
 
 /**
