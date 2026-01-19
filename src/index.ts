@@ -5,7 +5,9 @@ import { program } from 'commander';
 import path from "node:path";
 import dotenv from 'dotenv';
 import { attack, PipelineError } from './attacker.js';
-import pkg from '../package.json' with { type: "json" };
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 program.version(pkg.version)
     .argument('<file>')
