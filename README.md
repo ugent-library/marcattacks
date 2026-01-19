@@ -110,7 +110,7 @@ use `s3s://...` for using an SSL layer.
 ### Transform (--map)
 
 - avram : A mapper from MARC to [Avram](https://format.gbv.de/schema/avram/specification) 
-- jsonata : _default_ A jsonata fixer
+- jsonata : A jsonata fixer (_default_)
 - marcids : A mapper from MARC to a list of record ids
 - marc2rdf : A mapper from MARC to RDF (demonstrator)
 - notation3 : A [Notation3](https://w3c.github.io/N3/spec/) reasoner 
@@ -148,3 +148,15 @@ Gzip and tar compression of input files can be automatically detected by file na
 
 - `--z` : the input file is gzipped
 - `--tar` : the input file is tarred
+
+### Environment Variables
+
+SFTP and S3 credentials can be set using environment variables or a local `.env` file.
+Available variables:
+
+- SFTP_USERNAME
+- SFTP_PASSWORD
+- S3_ACCESS_KEY
+- S3_SECRET_KEY
+
+A SFTP private key can be provided using the `--key-env` command line option. E.g. `--key-env PRIVATE_KEY`, which results reading a `PRIVATE_KEY` environment variable.
