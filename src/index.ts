@@ -5,9 +5,9 @@ import { program } from 'commander';
 import path from "node:path";
 import dotenv from 'dotenv';
 import { attack, PipelineError } from './attacker.js';
-import { asyncWrapProviders } from 'node:async_hooks';
+import pkg from '../package.json' with { type: "json" };
 
-program.version('0.1.0')
+program.version(pkg.version)
     .argument('<file>')
     .option('-c,--config <config>','config .env',path.join(process.cwd(), '.env'))
     .option('-f,--from <from>','input type','xml')
