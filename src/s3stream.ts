@@ -259,7 +259,15 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
         const url_parts : string[] = [];
 
         url_parts.push(url.protocol);
-        url_parts.push(':/');
+        url_parts.push('//');
+        if (url.username) {
+            url_parts.push(url.username);
+            if (url.password) {
+                url_parts.push(':')
+                url_parts.push(url.password);
+            }
+            url_parts.push('@');
+        } 
         url_parts.push(url.hostname);
         if (!(url.port === "80" || url.port === "443")) {
             url_parts.push(':');
@@ -267,7 +275,7 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
         }
         url_parts.push(bucket + '/' + latestFile.Key);
 
-        logger.info(`resolved as ${url_parts.join("")}`);
+        logger.trace(`resolved as ${url_parts.join("")}`);
         return new URL(url_parts.join(""));
     } catch (error) {
         console.error("Error finding latest S3 file:", error);

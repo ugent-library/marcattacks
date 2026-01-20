@@ -88,6 +88,8 @@ export async function sftpWriteStream(url: URL, opts: any): Promise<Writable> {
 export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
     const config = makeSftpConfig(url,opts);
 
+    logger.debug(`sftp config:`, config);
+
     return new Promise((resolve, reject) => {
         if (! url.pathname.match(/\/@latest:\w+$/)) {
             resolve(url);
@@ -135,7 +137,15 @@ export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
                     const url_parts : string[] = [];
 
                     url_parts.push(url.protocol);
-                    url_parts.push(':/');
+                    url_parts.push('//');
+                    if (url.username) {
+                        url_parts.push(url.username);
+                        if (url.password) {
+                            url_parts.push(':')
+                            url_parts.push(url.password);
+                        }
+                        url_parts.push('@');
+                    } 
                     url_parts.push(url.hostname);
                     if (!(url.port === "80" || url.port === "443")) {
                         url_parts.push(':');
@@ -143,7 +153,7 @@ export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
                     }
                     url_parts.push(latestPath);
 
-                    logger.info(`resolved as: ${url_parts.join("")}`);
+                    logger.trace(`resolved as: ${url_parts.join("")}`);
                     resolve(new URL(url_parts.join("")));
                 });
             });
