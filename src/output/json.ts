@@ -32,16 +32,13 @@ export async function transform(_param:any) : Promise<Transform> {
             logger.trace(`adding ${output.length} bytes`);
             callback(null,output);
         },
-        flush(callback) {
-            // Push the closing bracket to the buffer
+        final(callback) {
+            logger.debug('final reached');
             if (!isFirst && !hasClosed) {
                 this.push("]");
                 hasClosed = true;
             }
             callback();
-        },
-        destroy(err, callback) {
-            callback(err);
         }
     });
 }

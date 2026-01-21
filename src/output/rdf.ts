@@ -44,13 +44,10 @@ export async function transform(_param:any): Promise<Transform> {
                 logger.warn(`[${counter}] is not a Record or a JSON-LD`);
             }
         },
-        flush(callback) {
+        final(callback) {
+            logger.debug('final reached');
             writer?.end();
             callback();
-        },
-        destroy(err, callback) {
-            writer?.end();
-            callback(err);
         }
     });
 }

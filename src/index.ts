@@ -82,7 +82,7 @@ function configureDefaultLogger(output: string) {
                 type: output ,
                 layout: {
                     type: "pattern",
-                    pattern: "%[%d %p %f{1} %m%]"
+                    pattern: "%[%d %p %f{2} %m%]"
                 }
             }
         },

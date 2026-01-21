@@ -31,10 +31,13 @@ export function createCountableSkippedStream(
             logger.debug("Limit reached, closing gracefully...");
     
             this.push(null); 
-    
-            setImmediate(() => {
+   
+            // Hacky but I do not know another way to close all streams and
+            // be able to let them flush their content
+            setTimeout(() => {
+                logger.debug("delay finished, completing transform callback");
                 this.destroy();
-            });
+            },2000);
             
             return;
         }
@@ -47,9 +50,13 @@ export function createCountableSkippedStream(
         if (count !== undefined && pushed === count) {
             logger.debug("Limit reached, closing gracefully...");
             this.push(null);
-            setImmediate(() => {
+
+             // Hacky but I do not know another way to close all streams and
+            // be able to let them flush their content
+            setTimeout(() => {
+                logger.debug("delay finished, completing transform callback");
                 this.destroy();
-            });
+            },2000);
         }
 
         callback();
@@ -72,6 +79,7 @@ export function createVerboseStream() : VerboseStream {
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
             recordNum++;
 
+            logger.trace(`recordNum: ${recordNum}`);
             logger.trace(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
 
             if (recordNum % 1000 === 0) {
@@ -83,29 +91,22 @@ export function createVerboseStream() : VerboseStream {
             }
             callback(null,chunk);
         } ,
-        flush(callback) {
+        final(callback) {
+            logger.debug('final reached');
             if (!flushed) {
                 const end = performance.now();
                 const duration = (end - start)/1000;
                 const speed = recordNum/duration;
                 logger.info(`process ${recordNum} records in ${duration.toFixed(2)} seconds (${speed.toFixed(0)} recs/sec)`);
                 flushed = true;
+                transform.getCount = () =>  {
+                    logger.trace(`called getCount -> ${recordNum}`);
+                    return recordNum;
+                }
             }
             callback();
-        } ,
-        destroy(err,callback) {
-            if (!flushed) {
-                const end = performance.now();
-                const duration = (end - start)/1000;
-                const speed = recordNum/duration;
-                logger.info(`process ${recordNum} records in ${duration.toFixed(2)} seconds (${speed.toFixed(0)} recs/sec)`);
-                flushed = true;
-            }
-            callback(err);
         }
     }) as VerboseStream;
-
-    transform.getCount = () => recordNum;
 
     return transform;
 }

@@ -56,7 +56,8 @@ export async function transform(_param:any) : Promise<Transform> {
 
             callback(null,output);
         },
-        flush(callback) {
+        final(callback) {
+            logger.debug('final reached');
             if (!isFirst && !hasClosed) {
                 logger.debug("flushing");
                 let output = "</marc:collection>\n";
@@ -65,9 +66,6 @@ export async function transform(_param:any) : Promise<Transform> {
                 hasClosed = true;
             }
             callback();
-        },
-        destroy(err, callback) {
-            callback(err);
         }
     });
 }
