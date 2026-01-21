@@ -6,7 +6,6 @@ const logger = log4js.getLogger();
 
 export async function transform(_param:any) : Promise<Transform> {
     let isFirst = true;
-    let hasClosed = false;
 
     return new Transform({
         objectMode: true,
@@ -56,14 +55,13 @@ export async function transform(_param:any) : Promise<Transform> {
 
             callback(null,output);
         },
-        final(callback) {
-            logger.debug('final reached');
-            if (!isFirst && !hasClosed) {
+        flush(callback) {
+            logger.debug('flush reached');
+            if (!isFirst) {
                 logger.debug("flushing");
                 let output = "</marc:collection>\n";
                 logger.trace(`adding ${output.length} bytes`);
                 this.push(output); 
-                hasClosed = true;
             }
             callback();
         }

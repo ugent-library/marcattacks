@@ -20,46 +20,45 @@ export function createCountableSkippedStream(
     return new Transform({
         objectMode: true,
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
-      
-        if (skipped < skip) {
-            skipped++;
-            logger.debug(`skipped: ${skipped}`);
-            return callback(); // Drop the chunk
-        }
+            if (skipped < skip) {
+                skipped++;
+                logger.debug(`skipped: ${skipped}`);
+                return callback(); // Drop the chunk
+            }
 
-        if (count !== undefined && pushed >= count) {
-            logger.debug("Limit reached, closing gracefully...");
+            if (count !== undefined && pushed >= count) {
+                logger.debug("Limit reached, closing gracefully...");
+        
+                this.push(null); 
     
-            this.push(null); 
-   
-            // Hacky but I do not know another way to close all streams and
-            // be able to let them flush their content
-            setTimeout(() => {
-                logger.debug("delay finished, completing transform callback");
-                this.destroy();
-            },2000);
-            
-            return;
-        }
+                // Hacky but I do not know another way to close all streams and
+                // be able to let them flush their content
+                setTimeout(() => {
+                    logger.debug("delay finished, completing transform callback");
+                    this.destroy();
+                },2000);
+                
+                return;
+            }
 
-        this.push(chunk);
-        pushed++;
+            this.push(chunk);
+            pushed++;
 
-        logger.debug(`pushed: ${pushed}`);
-      
-        if (count !== undefined && pushed === count) {
-            logger.debug("Limit reached, closing gracefully...");
-            this.push(null);
+            logger.debug(`pushed: ${pushed}`);
+        
+            if (count !== undefined && pushed === count) {
+                logger.debug("Limit reached, closing gracefully...");
+                this.push(null);
 
-             // Hacky but I do not know another way to close all streams and
-            // be able to let them flush their content
-            setTimeout(() => {
-                logger.debug("delay finished, completing transform callback");
-                this.destroy();
-            },2000);
-        }
+                // Hacky but I do not know another way to close all streams and
+                // be able to let them flush their content
+                setTimeout(() => {
+                    logger.debug("delay finished, completing transform callback");
+                    this.destroy();
+                },2000);
+            }
 
-        callback();
+            callback();
         }
     });
 }
@@ -72,7 +71,6 @@ interface VerboseStream extends Transform {
 }
 export function createVerboseStream() : VerboseStream {
     let recordNum = 0;
-    let flushed = false;
     const start = performance.now();
     const transform = new Transform({
         objectMode: true,
@@ -91,18 +89,15 @@ export function createVerboseStream() : VerboseStream {
             }
             callback(null,chunk);
         } ,
-        final(callback) {
+        flush (callback: TransformCallback) {
             logger.debug('final reached');
-            if (!flushed) {
-                const end = performance.now();
-                const duration = (end - start)/1000;
-                const speed = recordNum/duration;
-                logger.info(`process ${recordNum} records in ${duration.toFixed(2)} seconds (${speed.toFixed(0)} recs/sec)`);
-                flushed = true;
-                transform.getCount = () =>  {
-                    logger.trace(`called getCount -> ${recordNum}`);
-                    return recordNum;
-                }
+            const end = performance.now();
+            const duration = (end - start)/1000;
+            const speed = recordNum/duration;
+            logger.info(`process ${recordNum} records in ${duration.toFixed(2)} seconds (${speed.toFixed(0)} recs/sec)`);
+            transform.getCount = () =>  {
+                logger.trace(`called getCount -> ${recordNum}`);
+                return recordNum;
             }
             callback();
         }
@@ -141,7 +136,6 @@ export async function createUntarredStream(): Promise<Transform> {
                 callback();
             }
         },
-
         flush(callback: TransformCallback) {
             extract.end();
             extract.once('finish', callback);
