@@ -1,14 +1,14 @@
 import log4js from 'log4js';
 import { loadPlugin } from './plugin-loader.js';
-import { sftpLatestFile, sftpReadStream , sftpWriteStream } from './sftpstream.js';
-import { httpReadStream } from './httpstream.js';
+import { sftpLatestFile, sftpReadStream , sftpWriteStream } from './stream/sftpstream.js';
+import { httpReadStream } from './stream/httpstream.js';
 import { Readable } from 'stream';
 import { pathToFileURL } from "node:url";
 import { type Transform, type Writable } from 'node:stream';
-import { SlowWritable } from './slow-writable.js';
+import { SlowWritable } from './stream/slow-writable.js';
 import path from "node:path";
 import fs from 'fs';
-import { s3LatestObject, s3ReadStream, s3WriteStream } from './s3stream.js';
+import { s3LatestObject, s3ReadStream, s3WriteStream } from './stream/s3stream.js';
 import { pipeline } from 'node:stream/promises';
 import { 
     createCountableSkippedStream, 
@@ -16,7 +16,7 @@ import {
     createUncompressedStream,
     createVerboseStream 
 } from './util/stream_helpers.js';
-import { fileLatestFile, fileReadStream } from './filestream.js';
+import { fileLatestFile, fileReadStream } from './stream/filestream.js';
 
 const logger = log4js.getLogger();
 
