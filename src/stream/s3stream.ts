@@ -212,7 +212,10 @@ export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promis
 }
 
 export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
+    logger.info(`trying to resolve ${url.href}`);
+
     if (! url.href.includes("@latest:")) {
+        logger.info(`resolved as: ${url.href}`);
         return url; 
     }
 
@@ -275,7 +278,7 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
         }
         url_parts.push(bucket + '/' + latestFile.Key);
 
-        logger.trace(`resolved as ${url_parts.join("")}`);
+        logger.info(`resolved as: ${url_parts.join("")}`);
         return new URL(url_parts.join(""));
     } catch (error) {
         console.error("Error finding latest S3 file:", error);

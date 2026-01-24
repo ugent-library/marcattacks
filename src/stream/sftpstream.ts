@@ -88,10 +88,12 @@ export async function sftpWriteStream(url: URL, opts: any): Promise<Writable> {
 export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
     const config = makeSftpConfig(url,opts);
 
+    logger.info(`trying to resolve ${url.href}`);
     logger.debug(`sftp config:`, config);
 
     return new Promise((resolve, reject) => {
-        if (! url.pathname.match(/\/@latest:\w+$/)) {
+        if (! url.pathname.match(/\/@latest:\S+$/)) {
+            logger.info(`resolved as: ${url.href}`);
             resolve(url);
             return;
         }
@@ -153,7 +155,7 @@ export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
                     }
                     url_parts.push(latestPath);
 
-                    logger.trace(`resolved as: ${url_parts.join("")}`);
+                    logger.info(`resolved as: ${url_parts.join("")}`);
                     resolve(new URL(url_parts.join("")));
                 });
             });

@@ -10,8 +10,10 @@ export async function fileReadStream(url: URL) : Promise<Readable> {
 
 export async function fileLatestFile(url: URL) : Promise<URL> {
     return new Promise<URL>( (resolve) => {
-        logger.debug(url.href);
+        logger.info(`trying to resolve ${url.href}`);
+
         if (!url.href.includes("@latest:")) {
+            logger.info(`resolved as ${url.href}`);
             resolve(url);
             return;
         }
