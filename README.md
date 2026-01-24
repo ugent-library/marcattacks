@@ -80,7 +80,7 @@ marcattacks http://somewhere.org/data.xml
 An S3 path
 
 ```
-marcattacks s3://accessKey:secretKey@host:port/bucket/key
+marcattacks s3://accessKey:secretKey@hostname:port/bucket/key
 ```
 
 use `s3s://...` for using an SSL layer.
@@ -160,3 +160,18 @@ Available variables:
 - S3_SECRET_KEY
 
 A SFTP private key can be provided using the `--key-env` command line option. E.g. `--key-env PRIVATE_KEY`, which results reading a `PRIVATE_KEY` environment variable.
+
+## Discover files at a (remote) endpoint
+
+Find all files that end with xml on an sftp site:
+
+```
+npx globtrotr --key ~/.ssh/mykey sftp://username@hostname:port/remote/path/@glob:xml
+```
+
+Or, for an S3 site:
+
+```
+npx globtrotr s3s://accessKey:privateKey@hostname:port/bucket/@glob:xml
+```
+

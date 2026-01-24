@@ -286,6 +286,80 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
     }
 }
 
+export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
+    logger.info(`trying to glob files for ${url.href}`);
+
+    // Check if the URL follows the @glob: pattern
+    if (!url.href.includes("@glob:")) {
+        logger.info(`no glob pattern found, returning original URL in array`);
+        return [url];
+    }
+
+    // Extract bucket name and extension from the pathname
+    const bucket = url.pathname.replaceAll(/@glob:.*/g, "").split("/")[1] ?? "";
+    const extension = url.pathname.replaceAll(/.*@glob:/g, "");
+
+    const config = parseURL(url);
+    const s3Client = new S3Client(config);
+
+    const paginatorConfig = {
+        client: s3Client,
+        pageSize: 1000
+    };
+
+    const commandInput = {
+        Bucket: bucket,
+    };
+
+    try {
+        const matchedUrls: URL[] = [];
+        const targetExt = extension.toLowerCase();
+
+        // Iterate through all pages of the bucket using the V2 paginator
+        for await (const page of paginateListObjectsV2(paginatorConfig, commandInput)) {
+            const contents = page.Contents || [];
+            
+            for (const obj of contents) {
+                // Filter by extension match
+                if (obj.Key?.toLowerCase().endsWith(targetExt)) {
+                    // Reconstruct the URL for each matched object
+                    const url_parts: string[] = [];
+
+                    url_parts.push(url.protocol);
+                    url_parts.push('//');
+                    
+                    if (url.username) {
+                        url_parts.push(url.username);
+                        if (url.password) {
+                            url_parts.push(':');
+                            url_parts.push(url.password);
+                        }
+                        url_parts.push('@');
+                    }
+                    
+                    url_parts.push(url.hostname);
+                    
+                    if (url.port && !["80", "443"].includes(url.port)) {
+                        url_parts.push(':');
+                        url_parts.push(url.port);
+                    }
+                    
+                    // Note: bucket is already part of the path logic in parseURL
+                    url_parts.push(`/${bucket}/${obj.Key}`);
+
+                    matchedUrls.push(new URL(url_parts.join("")));
+                }
+            }
+        }
+
+        logger.info(`glob resolved ${matchedUrls.length} files`);
+        return matchedUrls;
+    } catch (error) {
+        logger.error("Error globbing S3 files:", error);
+        throw error;
+    }
+}
+
 function isNodeReadable(x: any): x is Readable {
     return x && typeof x.pipe === "function" && typeof x.read === "function";
 }

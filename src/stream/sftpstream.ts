@@ -166,6 +166,87 @@ export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
     });
 }
 
+export async function sftpGlobFiles(url: URL, opts: any): Promise<URL[]> {
+    const config = makeSftpConfig(url, opts);
+
+    logger.info(`trying to glob files for ${url.href}`);
+
+    return new Promise((resolve, reject) => {
+        // Check if the URL follows the @glob: pattern
+        if (!url.pathname.match(/\/@glob:\S+$/)) {
+            logger.info(`no glob pattern found, returning original URL in array`);
+            resolve([url]);
+            return;
+        }
+
+        const remoteDir = url.pathname.replace(/\/@glob.*/, "");
+        const extension = url.pathname.replace(/.*\/@glob:/, "");
+
+        const conn = new Client();
+
+        conn.on("ready", () => {
+            conn.sftp((err, sftp) => {
+                if (err) {
+                    conn.end();
+                    return reject(err);
+                }
+
+                sftp.readdir(remoteDir, (err, list) => {
+                    if (err) {
+                        conn.end();
+                        return reject(err);
+                    }
+
+                    if (!list || list.length === 0) {
+                        conn.end();
+                        return resolve([]); // Return empty array if no files exist
+                    }
+
+                    // Filter files by the extension provided after @glob:
+                    const matchedFiles = list.filter(f => 
+                        f.filename.toLowerCase().endsWith(extension.toLowerCase())
+                    );
+
+                    const results = matchedFiles.map(file => {
+                        const filePath = `${remoteDir}/${file.filename}`;
+                        
+                        // Reconstruct the URL for each matched file
+                        const url_parts: string[] = [];
+                        url_parts.push(url.protocol);
+                        url_parts.push('//');
+                        
+                        if (url.username) {
+                            url_parts.push(url.username);
+                            if (url.password) {
+                                url_parts.push(':');
+                                url_parts.push(url.password);
+                            }
+                            url_parts.push('@');
+                        }
+                        
+                        url_parts.push(url.hostname);
+                        
+                        if (url.port && !["80", "443"].includes(url.port)) {
+                            url_parts.push(':');
+                            url_parts.push(url.port);
+                        }
+                        
+                        url_parts.push(filePath);
+                        return new URL(url_parts.join(""));
+                    });
+
+                    conn.end();
+                    logger.info(`glob resolved ${results.length} files`);
+                    resolve(results);
+                });
+            });
+        });
+
+        conn.on("error", (err) => reject(err));
+        conn.connect(config);
+    });
+}
+
 function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
     let privateKey : string | undefined = undefined;
 
