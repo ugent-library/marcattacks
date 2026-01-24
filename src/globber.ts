@@ -123,7 +123,17 @@ async function main() : Promise<void> {
             globs = await sftpGlobFiles(new URL(url),program.opts());
         }
         else if (url?.startsWith("s3")) {
-            globs = await s3GlobFiles(new URL(url),program.opts());
+            const s3url = new URL(url);
+
+            if (process.env.S3_ACCESS_KEY) {
+                s3url.username = process.env.S3_ACCESS_KEY;
+            }
+
+            if (process.env.S3_SECRET_KEY) {
+                s3url.password = process.env.S3_SECRET_KEY;
+            }
+
+            globs = await s3GlobFiles(s3url,program.opts());
         }
         else if (url?.startsWith("file")) {
             globs = await fileGlobFiles(new URL(url));

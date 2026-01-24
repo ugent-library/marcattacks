@@ -224,6 +224,8 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
 
     const config = parseURL(url);
 
+    logger.debug(`s3 config:`, config);
+
     const s3Client = new S3Client(config);
 
     const paginatorConfig = {
@@ -300,6 +302,9 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
     const extension = url.pathname.replaceAll(/.*@glob:/g, "");
 
     const config = parseURL(url);
+
+    logger.debug(`s3 config:`, config);
+
     const s3Client = new S3Client(config);
 
     const paginatorConfig = {
