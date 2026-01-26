@@ -12,14 +12,21 @@ export function httpReadStream(urlString: string): Promise<Readable> {
             const url = new URL(urlString);
             const client = url.protocol === 'http:' ? http : https;
 
+            logger.debug(`resolve ${url.href}`);
+
             const req = client.get(url, res => {
-                if (res.statusCode && res.statusCode >= 400) {
+                const statusCode = res.statusCode || 0;
+
+                logger.debug(`statusCode = ${statusCode}`);
+
+                if (statusCode >= 400) {
                     reject(new Error('HTTP ' + res.statusCode));
                     return;
                 }
 
                 // Follow redirects
-                if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
+                    logger.info(`Redirect to ${res.headers.location}...`);
                     httpReadStream(res.headers.location).then(resolve).catch(reject);
                     return;
                 }
