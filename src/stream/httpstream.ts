@@ -24,7 +24,7 @@ export function httpReadStream(urlString: string): Promise<Readable> {
                     return;
                 }
 
-                // Follow redirects
+                // Follow redirects (without any sanity checks..i know)
                 if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
                     logger.info(`Redirect to ${res.headers.location}...`);
                     httpReadStream(res.headers.location).then(resolve).catch(reject);
