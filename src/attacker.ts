@@ -3,10 +3,8 @@ import { loadPlugin } from './plugin-loader.js';
 import { sftpLatestFile, sftpReadStream , sftpWriteStream } from './stream/sftpstream.js';
 import { httpReadStream } from './stream/httpstream.js';
 import { Readable } from 'stream';
-import { pathToFileURL } from "node:url";
 import { type Transform, type Writable } from 'node:stream';
 import { SlowWritable } from './stream/slow-writable.js';
-import path from "node:path";
 import fs from 'fs';
 import { s3LatestObject, s3ReadStream, s3WriteStream } from './stream/s3stream.js';
 import { pipeline } from 'node:stream/promises';
@@ -35,25 +33,17 @@ export class PipelineError extends Error {
     }
 }
 
-export async function createInputReadStream(url: string, opts: any): Promise<{ stream: Readable; resolvedUrl: URL }> {
-    let inputFile: URL;
-
-    if (fs.existsSync(url)) {
-        const filePath = path.resolve(process.cwd(), url);
-        inputFile = pathToFileURL(filePath);
-    } else {
-        inputFile = new URL(url);
-    }
-
-    logger.info(`using: ${getCleanURL(inputFile)}`);
+export async function createInputReadStream(url: URL, opts: any): Promise<{ stream: Readable; resolvedUrl: URL }> {
+    logger.info(`using: ${getCleanURL(url)}`);
 
     let readableStream: Readable;
 
-    if (inputFile.protocol.startsWith("http")) {
-        readableStream = await httpReadStream(inputFile.toString());
-    } else if (inputFile.protocol.startsWith("s3")) {
-        const url = new URL(inputFile);
+    let resolvedUrl : URL = url;
 
+    if (url.protocol.startsWith("http")) {
+        readableStream = await httpReadStream(url.toString());
+    } 
+    else if (url.protocol.startsWith("s3")) {
         if (process.env.S3_ACCESS_KEY) {
             url.username = process.env.S3_ACCESS_KEY;
         }
@@ -62,11 +52,10 @@ export async function createInputReadStream(url: string, opts: any): Promise<{ s
             url.password = process.env.S3_SECRET_KEY;
         }
 
-        inputFile = await s3LatestObject(url, opts);
-        readableStream = await s3ReadStream(inputFile, opts);
-    } else if (inputFile.protocol === 'sftp:') {
-        const url = new URL(inputFile);
-
+        resolvedUrl = await s3LatestObject(url, opts);
+        readableStream = await s3ReadStream(resolvedUrl, opts);
+    } 
+    else if (url.protocol === 'sftp:') {
         if (process.env.SFTP_USERNAME) {
             url.username = process.env.SFTP_USERNAME;
         }
@@ -75,58 +64,45 @@ export async function createInputReadStream(url: string, opts: any): Promise<{ s
             url.password = process.env.SFTP_PASSWORD;
         }
 
-        inputFile = await sftpLatestFile(url, opts);
-        readableStream = await sftpReadStream(inputFile, opts);
-    } else if (inputFile.protocol === 'stdin:') {
+        resolvedUrl = await sftpLatestFile(url, opts);
+        readableStream = await sftpReadStream(resolvedUrl, opts);
+    } 
+    else if (url.protocol === 'stdin:') {
         readableStream = process.stdin;
-    } else {
-        inputFile = await fileLatestFile(inputFile);
-        readableStream = await fileReadStream(inputFile);
+    } 
+    else {
+        resolvedUrl = await fileLatestFile(url);
+        readableStream = await fileReadStream(resolvedUrl);
     }
 
-    return { stream: readableStream, resolvedUrl: inputFile };
+    return { stream: readableStream, resolvedUrl: resolvedUrl};
 }
 
-export async function createDecompressionStage(opts: any, inputFile: URL): Promise<Transform | null> {
-    if (opts.z || inputFile.pathname.endsWith(".gz")) {
+export async function createDecompressionStage(url: URL, opts: { z?: boolean }): Promise<Transform | null> {
+    if (opts.z || url.pathname.endsWith(".gz")) {
         return createUncompressedStream();
     }
     return null;
 }
 
-export async function createUntarStage(opts: any, inputFile: URL): Promise<Transform | null> {
-    if (opts.tar || inputFile.pathname.match(/.tar(.\w+$)?$/) || inputFile.pathname.endsWith(".tgz")) {
+export async function createUntarStage(url: URL, opts: { tar?: boolean }): Promise<Transform | null> {
+    if (opts.tar || url.pathname.match(/.tar(.\w+$)?$/) || url.pathname.endsWith(".tgz")) {
         return await createUntarredStream();
     }
     return null;
 }
 
-export async function createInputTransformStage(opts: any, inputFile: URL, firstStream: Readable): Promise<Transform> {
+export async function createInputTransformStage(url: URL, opts: {from: string, param?: any}): Promise<Transform> {
     if (!opts.from) {
         console.error(`Need --from`);
         process.exit(1);
     }
 
     const mod = await loadPlugin(opts.from, 'input');
-    const transformer = await mod.transform(Object.assign({ path: inputFile }, opts.param));
-    
-    transformer.on('error', (error: any) => {
-        if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-            firstStream?.destroy();
-        } else {
-            logger.error("input stream processing error: ", error.message);
-            firstStream?.destroy();
-            process.exitCode = 2;
-        }
-    });
-    transformer.on('finish', () => logger.debug('writeable finished'));
-    transformer.on('end', () => logger.debug('readable ended'));
-    transformer.on('close', () => logger.debug('stream closed'));
-    
-    return transformer;
+    return await mod.transform(Object.assign({ path: url }, opts.param));
 }
 
-export async function createCountSkipStage(opts: any): Promise<Transform | null> {
+export async function createCountSkipStage(opts: {count?: number, skip?: number}): Promise<Transform | null> {
     if (opts.count || opts.skip) {
         return createCountableSkippedStream(opts.count, opts.skip);
     }
@@ -199,22 +175,22 @@ export async function createOutputTransformStage(opts: any): Promise<Transform |
     return null;
 }
 
-export async function attack(url: string, opts: any): Promise<number> {
+export async function attack(url: URL, opts: any): Promise<number> {
     let result = 0;
     try {
         const { stream: readableStream, resolvedUrl: inputFile } = await createInputReadStream(url, opts);
         const stages: (Readable | Transform | Writable)[] = [readableStream];
 
         // Add decompression stage if needed
-        const decompressionStage = await createDecompressionStage(opts, inputFile);
+        const decompressionStage = await createDecompressionStage(inputFile, opts);
         if (decompressionStage) stages.push(decompressionStage);
 
         // Add untar stage if needed
-        const untarStage = await createUntarStage(opts, inputFile);
+        const untarStage = await createUntarStage(inputFile, opts);
         if (untarStage) stages.push(untarStage);
 
         // Add input transform stage (required)
-        const inputTransform = await createInputTransformStage(opts, inputFile, readableStream);
+        const inputTransform = await createInputTransformStage(inputFile, opts);
         stages.push(inputTransform);
 
         // Add count/skip stage if needed

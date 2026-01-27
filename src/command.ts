@@ -6,6 +6,8 @@ import path from "node:path";
 import dotenv from 'dotenv';
 import { attack, PipelineError } from './attacker.js';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from "node:url";
+import fs from 'fs';
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 
@@ -130,7 +132,16 @@ async function main() : Promise<void> {
             process.exit(2);
         }
 
-        const result = await attack(url,opts);
+        let inputFile : URL;
+
+        if (fs.existsSync(url)) {
+            const filePath = path.resolve(process.cwd(), url);
+            inputFile = pathToFileURL(filePath);
+        } else {
+            inputFile = new URL(url);
+        }
+
+        const result = await attack(inputFile,opts);
         logger.info(`total: ${result}`);
     }
     catch (e) {
