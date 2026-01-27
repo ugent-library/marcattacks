@@ -20,7 +20,7 @@
   "author": "",
   "repository": "https://codeberg.org/phochste/marcattacks.git",
   "bin": {
-    "marcattacks": "./dist/index.js",
+    "marcattacks": "./dist/command.js",
     "globtrotr": "./dist/globber.js"
   },
   "files": [

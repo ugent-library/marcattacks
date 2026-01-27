@@ -35,7 +35,7 @@ export class PipelineError extends Error {
     }
 }
 
-async function createInputReadStream(url: string, opts: any): Promise<{ stream: Readable; resolvedUrl: URL }> {
+export async function createInputReadStream(url: string, opts: any): Promise<{ stream: Readable; resolvedUrl: URL }> {
     let inputFile: URL;
 
     if (fs.existsSync(url)) {
@@ -87,21 +87,21 @@ async function createInputReadStream(url: string, opts: any): Promise<{ stream: 
     return { stream: readableStream, resolvedUrl: inputFile };
 }
 
-async function createDecompressionStage(opts: any, inputFile: URL): Promise<Transform | null> {
+export async function createDecompressionStage(opts: any, inputFile: URL): Promise<Transform | null> {
     if (opts.z || inputFile.pathname.endsWith(".gz")) {
         return createUncompressedStream();
     }
     return null;
 }
 
-async function createUntarStage(opts: any, inputFile: URL): Promise<Transform | null> {
+export async function createUntarStage(opts: any, inputFile: URL): Promise<Transform | null> {
     if (opts.tar || inputFile.pathname.match(/.tar(.\w+$)?$/) || inputFile.pathname.endsWith(".tgz")) {
         return await createUntarredStream();
     }
     return null;
 }
 
-async function createInputTransformStage(opts: any, inputFile: URL, firstStream: Readable): Promise<Transform> {
+export async function createInputTransformStage(opts: any, inputFile: URL, firstStream: Readable): Promise<Transform> {
     if (!opts.from) {
         console.error(`Need --from`);
         process.exit(1);
@@ -126,14 +126,14 @@ async function createInputTransformStage(opts: any, inputFile: URL, firstStream:
     return transformer;
 }
 
-async function createCountSkipStage(opts: any): Promise<Transform | null> {
+export async function createCountSkipStage(opts: any): Promise<Transform | null> {
     if (opts.count || opts.skip) {
         return createCountableSkippedStream(opts.count, opts.skip);
     }
     return null;
 }
 
-async function createMapTransformStage(opts: any): Promise<Transform | null> {
+export async function createMapTransformStage(opts: any): Promise<Transform | null> {
     if (opts.map) {
         const mod = await loadPlugin(opts.map, 'transform');
         return await mod.transform(opts.param);
@@ -141,7 +141,7 @@ async function createMapTransformStage(opts: any): Promise<Transform | null> {
     return null;
 }
 
-async function createOutputWriteStream(opts: any): Promise<Writable> {
+export async function createOutputWriteStream(opts: any): Promise<Writable> {
     if (isWritableStream(opts.out)) {
         return opts.out;
     }
@@ -191,7 +191,7 @@ async function createOutputWriteStream(opts: any): Promise<Writable> {
     return process.stdout;
 }
 
-async function createOutputTransformStage(opts: any): Promise<Transform | null> {
+export async function createOutputTransformStage(opts: any): Promise<Transform | null> {
     if (opts.to) {
         const mod = await loadPlugin(opts.to, 'output');
         return await mod.transform(opts.param);
