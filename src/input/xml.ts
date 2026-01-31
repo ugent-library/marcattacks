@@ -33,7 +33,6 @@ export async function transform(_opts: any): Promise<Transform> {
         }
     });
 
-    // SAX Parser Event Handlers (Logic migrated from xml.ts)
     parser.on('opentag', (node: sax.Tag) => {
         const localName = node.name.replaceAll(/^\w+:/g, '');
         if (localName === 'controlfield' || localName === 'datafield') {
@@ -71,8 +70,10 @@ export async function transform(_opts: any): Promise<Transform> {
 
     parser.on("error", (err) => {
         hasError = true;
-        logger.error("Parser error:", err.message);
+        logger.debug(err);
+        logger.error("parser error", err.message);
         transformStream.destroy(err);
+        throw err;
     });
 
     return transformStream;

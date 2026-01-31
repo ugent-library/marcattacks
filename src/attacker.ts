@@ -221,12 +221,14 @@ export async function attack(url: URL, opts: any): Promise<number> {
                 result = verboseStream.getCount();
                 logger.info("pipeline finished cleanly");
             } catch (err: any) {
-                result = verboseStream.getCount();
+                result = 'getCount' in verboseStream ? verboseStream.getCount() : 0;
 
                 if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
                     logger.info("stream closed by limiter.");
-                } else {
-                    logger.error("pipeline error:", err);
+                } 
+                else {
+                    logger.debug(err);
+                    logger.error("pipeline closed prematurely");
                     throw new PipelineError(err.message, 3);
                 }
             }

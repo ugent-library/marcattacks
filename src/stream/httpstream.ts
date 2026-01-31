@@ -51,9 +51,10 @@ export function httpReadStream(url: URL): Promise<Readable> {
 }
 
 export async function httpLatestObject(url: URL): Promise<URL> {
-    logger.info(`resolving latest HTTP object for ${url.href}`);
+    logger.info(`trying to resolve ${url.href}`);
 
     if (!url.href.includes("@latest:")) {
+        logger.info(`resolved as: ${url.href}`);
         return url;
     }
 
@@ -102,7 +103,7 @@ export async function httpLatestObject(url: URL): Promise<URL> {
                     if (!latestUrl) {
                         reject(new Error(`no ${targetExt} members found in ${containerUrl}`));
                     } else {
-                        logger.info(`latest object resolved to: ${latestUrl} (${latestDate})`);
+                        logger.info(`resolved as: ${latestUrl}`);
                         resolve(new URL(latestUrl));
                     }
                 }

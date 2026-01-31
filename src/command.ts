@@ -89,7 +89,7 @@ function configureDefaultLogger(output: string) {
             }
         },
         categories: {
-            default: { appenders: ["err"], level: "off" , enableCallStack: true }
+            default: { appenders: ["err"], level: "error" , enableCallStack: true }
         }
     });
 }
@@ -118,7 +118,7 @@ function configureJSONLogger(output: string) {
             }
         },
         categories: {
-            default: { appenders: ["err"], level: "off" , enableCallStack: true }
+            default: { appenders: ["err"], level: "error" , enableCallStack: true }
         }
     });
 }
@@ -145,13 +145,14 @@ async function main() : Promise<void> {
         logger.info(`total: ${result}`);
     }
     catch (e) {
+        logger.debug(e);
         if (e instanceof PipelineError) {
-            logger.error("pipeline error:", e);
+            logger.error("pipeline error");
             process.exitCode = e.statusCode;
             process.exit();
         }
         else {
-            logger.error("process crashed:", e);
+            logger.error("process stopped prematurely");   
             process.exitCode = 8;
             process.exit();
         }
