@@ -148,10 +148,12 @@ async function main() : Promise<void> {
         if (e instanceof PipelineError) {
             logger.error("pipeline error:", e);
             process.exitCode = e.statusCode;
+            process.exit();
         }
         else {
             logger.error("process crashed:", e);
             process.exitCode = 8;
+            process.exit();
         }
     }
 }

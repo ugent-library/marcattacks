@@ -7,10 +7,12 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export function httpReadStream(urlString: string): Promise<Readable> {
-    return new Promise((resolve, reject) => {
+const LDP = 'http://www.w3.org/ns/ldp#';
+const DCTERMS = 'http://purl.org/dc/terms/';
+
+export function httpReadStream(url: URL): Promise<Readable> {
+    return new Promise(async (resolve, reject) => {
         try {
-            const url = new URL(urlString);
             const client = url.protocol === 'http:' ? http : https;
 
             logger.debug(`resolve ${url.href}`);
@@ -21,6 +23,7 @@ export function httpReadStream(urlString: string): Promise<Readable> {
                 logger.debug(`statusCode = ${statusCode}`);
 
                 if (statusCode >= 400) {
+                    logger.error(`http error:`,res.statusMessage);
                     reject(new Error('HTTP ' + res.statusCode));
                     return;
                 }
@@ -28,7 +31,7 @@ export function httpReadStream(urlString: string): Promise<Readable> {
                 // Follow redirects (without any sanity checks..i know)
                 if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
                     logger.info(`Redirect to ${res.headers.location}...`);
-                    httpReadStream(res.headers.location).then(resolve).catch(reject);
+                    httpReadStream(new URL(res.headers.location)).then(resolve).catch(reject);
                     return;
                 }
 
@@ -47,6 +50,70 @@ export function httpReadStream(urlString: string): Promise<Readable> {
     });
 }
 
+export async function httpLatestObject(url: URL): Promise<URL> {
+    logger.info(`resolving latest HTTP object for ${url.href}`);
+
+    if (!url.href.includes("@latest:")) {
+        return url;
+    }
+
+    const containerUrl = url.href.replace(/@latest:.*$/, "");
+    const targetExt = url.href.split("@latest:")[1]?.toLowerCase();
+
+    logger.debug(`containerUrl:`, containerUrl);
+    logger.debug(`targetExt`,targetExt);
+
+    try {
+        const stream = await httpReadStream(new URL(containerUrl));
+        const parser = new N3.Parser({ baseIRI: containerUrl });
+        
+        let latestUrl: string | null = null;
+        let latestDate: Date | null = null;
+
+        const store = new N3.Store();
+
+        return new Promise((resolve, reject) => {
+            parser.parse(stream, (error, quad) => {
+                if (error) return reject(error);
+                if (quad) {
+                    store.add(quad);
+                } else {
+                    const members = store.getObjects(N3.DataFactory.namedNode(containerUrl), N3.DataFactory.namedNode(LDP + 'contains'), null);
+
+                    for (const member of members) {
+                        const memberUrl = member.value;
+                        
+                        if (targetExt && targetExt !== '*' && !memberUrl.toLowerCase().endsWith(targetExt)) {
+                            continue;
+                        }
+
+                        const modifiedLiteral = store.getObjects(member, N3.DataFactory.namedNode(DCTERMS + 'modified'), null)[0];
+                        
+                        if (modifiedLiteral) {
+                            const modifiedDate = new Date(modifiedLiteral.value);
+                            
+                            if (!latestDate || modifiedDate > latestDate) {
+                                latestDate = modifiedDate;
+                                latestUrl = memberUrl;
+                            }
+                        }
+                    }
+
+                    if (!latestUrl) {
+                        reject(new Error(`no ${targetExt} members found in ${containerUrl}`));
+                    } else {
+                        logger.info(`latest object resolved to: ${latestUrl} (${latestDate})`);
+                        resolve(new URL(latestUrl));
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        logger.error("error finding latest HTTP file");
+        throw error;
+    }
+}
+
 export async function httpGlobFiles(url: URL): Promise<URL[]> {
     logger.info(`Globbing HTTP RDF at ${url.href}`);
 
@@ -61,7 +128,7 @@ export async function httpGlobFiles(url: URL): Promise<URL[]> {
     logger.debug(`extension:`,extension);
 
     try {
-        const stream = await httpReadStream(containerUrl); //
+        const stream = await httpReadStream(new URL(containerUrl)); //
         const parser = new N3.Parser({ baseIRI: containerUrl });
         const matchedUrls: URL[] = [];
 
@@ -74,7 +141,7 @@ export async function httpGlobFiles(url: URL): Promise<URL[]> {
                 }
 
                 if (quad) {
-                    const isLdpContains = quad.predicate.value === 'http://www.w3.org/ns/ldp#contains';
+                    const isLdpContains = quad.predicate.value === `${LDP}contains`;
                     
                     if (isLdpContains && quad.object.termType === 'NamedNode') {
                         const result = new URL(quad.object.value);

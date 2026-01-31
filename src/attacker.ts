@@ -1,7 +1,7 @@
 import log4js from 'log4js';
 import { loadPlugin } from './plugin-loader.js';
 import { sftpLatestFile, sftpReadStream , sftpWriteStream } from './stream/sftpstream.js';
-import { httpReadStream } from './stream/httpstream.js';
+import { httpLatestObject, httpReadStream } from './stream/httpstream.js';
 import { Readable } from 'stream';
 import { type Transform, type Writable } from 'node:stream';
 import { SlowWritable } from './stream/slow-writable.js';
@@ -42,7 +42,8 @@ export async function createInputReadStream(url: URL, opts: any): Promise<{ stre
     let resolvedUrl : URL = url;
 
     if (url.protocol.startsWith("http")) {
-        readableStream = await httpReadStream(url.toString());
+        resolvedUrl = await httpLatestObject(url);
+        readableStream = await httpReadStream(resolvedUrl);
     } 
     else if (url.protocol.startsWith("s3")) {
         if (process.env.S3_ACCESS_KEY) {
