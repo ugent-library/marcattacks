@@ -151,7 +151,9 @@ async function main() : Promise<void> {
         });
     }
     catch (e) {
-        logger.error("process crashed:", e);
+        logger.debug(e);
+        logger.error("process crashed");
         process.exitCode = 4;
+        process.exit();
     }
 }

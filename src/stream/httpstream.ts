@@ -136,7 +136,8 @@ export async function httpGlobFiles(url: URL): Promise<URL[]> {
         return new Promise((resolve, reject) => {
             parser.parse(stream, (error, quad) => {
                 if (error) {
-                    logger.error("RDF Parse Error:", error);
+                    logger.debug(error);
+                    logger.error("RDF parse error");
                     reject(error);
                     return;
                 }
@@ -152,13 +153,14 @@ export async function httpGlobFiles(url: URL): Promise<URL[]> {
                         }
                     }
                 } else {
-                    logger.info(`Found ${matchedUrls.length} members in container`);
+                logger.debug(`found ${matchedUrls.length} members in container`);
                     resolve(matchedUrls);
                 }
             });
         });
     } catch (error) {
-        logger.error("Failed to glob HTTP container:", error);
+        logger.debug(error);
+        logger.error("failed to glob HTTP container");
         throw error;
     }
 }

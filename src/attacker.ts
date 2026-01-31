@@ -237,7 +237,6 @@ export async function attack(url: URL, opts: any): Promise<number> {
         if (e instanceof PipelineError) {
             throw e;
         } else {
-            logger.error(`process crashed with: ${e}`);
             throw e;
         }
     }
