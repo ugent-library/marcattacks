@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { sftpGlobFiles } from './stream/sftpstream.js';
 import { s3GlobFiles } from './stream/s3stream.js';
 import { fileGlobFiles } from './stream/filestream.js';
+import { httpGlobFiles } from './stream/httpstream.js';
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 
@@ -137,6 +138,9 @@ async function main() : Promise<void> {
         }
         else if (url?.startsWith("file")) {
             globs = await fileGlobFiles(new URL(url));
+        }
+        else if (url?.startsWith("http")) {
+            globs = await httpGlobFiles(new URL(url));
         }
         else {
             console.error(`${url} not supported`);
