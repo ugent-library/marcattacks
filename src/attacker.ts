@@ -12,7 +12,8 @@ import {
     createCountableSkippedStream, 
     createUntarredStream, 
     createUncompressedStream,
-    createVerboseStream 
+    createVerboseStream, 
+    getCleanURL
 } from './util/stream_helpers.js';
 import { fileLatestFile, fileReadStream } from './stream/filestream.js';
 
@@ -238,13 +239,6 @@ export async function attack(url: URL, opts: any): Promise<number> {
         }
     }
     return result;
-}
-
-function getCleanURL(url: URL): URL {
-    const tempUrl = new URL(url.href);
-    tempUrl.username = '***';
-    tempUrl.password = '***';
-    return tempUrl;
 }
 
 function isWritableStream(obj: any): boolean {

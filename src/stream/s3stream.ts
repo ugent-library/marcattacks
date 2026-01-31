@@ -11,6 +11,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { Readable, Writable } from "stream";
 import log4js from 'log4js';
+import { getCleanURL, getStrippedURL } from "../util/stream_helpers.js";
 
 const logger = log4js.getLogger();
 type S3Config = {
@@ -212,21 +213,24 @@ export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promis
 }
 
 export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
-    logger.info(`trying to resolve ${url.href}`);
+    logger.info(`trying to resolve ${getCleanURL(url)}`);
 
     if (! url.href.includes("@latest:")) {
-        logger.info(`resolved as: ${url.href}`);
+        logger.info(`resolved as: ${getCleanURL(url)}`);
         return url; 
     }
 
-    const bucket = url.pathname.replaceAll(/@latest:.*/g,"");
+    const bucket = url.pathname.replaceAll(/\/@latest:.*/g,"").replaceAll(/^\//g,"");
     const extension = url.pathname.replaceAll(/.*@latest:/g,"");
 
     const config = parseURL(url);
+    delete (config as { key?: string} ).key;
 
     logger.debug(`s3 config:`, config);
+    logger.debug(`bucket:`,bucket);
+    logger.debug(`extension:`,extension);
 
-    const s3Client = new S3Client(config);
+    const s3Client = makeClient(config as S3Config);
 
     const paginatorConfig = {
         client: s3Client,
@@ -278,10 +282,13 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
             url_parts.push(':');
             url_parts.push(url.port);
         }
-        url_parts.push(bucket + '/' + latestFile.Key);
 
-        logger.info(`resolved as: ${url_parts.join("")}`);
-        return new URL(url_parts.join(""));
+        url_parts.push('/' + bucket + '/' + latestFile.Key);
+
+        const result =  new URL(url_parts.join(""));
+        logger.info(`resolved as: ${getCleanURL(result)}`);
+
+        return result;
     } catch (error) {
         console.error("Error finding latest S3 file:", error);
         throw error;
@@ -289,23 +296,25 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
 }
 
 export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
-    logger.info(`trying to glob files for ${url.href}`);
+    logger.info(`trying to glob files for ${getCleanURL(url)}`);
 
     // Check if the URL follows the @glob: pattern
     if (!url.href.includes("@glob:")) {
         logger.info(`no glob pattern found, returning original URL in array`);
-        return [url];
+        return [getStrippedURL(url)];
     }
 
     // Extract bucket name and extension from the pathname
-    const bucket = url.pathname.replaceAll(/@glob:.*/g, "").split("/")[1] ?? "";
+    const bucket = url.pathname.replaceAll(/\/@glob:.*/g, "").replaceAll(/^\//g,"");
     const extension = url.pathname.replaceAll(/.*@glob:/g, "");
 
     const config = parseURL(url);
 
     logger.debug(`s3 config:`, config);
+    logger.debug(`bucket:`,bucket);
+    logger.debug(`extension:`,extension);
 
-    const s3Client = new S3Client(config);
+    const s3Client = makeClient(config as S3Config);
 
     const paginatorConfig = {
         client: s3Client,
@@ -325,8 +334,9 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
             const contents = page.Contents || [];
             
             for (const obj of contents) {
+                if (obj.Key?.endsWith("/")) continue;
                 // Filter by extension match
-                if (obj.Key?.toLowerCase().endsWith(targetExt)) {
+                if (obj.Key?.toLowerCase().endsWith(targetExt) || targetExt === '*') {
                     // Reconstruct the URL for each matched object
                     const url_parts: string[] = [];
 
@@ -352,7 +362,9 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
                     // Note: bucket is already part of the path logic in parseURL
                     url_parts.push(`/${bucket}/${obj.Key}`);
 
-                    matchedUrls.push(new URL(url_parts.join("")));
+                    const result = new URL(url_parts.join(""));
+
+                    matchedUrls.push(getStrippedURL(result));
                 }
             }
         }
@@ -398,8 +410,8 @@ function parseURL(url: URL) : S3Config {
     const config : S3Config = {
         region: "us-east-1",
         endpoint: "http://localhost:3371",
-        bucket: "bbl",
-        key: "test.txt"
+        bucket: "",
+        key: ""
     };
     
     const scheme = url.protocol.startsWith("s3s") ? "https" : "http";

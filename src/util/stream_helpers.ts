@@ -179,3 +179,27 @@ export async function createUntarredStream(): Promise<Transform> {
 
     return transformStream;
 }
+
+/**
+ * Return a URL censored passwords
+ * @param url 
+ * @returns URL
+ */
+export function getCleanURL(url: URL): URL {
+    const tempUrl = new URL(url.href);
+    tempUrl.username = '***';
+    tempUrl.password = '***';
+    return tempUrl;
+}
+
+/***
+ * Return a URL without passwords
+ * @param url
+ * @returns URL
+ */
+export function getStrippedURL(url: URL): URL {
+    const tempUrl = new URL(url.href);
+    tempUrl.username = '';
+    tempUrl.password = '';
+    return tempUrl;
+}
