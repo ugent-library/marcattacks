@@ -7,7 +7,8 @@ import {
     CompleteMultipartUploadCommand, 
     paginateListObjectsV2,
     type _Object,
-    type S3ClientConfig
+    type S3ClientConfig,
+    ListBucketsCommand
 } from "@aws-sdk/client-s3";
 import { Readable, Writable } from "stream";
 import log4js from 'log4js';
@@ -305,7 +306,7 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
     }
 
     // Extract bucket name and extension from the pathname
-    const bucket = url.pathname.replaceAll(/\/@glob:.*/g, "").replaceAll(/^\//g,"");
+    const bucket = url.pathname.replaceAll(/\/?@glob:.*/g, "").replaceAll(/^\//g,"");
     const extension = url.pathname.replaceAll(/.*@glob:/g, "");
 
     const config = parseURL(url);
@@ -321,11 +322,38 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
         pageSize: 1000
     };
 
-    const commandInput = {
-        Bucket: bucket,
-    };
-
     try {
+        if (bucket === "" && extension === "*") {
+            logger.debug("trying to glob buckets...");
+            const { Buckets } = await s3Client.send(new ListBucketsCommand({}));
+            
+            return (Buckets || []).map(b => {
+                const url_parts: string[] = [];
+                url_parts.push(url.protocol, '//');
+                
+                if (url.username) {
+                    url_parts.push(url.username);
+                    if (url.password) url_parts.push(':', url.password);
+                    url_parts.push('@');
+                }
+                
+                url_parts.push(url.hostname);
+                if (url.port && !["80", "443"].includes(url.port)) {
+                    url_parts.push(':', url.port);
+                }
+                
+                // Return URLs pointing to the root of each bucket
+                url_parts.push(`/${b.Name}/`);
+                const result = new URL(url_parts.join(""));
+
+                return getStrippedURL(result);
+            });
+        }
+
+        const commandInput = {
+            Bucket: bucket,
+        };
+
         const matchedUrls: URL[] = [];
         const targetExt = extension.toLowerCase();
 
