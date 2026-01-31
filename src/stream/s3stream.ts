@@ -26,7 +26,7 @@ type S3Config = {
 export async function s3ReadStream(url: URL, options: { range?: string }): Promise<Readable> {
     const config = parseURL(url);
 
-    logger.debug(`s3 config:`,config);
+    logger.debug(`s3 config:`,redactConfig(config));
 
     const bucket = config.bucket;
     const key    = config.key;
@@ -119,7 +119,8 @@ export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promis
     return new Promise<Writable>( (resolve) => {
         const config = parseURL(url);
 
-        logger.debug(`s3 config:`, config);
+        logger.debug(`s3 config:`, redactConfig(config));
+
         const bucket = config.bucket;
         const key = config.key;
         const s3 = makeClient(config);
@@ -226,7 +227,7 @@ export async function s3LatestObject(url: URL, opts: any): Promise<URL> {
     const config = parseURL(url);
     delete (config as { key?: string} ).key;
 
-    logger.debug(`s3 config:`, config);
+    logger.debug(`s3 config:`, redactConfig(config));
     logger.debug(`bucket:`,bucket);
     logger.debug(`extension:`,extension);
 
@@ -310,7 +311,7 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
 
     const config = parseURL(url);
 
-    logger.debug(`s3 config:`, config);
+    logger.debug(`s3 config:`, redactConfig(config));
     logger.debug(`bucket:`,bucket);
     logger.debug(`extension:`,extension);
 
@@ -322,7 +323,7 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
     };
 
     const commandInput = {
-        Bucket: bucket,
+        Bucket: bucket
     };
 
     try {
@@ -332,9 +333,10 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
         // Iterate through all pages of the bucket using the V2 paginator
         for await (const page of paginateListObjectsV2(paginatorConfig, commandInput)) {
             const contents = page.Contents || [];
+           
+            logger.debug(`page with ${contents.length} objects`);
             
             for (const obj of contents) {
-                if (obj.Key?.endsWith("/")) continue;
                 // Filter by extension match
                 if (obj.Key?.toLowerCase().endsWith(targetExt) || targetExt === '*') {
                     // Reconstruct the URL for each matched object
@@ -369,7 +371,7 @@ export async function s3GlobFiles(url: URL, opts: any): Promise<URL[]> {
             }
         }
 
-        logger.info(`glob resolved ${matchedUrls.length} files`);
+        logger.info(`glob resolved ${matchedUrls.length} objects`);
         return matchedUrls;
     } catch (error) {
         logger.error("Error globbing S3 files:", error);
@@ -390,7 +392,6 @@ function isAsyncIterable(x: any): x is AsyncIterable<any> {
 }
 
 function makeClient(config: S3Config) : S3Client {
-    logger.debug(config);
     const myConfig : S3ClientConfig = {
         endpoint: config.endpoint,
         forcePathStyle: true,
@@ -431,4 +432,19 @@ function parseURL(url: URL) : S3Config {
     }
 
     return config;
+}
+
+const REDACTED_KEYS = ['accessKeyId', 'secretAccessKey'];
+
+function redactConfig(obj: any): any {
+    const redactedObj = { ...obj };
+    for (const key in redactedObj) {
+        if (REDACTED_KEYS.includes(key)) {
+            redactedObj[key] = '********'; // Mask the value
+        } 
+        else {
+            redactedObj[key] = redactedObj[key];
+        }
+    }
+    return redactedObj;
 }
