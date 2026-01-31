@@ -185,6 +185,9 @@ export async function sftpGlobFiles(url: URL, opts: any): Promise<URL[]> {
         const remoteDir = url.pathname.replace(/\/@glob.*/, "");
         const extension = url.pathname.replace(/.*\/@glob:/, "");
 
+        logger.debug(`remoteDir:`,remoteDir);
+        logger.debug(`extension:`,extension);
+
         const conn = new Client();
 
         conn.on("ready", () => {
@@ -194,7 +197,7 @@ export async function sftpGlobFiles(url: URL, opts: any): Promise<URL[]> {
                     return reject(err);
                 }
 
-                sftp.readdir(remoteDir, (err, list) => {
+                sftp.readdir(remoteDir.length ? remoteDir : "/", (err, list) => {
                     if (err) {
                         conn.end();
                         return reject(err);
