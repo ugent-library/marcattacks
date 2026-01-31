@@ -56,7 +56,8 @@ export async function fileGlobFiles(url: URL): Promise<URL[]> {
         const directory = url.pathname.replaceAll(/@glob:.*/g, "");
         const extension = url.pathname.replaceAll(/.*@glob:/g, "");
 
-        logger.debug(`directory: ${directory} ; extension: ${extension}`);
+        logger.debug(`directory:`,directory);
+        logger.debug(`extension:`,extension);
 
         fs.readdir(directory, (err, files) => {
             if (err) {
@@ -69,7 +70,7 @@ export async function fileGlobFiles(url: URL): Promise<URL[]> {
 
             // Filter all files in the directory that match the extension
             for (const file of files) {
-                if (file.toLowerCase().endsWith(targetExt)) {
+                if (file.toLowerCase().endsWith(targetExt) || targetExt === '*') {
                     // Reconstruct the file URL
                     matchedUrls.push(new URL("file://" + directory + file));
                 }
