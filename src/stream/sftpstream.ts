@@ -16,7 +16,7 @@ export interface SftpConfig {
 export async function sftpReadStream(url: URL, opts: any): Promise<Readable> {
     const config = makeSftpConfig(url,opts);
 
-    logger.debug(`sftp config:`, config);
+    logger.debug(`sftp config:`, redactConfig(config));
     
     const remotePath = url.pathname;
 
@@ -53,7 +53,7 @@ export async function sftpReadStream(url: URL, opts: any): Promise<Readable> {
 export async function sftpWriteStream(url: URL, opts: any): Promise<Writable> {
     const config = makeSftpConfig(url,opts);
 
-    logger.debug(`sftp config:`, config);
+    logger.debug(`sftp config:`, redactConfig(config));
 
     let remotePath = url.pathname;
 
@@ -89,7 +89,8 @@ export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
     const config = makeSftpConfig(url,opts);
 
     logger.info(`trying to resolve ${url.href}`);
-    logger.debug(`sftp config:`, config);
+
+    logger.debug(`sftp config:`, redactConfig(config));
 
     return new Promise((resolve, reject) => {
         if (! url.pathname.match(/\/@latest:\S+$/)) {
@@ -170,6 +171,8 @@ export async function sftpGlobFiles(url: URL, opts: any): Promise<URL[]> {
     const config = makeSftpConfig(url, opts);
 
     logger.info(`trying to glob files for ${url.href}`);
+    
+    logger.debug(`sftp config:`, redactConfig(config));
 
     return new Promise((resolve, reject) => {
         // Check if the URL follows the @glob: pattern
@@ -204,7 +207,8 @@ export async function sftpGlobFiles(url: URL, opts: any): Promise<URL[]> {
 
                     // Filter files by the extension provided after @glob:
                     const matchedFiles = list.filter(f => 
-                        f.filename.toLowerCase().endsWith(extension.toLowerCase())
+                        f.filename.toLowerCase().endsWith(extension.toLowerCase()) ||
+                        extension === '*'
                     );
 
                     const results = matchedFiles.map(file => {
@@ -267,4 +271,19 @@ function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
     if (privateKey) { config.privateKey = privateKey}
 
     return config;
+}
+
+const REDACTED_KEYS = ['password', 'privateKey', 'username'];
+
+function redactConfig(obj: any): any {
+    const redactedObj = { ...obj };
+    for (const key in redactedObj) {
+        if (REDACTED_KEYS.includes(key)) {
+            redactedObj[key] = '********'; // Mask the value
+        } 
+        else {
+            redactedObj[key] = redactedObj[key];
+        }
+    }
+    return redactedObj;
 }
