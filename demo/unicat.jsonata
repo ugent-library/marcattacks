@@ -3,12 +3,25 @@
         $data[$marctag($) != $field]
     };
 
-    $marcremove_if := function($data,$field,$regex,$value) {
-        $data[$not( $marctag($) = $field and $join($marcsubfields($,$regex)," ") = $value )]
-    };
+    $marcremove_if := function($data,$field,$regex,$value) {(
+        $regex = "ind1" ? 
+                $data[$not(
+                    $marctag($) = $field and
+                    $marcind($)[0] = $value
+                )] :
+        $regex = "ind2" ?
+                $data[$not(
+                    $marctag($) = $field and
+                    $marcind($)[1] = $value
+                )] :
+        $data[$not( 
+            $marctag($) = $field and 
+            $marcsubfields($,$regex) ~> $join(" ") ~> $contains($value) 
+        )]
+    )};
 
     $marcrecord($) ~> 
-        $marcremove_if("920","a","phd") ~> 
-        $marcremove_if("920","a","book") ~> 
+        $marcremove_if("920","a",/phd|book/) ~> 
+        $marcremove_if("651","ind2","0") ~>
         $asmarc; 
 )
