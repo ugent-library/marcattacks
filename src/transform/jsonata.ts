@@ -1,7 +1,7 @@
 import { Transform } from "stream";
 import jsonata from "jsonata";
 import fs from "fs";
-import { marcmap } from '../marcmap.js';
+import { marcmap, marctag, marcind, marcsubfields } from '../marcmap.js';
 import { v4 as uuidv4 } from 'uuid';
 import log4js from 'log4js';
 
@@ -33,6 +33,21 @@ export async function transform(param: any) : Promise<Transform> {
                 expression.registerFunction('marcmap', (code) => {
                     return marcmap(data['record'],code,{});
                 });
+                expression.registerFunction('marctag', (row) => {
+                    return marctag(row);
+                });
+                expression.registerFunction('marcind', (row) => {
+                    return marcind(row);
+                });
+                expression.registerFunction('marcsubfields', (row,regex) => {
+                    return marcsubfields(row, new RegExp(regex));
+                });
+                expression.registerFunction('marcrecord', () => {
+                    return data['record'];
+                });
+                expression.registerFunction('asmarc', (data) => {
+                    return { "record": data};
+                });
                 expression.registerFunction('genid', () => {
                     return genid();
                 });
@@ -40,6 +55,7 @@ export async function transform(param: any) : Promise<Transform> {
                 callback(null,data);
             }
             catch (err) {
+                logger.info(err);
                 callback(err as Error);
             }
         }

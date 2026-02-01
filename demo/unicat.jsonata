@@ -1,0 +1,14 @@
+(
+    $marcremove := function($data,$field) {
+        $data[$marctag($) != $field]
+    };
+
+    $marcremove_if := function($data,$field,$regex,$value) {
+        $data[$not( $marctag($) = $field and $join($marcsubfields($,$regex)," ") = $value )]
+    };
+
+    $marcrecord($) ~> 
+        $marcremove_if("920","a","phd") ~> 
+        $marcremove_if("920","a","book") ~> 
+        $asmarc; 
+)
