@@ -113,7 +113,6 @@ use `s3s://...` for using an SSL layer.
 - jsonata : A jsonata fixer (_default_)
 - marcids : A mapper from MARC to a list of record ids
 - marc2rdf : A mapper from MARC to RDF (demonstrator)
-- notation3 : A [Notation3](https://w3c.github.io/N3/spec/) reasoner 
 
 Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
 
