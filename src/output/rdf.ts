@@ -38,11 +38,14 @@ export async function transform(_param:any): Promise<Transform> {
                         write: (chunk: string) => this.push(chunk)
                     });
                 }
+
                 await writeString(dataNew, undefined, writer);
             } 
             else {
                 logger.warn(`[${counter}] is not a Record or a JSON-LD`);
             }
+
+            callback();
         },
         flush(callback) {
             logger.debug('flush reached');

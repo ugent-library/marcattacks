@@ -3,6 +3,9 @@ import type { Record, Quad } from "../types/quad.js";
 import type { Readable, Writable } from "stream";
 import streamify from "streamify-string";
 import N3 from 'n3';
+import log4js from 'log4js';
+
+const logger = log4js.getLogger();
 
 const { DataFactory } = N3;
 const { namedNode, literal, blankNode } = DataFactory;
@@ -63,6 +66,7 @@ export async function parseStream(readable: Readable, path: string) : Promise<Re
                 record.prefixes[prefix] = iri;  
             })
             .on('error', (error) => {
+                logger.error(error);
                 reject(error);
             })
             .on('end', () => {
@@ -74,7 +78,11 @@ export async function parseStream(readable: Readable, path: string) : Promise<Re
 export async function writeString(data: Record, format?:string, writer?: N3.Writer) : Promise<string> {
     let internalWriter = false;
 
-    if (!writer) {
+    if (writer) {
+        logger.debug('external writer');
+    }
+    else {
+        logger.debug('internal writer');
         let prefixes = data['prefixes'];
         writer = new N3.Writer({ end: false, prefixes , format });
         internalWriter = true;
@@ -82,6 +90,8 @@ export async function writeString(data: Record, format?:string, writer?: N3.Writ
 
     return new Promise<string>( (resolve, reject) => {
         let quads : any[] = data['quads'];
+
+        logger.trace(`received ${quads.length} quads`);
 
         if (!quads) resolve("");
 
