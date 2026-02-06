@@ -24,31 +24,37 @@ npm link
 Generate JSON:
 
 ```
-marcattacks --to json <file>
+marcattacks --to json ./data/sample.xml
+```
+
+We can also do this for tar (and) gzipped files
+
+```
+marcattacks --to json ./data/sample.tar.gz
 ```
 
 Generate Aleph sequential:
 
 ```
-marcattacks --to alephseq <file>
+marcattacks --to alephseq ./data/sample.xml
 ```
 
 Generate RDF:
 
 ```
-marcattacks --to rdf --map marc2rdf <file>
+marcattacks --to rdf --map marc2rdf ./data/sample.xml
 ```
 
 Generate XML:
 
 ```
-marcattacks --to xml <file>
+marcattacks --from alephseq --to xml ./data/one.alephseq
 ```
 
 Transform the MARC input using a [JSONata](https://docs.jsonata.org/overview.html) expression or file:
 
 ```
-marcattacks <file> --fix ./demo/demo.jsonata
+marcattacks --param fix=./demo/demo.jsonata ./data/sample.xml
 ```
 
 ## Remote files
@@ -74,7 +80,7 @@ marcattacks http://somewhere.org/data.xml
 An S3 path
 
 ```
-marcattacks s3://accessKey:secretKey@host:port/bucket/key
+marcattacks s3://accessKey:secretKey@hostname:port/bucket/key
 ```
 
 use `s3s://...` for using an SSL layer.
@@ -88,6 +94,7 @@ use `s3s://...` for using an SSL layer.
 - jsonl
 - marc (ISO2709)
 - rdf
+- tsv
 - xml (MARCXML)
 
 ### Output (--to)
@@ -95,25 +102,27 @@ use `s3s://...` for using an SSL layer.
 - alephseq (Aleph sequential)
 - json
 - jsonl
+- parquet
 - rdf
+- tsv
 - xml (MARCXML)
 
 ### Transform (--map)
 
-- jsonata : _default_ A jsonata fixer
-- marc2rdf : A mapper from MARC to RDF
-- notation3 : A [Notation3](https://w3c.github.io/N3/spec/) reasoner 
+- avram : A mapper from MARC to [Avram](https://format.gbv.de/schema/avram/specification) 
+- jsonata : A jsonata fixer (_default_)
+- marcids : A mapper from MARC to a list of record ids
+- marc2rdf : A mapper from MARC to RDF (demonstrator)
 
 Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
 
-### Fix (--fix)
+### Param (--param)
 
-Provide a fix file to the mapper. See examples:
+Provide a params to the mapper, input and output. See examples:
 
 - `npm run demo:jsonld`
 - `npm run demo:n3`
 - `npm run biblio:one`
-- `npm run biblio:all`
 
 ### Writable (--out)
 
@@ -121,9 +130,8 @@ Provide a fix file to the mapper. See examples:
 - _file path_
 - sftp://username@host:port/path
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
-- stdin://local
  
-### Logging (--info,--debug,--log)
+### Logging (--info,--debug,--trace,--log)
 
 Logging messages can be provided with the `--info`, `--debug` and `--trace` options.
 
@@ -133,6 +141,36 @@ Default the logging format is a text format that is written to stderr. This logg
 - `--log stdout` : write logs to the stdout
 - `--log json+stdout` : write logs in a JSON format and to the stdout
 
-### Compression (-z)
+### Compression (--z,--tar)
 
-- `-z` : the input file is gzipped
+Gzip and tar compression of input files can be automatically detected by file name extension. If no such extensions are provided the following flags can be set to force decompression:
+
+- `--z` : the input file is gzipped
+- `--tar` : the input file is tarred
+
+### Environment Variables
+
+SFTP and S3 credentials can be set using environment variables or a local `.env` file.
+Available variables:
+
+- SFTP_USERNAME
+- SFTP_PASSWORD
+- S3_ACCESS_KEY
+- S3_SECRET_KEY
+
+A SFTP private key can be provided using the `--key-env` command line option. E.g. `--key-env PRIVATE_KEY`, which results reading a `PRIVATE_KEY` environment variable.
+
+## Discover files at a (remote) endpoint
+
+Find all files that end with xml on an sftp site:
+
+```
+npx globtrotr --key ~/.ssh/mykey sftp://username@hostname:port/remote/path/@glob:xml
+```
+
+Or, for an S3 site:
+
+```
+npx globtrotr s3s://accessKey:privateKey@hostname:port/bucket/@glob:xml
+```
+

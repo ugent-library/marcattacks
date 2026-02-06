@@ -4,7 +4,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform() : Promise<Transform> {
+export async function transform(_param:any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {
@@ -26,10 +26,15 @@ export async function transform() : Promise<Transform> {
                 let ind2 = rec[i]![2];
                 let sf = "";
 
+                if (tag! === 'FMT') {
+                    continue;
+                }
+                
                 for (let j = 3; j < rec[i]!.length ; j += 2) {
                     let code = rec[i]![j];
                     let val  = rec[i]![j+1];
-                    if (tag!.match(/^FMT|LDR|00./g)) {
+
+                    if (tag!.match(/^LDR|00./g)) {
                         sf += `${val}`;
                     }
                     else {
@@ -40,7 +45,7 @@ export async function transform() : Promise<Transform> {
                 output += `${id} ${tag}${ind1}${ind2} L ${sf}\n`;
             }
 
-            logger.debug(`adding ${output.length} bytes`);
+            logger.trace(`adding ${output.length} bytes`);
             callback(null,output);
         }
     });

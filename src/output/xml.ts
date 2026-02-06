@@ -4,9 +4,8 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform() : Promise<Transform> {
+export async function transform(_param:any) : Promise<Transform> {
     let isFirst = true;
-    let hasClosed = false;
 
     return new Transform({
         objectMode: true,
@@ -14,6 +13,7 @@ export async function transform() : Promise<Transform> {
             let rec : string[][] = data['record'];
 
             if (!rec) {
+                logger.debug('skipped empty record');
                 callback()
                 return;
             }
@@ -51,22 +51,19 @@ export async function transform() : Promise<Transform> {
 
             output += " </marc:record>\n";
 
-            logger.debug(`adding ${output.length} bytes`);
+            logger.trace(`adding ${output.length} bytes`);
 
             callback(null,output);
         },
         flush(callback) {
-            if (!isFirst && !hasClosed) {
+            logger.debug('flush reached');
+            if (!isFirst) {
                 logger.debug("flushing");
                 let output = "</marc:collection>\n";
-                logger.debug(`adding ${output.length} bytes`);
+                logger.trace(`adding ${output.length} bytes`);
                 this.push(output); 
-                hasClosed = true;
             }
             callback();
-        },
-        destroy(err, callback) {
-            callback(err);
         }
     });
 }

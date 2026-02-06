@@ -7,7 +7,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(): Promise<Transform> {
+export async function transform(_param:any): Promise<Transform> {
     let writer: N3.Writer | undefined;
     let counter = 0;
 
@@ -17,7 +17,7 @@ export async function transform(): Promise<Transform> {
             counter++;
 
             if (isRecord(data)) {
-                logger.debug(`[${counter}] is a Record`);
+                logger.trace(`[${counter}] is a Record`);
                 if (!writer) {
                     writer = new N3.Writer({ 
                         end: false, 
@@ -28,7 +28,7 @@ export async function transform(): Promise<Transform> {
                 await writeString(data, undefined, writer);
             } 
             else if (Object.hasOwn(data, "@context")) {
-                logger.debug(`[${counter}] is a JSON-LD`);
+                logger.trace(`[${counter}] is a JSON-LD`);
                 const dataNew = await parseString(JSON.stringify(data), "data.jsonld");
 
                 if (!writer) {
@@ -38,20 +38,19 @@ export async function transform(): Promise<Transform> {
                         write: (chunk: string) => this.push(chunk)
                     });
                 }
+
                 await writeString(dataNew, undefined, writer);
             } 
             else {
                 logger.warn(`[${counter}] is not a Record or a JSON-LD`);
-                // Consider if you need to initialize a writer here if one doesn't exist
             }
-        },
-        flush(callback) {
-            writer?.end();
+
             callback();
         },
-        destroy(err, callback) {
+        flush(callback) {
+            logger.debug('flush reached');
             writer?.end();
-            callback(err);
+            callback();
         }
     });
 }

@@ -1,0 +1,174 @@
+#!/usr/bin/env node
+
+import log4js from 'log4js';
+import { program } from 'commander';
+import path from "node:path";
+import dotenv from 'dotenv';
+import { attack, PipelineError } from './attacker.js';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from "node:url";
+import fs from 'fs';
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
+
+program.version(pkg.version)
+    .argument('<file>')
+    .option('-c,--config <config>','config .env',path.join(process.cwd(), '.env'))
+    .option('-f,--from <from>','input type','xml')
+    .option('-t,--to <output>','output type','json')
+    .option('-m,--map <map>','data mapper','jsonata')
+    .option('--fix <what>','jsonata')
+    .option('-p,--param <key=value>','repeated params',collect,{})
+    .option('-o,--out <file>','output file')
+    .option('--z','uncompress input')
+    .option('--tar','untar input')
+    .option('--count <num>', 'output only <num> records')
+    .option('--skip <num>', 'skip first <num> records')
+    .option('--key <keyfile>', 'private key file')
+    .option('--key-env <env>','private key environment variable')
+    .option('--log <format>','logging format')
+    .option('--info','output debugging messages')
+    .option('--debug','output more debugging messages')
+    .option('--trace','output much more debugging messages');
+
+program.parse(process.argv);
+
+const opts   = program.opts();
+
+if (opts.log) {
+    let output = 'stderr';
+    let type = 0;
+
+    if (opts.log.indexOf('stdout') >= 0) {
+        output = 'stdout';
+    }
+    if (opts.log.indexOf('json') >= 0) {
+        type = 1;
+    }
+
+    if (type) {
+        configureJSONLogger(output);
+    }
+    else {
+        configureDefaultLogger(output);
+    }
+}
+else {
+    configureDefaultLogger('stderr');
+}
+
+const logger = log4js.getLogger();
+
+if (opts.info) {
+    logger.level = "info";
+}
+
+if (opts.debug) {
+    logger.level = "debug";
+}
+
+if (opts.trace) {
+    logger.level = "trace";
+}
+
+if (opts.config) {
+    dotenv.config({ path: opts.config , quiet: true });
+}
+
+main();
+
+function configureDefaultLogger(output: string) {
+    log4js.configure({
+        appenders: {
+            err: { 
+                type: output ,
+                layout: {
+                    type: "pattern",
+                    pattern: "%[%d %p %f{2} %m%]"
+                }
+            }
+        },
+        categories: {
+            default: { appenders: ["err"], level: "error" , enableCallStack: true }
+        }
+    });
+}
+
+function configureJSONLogger(output: string) {
+    log4js.addLayout('json-pattern', (config) => {
+        return (logEvent) => {
+            return JSON.stringify({
+            timestamp: logEvent.startTime,  // Similar to %d
+            level: logEvent.level.levelStr, // Similar to %p
+            category: logEvent.categoryName,// Similar to %c
+            message: logEvent.data.join(' '), // Similar to %m
+            context: logEvent.context,      // Similar to %X (tokens)
+            pid: logEvent.pid               // Similar to %z
+            });
+        };
+    });
+
+    log4js.configure({
+        appenders: {
+            err: { 
+                type: output ,
+                layout: {
+                    type: "json-pattern"
+                }
+            }
+        },
+        categories: {
+            default: { appenders: ["err"], level: "error" , enableCallStack: true }
+        }
+    });
+}
+
+async function main() : Promise<void> {
+    try {
+        const url = program.args[0];
+
+        if (! url) {
+            console.error(`need an input file`);
+            process.exit(2);
+        }
+
+        let inputFile : URL;
+
+        if (fs.existsSync(url)) {
+            const filePath = path.resolve(process.cwd(), url);
+            inputFile = pathToFileURL(filePath);
+        } else {
+            inputFile = new URL(url);
+        }
+
+        const result = await attack(inputFile,opts);
+        logger.info(`total: ${result}`);
+
+        const usage = process.resourceUsage();
+        logger.info(`peak RSS: ${usage.maxRSS / 1024} MB`);
+    }
+    catch (e) {
+        logger.debug(e);
+        if (e instanceof PipelineError) {
+            logger.error("pipeline error");
+            process.exitCode = e.statusCode;
+            process.exit();
+        }
+        else {
+            logger.error("process stopped prematurely");   
+            process.exitCode = 8;
+            process.exit();
+        }
+    }
+}
+
+function collect(value:string, previous: any) {
+    const keyval = value.split("=",2);
+    if (keyval.length == 2 && keyval[0]) {
+        previous[keyval[0]] = keyval[1];
+        return previous;
+    }
+    else {
+        return previous;
+    }
+}

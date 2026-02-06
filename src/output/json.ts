@@ -3,13 +3,18 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform() : Promise<Transform> {
+export async function transform(_param:any) : Promise<Transform> {
     let isFirst = true;
-    let hasClosed = false;
 
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {
+            if (Object.keys(data).length == 0) {
+                logger.debug('skipped empty record');
+                callback();
+                return;
+            }
+            
             let output = "";
 
             if (isFirst) {
@@ -23,19 +28,15 @@ export async function transform() : Promise<Transform> {
 
             isFirst = false;
 
-            logger.debug(`adding ${output.length} bytes`);
+            logger.trace(`adding ${output.length} bytes`);
             callback(null,output);
         },
         flush(callback) {
-            // Push the closing bracket to the buffer
-            if (!isFirst && !hasClosed) {
+            logger.debug('flush reached');
+            if (!isFirst) {
                 this.push("]");
-                hasClosed = true;
             }
             callback();
-        },
-        destroy(err, callback) {
-            callback(err);
         }
     });
 }
