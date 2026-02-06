@@ -143,6 +143,9 @@ async function main() : Promise<void> {
 
         const result = await attack(inputFile,opts);
         logger.info(`total: ${result}`);
+
+        const usage = process.resourceUsage();
+        logger.info(`Peak RSS: ${usage.maxRSS / 1024} MB`);
     }
     catch (e) {
         logger.debug(e);
