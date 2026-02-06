@@ -1,6 +1,6 @@
 {
   "name": "marcattacks",
-  "version": "2.2.7",
+  "version": "2.2.8",
   "description": "A powerful streaming MARC21 to RDF converter with JSONata transformation and S3 support.",
   "keywords": [
     "marc21",
