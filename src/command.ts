@@ -145,7 +145,7 @@ async function main() : Promise<void> {
         logger.info(`total: ${result}`);
 
         const usage = process.resourceUsage();
-        logger.info(`Peak RSS: ${usage.maxRSS / 1024} MB`);
+        logger.info(`peak RSS: ${usage.maxRSS / 1024} MB`);
     }
     catch (e) {
         logger.debug(e);
