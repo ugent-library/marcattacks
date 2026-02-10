@@ -1,6 +1,7 @@
 import { rdfParser } from "rdf-parse";
 import type { Record, Quad } from "../types/quad.js";
 import type { Readable, Writable } from "stream";
+import { PassThrough } from "stream";
 import streamify from "streamify-string";
 import N3 from 'n3';
 import log4js from 'log4js';
@@ -73,6 +74,62 @@ export async function parseStream(readable: Readable, path: string) : Promise<Re
                 resolve(record);
             });
     });
+}
+
+export function parseStreamAsParts(readable: Readable, path: string): Readable {
+    const output = new PassThrough({ objectMode: true });
+    let graphSet = new Set<string>();
+
+    rdfParser.parse(readable, { path })
+        .on('data', (quad) => {
+            // Ignore named graphs
+            if (quad.graph.termType === 'DefaultGraph') {
+                // We are ok
+            }
+            else {
+                graphSet.add(quad.graph.value);
+                return;
+            }
+
+            // Also ignore triples mentioning the graphSet
+            if (graphSet.has(quad.subject.value) || graphSet.has(quad.object.value)) {
+                return;
+            }
+
+            const part: Quad = {
+                "subject": {
+                    "type": quad.subject.termType,
+                    "value": quad.subject.value
+                },
+                "predicate": {
+                    "type": quad.predicate.termType,
+                    "value": quad.predicate.value
+                },
+                "object": {
+                    "type": quad.object.termType,
+                    "value": quad.object.value
+                }
+            };
+
+            if (quad.object.datatype) {
+                part.object.as = quad.object.datatype.value;
+            }
+
+            if (quad.object.language) {
+                part.object.language = quad.object.language;
+            }
+
+            output.push(part);
+        })
+        .on('error', (error) => {
+            logger.error(error);
+            output.destroy(error);
+        })
+        .on('end', () => {
+            output.end();
+        });
+
+    return output;
 }
 
 export async function writeString(data: Record, format?:string, writer?: N3.Writer) : Promise<string> {
