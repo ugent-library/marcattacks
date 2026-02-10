@@ -13,7 +13,17 @@ export async function transform(opts: any): Promise<Transform> {
 
         transform(chunk: any, encoding: string, callback: TransformCallback) {
             logger.debug('chunk received');
-            chunks.push(chunk); 
+
+            if (typeof chunk === 'string') {
+                chunks.push(Buffer.from(chunk)); 
+            }
+            else if (Buffer.isBuffer(chunk)) {
+                chunks.push(chunk);
+            }
+            else {
+                throw new Error(`expecting a string or a Buffer but got a ${typeof chunk}`);
+            }
+
             callback(); 
         },
 
@@ -21,11 +31,13 @@ export async function transform(opts: any): Promise<Transform> {
             try {
                 logger.debug('flush started');
                 const fullBuffer = Buffer.concat(chunks); 
-                
                 const { Readable } = await import('stream');
+
                 const finalStream = Readable.from(fullBuffer);
 
-                const record: Record = await parseStream(finalStream, opts.path.href);
+                const hint = opts.hint ? opts.hint : opts.path.href;
+
+                const record: Record = await parseStream(finalStream, hint);
 
                 this.push(record);
                 callback();
