@@ -150,7 +150,7 @@ async function main() : Promise<void> {
         logger.info(`peak RSS: ${usage.maxRSS / 1024} MB`);
     }
     catch (e) {
-        logger.debug(e);
+        logger.error(e);
         if (e instanceof PipelineError) {
             logger.error("pipeline error");
             process.exitCode = e.statusCode;
