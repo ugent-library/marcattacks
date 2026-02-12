@@ -69307,7 +69307,7 @@
       <marc:subfield code="d">....-</marc:subfield>
       <marc:subfield code="0">(viaf)61859917</marc:subfield>
     </marc:datafield>
-    <marc:datafield tag="920" ind1=" " ind2=" ">
+    <marc:datafield tag="920" ind1=" " ind2="&quot;">
       <marc:subfield code="a">book</marc:subfield>
     </marc:datafield>
   </marc:record>

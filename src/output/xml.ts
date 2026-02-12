@@ -38,10 +38,10 @@ export async function transform(_param:any) : Promise<Transform> {
                 }
                 else if (tag.match(/^00/)) {
                     let value = marcsubfields(rec[i]!,/.*/)[0];
-                    output += `  <marc:controlfield tag="${escapeXML(tag)}">${escapeXML(value)}</marc:controlfield>\n`;
+                    output += `  <marc:controlfield tag="${escapeXML(tag,{forAttribute:true})}">${escapeXML(value)}</marc:controlfield>\n`;
                 }
                 else {
-                    output += `  <marc:datafield tag="${escapeXML(tag)}" ind1="${escapeXML(ind[0])}" ind2="${escapeXML(ind[1])}">\n`;
+                    output += `  <marc:datafield tag="${escapeXML(tag)}" ind1="${escapeXML(ind[0],{forAttribute:true})}" ind2="${escapeXML(ind[1],{forAttribute:true})}">\n`;
                     marcForEachSub(rec[i], (code,value) => {
                         output += `    <marc:subfield code="${escapeXML(code)}">${escapeXML(value)}</marc:subfield>\n`;
                     });
