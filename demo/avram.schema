@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "repeated": true,
+    "fields": {
+      "tag": { "type": "UTF8" },
+      "value": { "type": "UTF8", "optional": true },
+      "indicator1": { "type": "UTF8", "optional": true },
+      "indicator2": { "type": "UTF8", "optional": true },
+      "subfields": {
+        "type": "UTF8",
+        "repeated": true,
+        "optional": true
+      }
+    }
+  }
+}

@@ -3,12 +3,18 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform() : Promise<Transform> {
+export async function transform(_param:any) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         transform(data: any, _encoding, callback) {
-            const output = JSON.stringify(data);
-            logger.debug(`adding ${output.length} bytes`);
+            if (Object.keys(data).length == 0) {
+                logger.debug('skipped empty record');
+                callback();
+                return;
+            }
+            
+            const output = JSON.stringify(data) + "\n";
+            logger.trace(`adding ${output.length} bytes`);
             callback(null,output);
         }
     });

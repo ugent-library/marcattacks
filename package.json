@@ -1,6 +1,6 @@
 {
   "name": "marcattacks",
-  "version": "2.0.0",
+  "version": "2.2.11",
   "description": "A powerful streaming MARC21 to RDF converter with JSONata transformation and S3 support.",
   "keywords": [
     "marc21",
@@ -15,12 +15,13 @@
     "s3",
     "metadata-conversion"
   ],
-  "main": "index.js",
+  "main": "dist/attacker.js",
   "type": "module",
   "author": "",
   "repository": "https://codeberg.org/phochste/marcattacks.git",
   "bin": {
-    "marcattacks": "./dist/index.js"
+    "marcattacks": "./dist/command.js",
+    "globtrotr": "./dist/globber.js"
   },
   "files": [
     "dist"
@@ -33,12 +34,10 @@
     "demo:json": "npx marcattacks --to json data/sample.xml",
     "demo:jsonl": "npx marcattacks --to jsonl data/sample.xml",
     "demo:rdf": "npx marcattacks --to rdf --map marc2rdf data/sample.xml",
-    "demo:jsonld": "npx marcattacks --to jsonl --fix ./demo/marc2rdf.jsonata data/sample.xml",
-    "demo:n3": "npx marcattacks --from rdf ./data/output.ttl --to rdf --map notation3 --fix ./demo/allnames.n3",
-    "demo:n3:ttl": "npx marcattacks --from alephseq --to rdf --map notation3 ./data/one.alephseq > data/one.ttl",
-    "demo:n3:marc": "npx marcattacks --from alephseq ./data/one.alephseq --to rdf --map notation3 --fix ./demo/marc2rdf.n3",
-    "demo:biblio:one": "npx marcattacks --from json --to rdf --fix ./demo/biblio.jsonata ./data/biblio.json",
-    "demo:biblio:all": "npx marcattacks --from jsonl --to rdf --fix ./demo/biblio.jsonata --info https://biblio.ugent.be/exports/publications.json",
+    "demo:jsonld": "npx marcattacks --to jsonl --param fix=./demo/marc2rdf.jsonata data/sample.xml",
+    "demo:biblio:one": "npx marcattacks --from json --info ./data/biblio.json",
+    "demo:biblio:all": "npx marcattacks --from jsonl --info https://biblio.ugent.be/exports/publications.json",
+    "demo:parquet": " npx marcattacks ./data/sample.xml --to parquet --map avram --param schema=./demo/avram.schema --info --out ./data/avram.parquet",
     "docker:build": "docker build . -t hochstenbach/marcattacks:v0.0.1",
     "docker:run": "docker run --rm -v `pwd`/data:/app/data -it hochstenbach/marcattacks:v0.0.1 --to rdf --map rdf data/sample.xml",
     "docker:push": "docker push hochstenbach/marcattacks:v0.0.1",
@@ -52,17 +51,18 @@
     "@types/ssh2-sftp-client": "^9.0.5",
     "@types/stream-json": "^1.7.8",
     "@types/streamify-string": "^1.0.4",
+    "@types/tar-stream": "^3.1.4",
     "eslint": "^9.39.1",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.940.0",
+    "@aws-sdk/client-s3": "^3.980.0",
+    "@dsnp/parquetjs": "^1.8.7",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
-    "eyeling": "^1.8.8",
-    "fast-xml-parser": "^5.3.2",
+    "fast-xml-parser": "^5.3.4",
     "jsonata": "^2.1.0",
     "jsonld": "^9.0.0",
     "log4js": "^6.9.1",
@@ -74,6 +74,7 @@
     "stream-chain": "^3.4.0",
     "stream-json": "^1.9.1",
     "streamify-string": "^1.0.1",
+    "tar-stream": "^3.1.7",
     "uuid": "^13.0.0"
   }
 }

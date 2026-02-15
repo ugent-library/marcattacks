@@ -1,5 +1,7 @@
 import { Readable, Transform, type TransformCallback } from 'stream';
 import log4js from 'log4js';
+import { createGunzip } from 'zlib';
+import tar from 'tar-stream';
 
 const logger = log4js.getLogger();
 
@@ -18,39 +20,45 @@ export function createCountableSkippedStream(
     return new Transform({
         objectMode: true,
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
-      
-        if (skipped < skip) {
-            skipped++;
-            logger.debug(`skipped: ${skipped}`);
-            return callback(); // Drop the chunk
-        }
+            if (skipped < skip) {
+                skipped++;
+                logger.debug(`skipped: ${skipped}`);
+                return callback(); // Drop the chunk
+            }
 
-        if (count !== undefined && pushed >= count) {
-            logger.debug("Limit reached, closing gracefully...");
+            if (count !== undefined && pushed >= count) {
+                logger.debug("Limit reached, closing gracefully...");
+        
+                this.push(null); 
     
-            this.push(null); 
-    
-            setImmediate(() => {
-                this.destroy();
-            });
-            
-            return;
-        }
+                // Hacky but I do not know another way to close all streams and
+                // be able to let them flush their content
+                setTimeout(() => {
+                    logger.debug("delay finished, completing transform callback");
+                    this.destroy();
+                },2000);
+                
+                return;
+            }
 
-        this.push(chunk);
-        pushed++;
+            this.push(chunk);
+            pushed++;
 
-        logger.debug(`pushed: ${pushed}`);
-      
-        if (count !== undefined && pushed === count) {
-            logger.debug("Limit reached, closing gracefully...");
-            this.push(null);
-            setImmediate(() => {
-                this.destroy();
-            });
-        }
+            logger.debug(`pushed: ${pushed}`);
+        
+            if (count !== undefined && pushed === count) {
+                logger.debug("Limit reached, closing gracefully...");
+                this.push(null);
 
-        callback();
+                // Hacky but I do not know another way to close all streams and
+                // be able to let them flush their content
+                setTimeout(() => {
+                    logger.debug("delay finished, completing transform callback");
+                    this.destroy();
+                },2000);
+            }
+
+            callback();
         }
     });
 }
@@ -58,32 +66,140 @@ export function createCountableSkippedStream(
 /**
  * Does nothing other than counting records
  */
-export function createVerboseStream() : Transform {
+interface VerboseStream extends Transform {
+    getCount(): number;
+}
+export function createVerboseStream() : VerboseStream {
     let recordNum = 0;
-    let flushed = false;
-    return new Transform({
+    const start = performance.now();
+    const transform = new Transform({
         objectMode: true,
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
             recordNum++;
 
+            logger.trace(`recordNum: ${recordNum}`);
+            logger.trace(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
+
             if (recordNum % 1000 === 0) {
-                logger.info(`record: ${recordNum}`);
+                const end = performance.now();
+                const duration = (end - start)/1000;
+                const speed = recordNum/duration;
+                logger.debug(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
+                logger.info(`record: ${recordNum} (${speed.toFixed(0)} rec/sec)`);
             }
             callback(null,chunk);
         } ,
-        flush(callback) {
-            if (!flushed) {
-                logger.info(`process ${recordNum} records`);
-                flushed = true;
+        flush (callback: TransformCallback) {
+            logger.debug('final reached');
+            const end = performance.now();
+            const duration = (end - start)/1000;
+            const speed = recordNum/duration;
+            logger.info(`process ${recordNum} records in ${duration.toFixed(2)} seconds (${speed.toFixed(0)} recs/sec)`);
+            transform.getCount = () =>  {
+                logger.trace(`called getCount -> ${recordNum}`);
+                return recordNum;
             }
             callback();
-        } ,
-        destroy(err,callback) {
-            if (!flushed) {
-                logger.info(`process ${recordNum} records`);
-                flushed = true;
+        }
+    }) as VerboseStream;
+
+    return transform;
+}
+
+/**
+ * Creates an uncompressed stream
+ */
+export function createUncompressedStream() : Transform {
+    return createGunzip();
+}
+
+/**
+ * Creates an untarred stream
+ */
+export async function createUntarredStream(): Promise<Transform> {
+    const extract = tar.extract();
+
+    const transformStream = new Transform({
+        objectMode: true,
+
+        transform(chunk: any, encoding: string, callback: TransformCallback) {
+            // Ensure chunk is a Buffer (tar-stream expects binary data)
+            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding as BufferEncoding);
+            
+            // Don't pass callback directly - let it be called after write completes
+            const writeSuccessful = extract.write(buffer);
+            
+            if (!writeSuccessful) {
+                // Backpressure handling
+                extract.once('drain', callback);
+            } else {
+                callback();
             }
-            callback(err);
+        },
+        flush(callback: TransformCallback) {
+            extract.end();
+            extract.once('finish', callback);
         }
     });
+
+    extract.on('entry', (header, stream, next) => {
+        logger.info(`extracting ${header.name} from tar stream`);
+        
+        const chunks: Buffer[] = [];
+
+        stream.on('data', (chunk) => {
+            logger.debug(`received chunk of size ${chunk.length}`);
+            chunks.push(chunk);
+        });
+        
+        stream.on('end', () => {
+            const buffer = Buffer.concat(chunks);
+            logger.debug(`end of entry ${header.name}, total size: ${buffer.length}`);
+            transformStream.push(buffer.toString('utf-8'));
+            next();
+        });
+
+        stream.on('error', (err) => {
+            logger.error(`error reading entry ${header.name}:`, err);
+            next(err);
+        });
+
+        stream.resume(); 
+    });
+
+    extract.on('finish', () => {
+        logger.debug('All tar entries processed');
+        transformStream.push(null); // Signal end of stream
+    });
+
+    extract.on('error', (err) => {
+        logger.error('tar extract error:', err);
+        transformStream.destroy(err);
+    });
+
+    return transformStream;
+}
+
+/**
+ * Return a URL censored passwords
+ * @param url 
+ * @returns URL
+ */
+export function getCleanURL(url: URL): URL {
+    const tempUrl = new URL(url.href);
+    tempUrl.username = '***';
+    tempUrl.password = '***';
+    return tempUrl;
+}
+
+/***
+ * Return a URL without passwords
+ * @param url
+ * @returns URL
+ */
+export function getStrippedURL(url: URL): URL {
+    const tempUrl = new URL(url.href);
+    tempUrl.username = '';
+    tempUrl.password = '';
+    return tempUrl;
 }

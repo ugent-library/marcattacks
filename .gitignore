@@ -1,7 +1,8 @@
 .DS_Store
 dist/**
 node_modules/**
-local.sh
+local*
 local/**
 .vscode/**
 .nvmrc
+.env

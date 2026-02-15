@@ -1,0 +1,6 @@
+/* Demonstrator to trigger deletion of records in alephseq/xml outputs */
+(
+    $marcmap0 := function($path) { $marcmap($path)[0] };
+
+    $marcmap0("920a") = "realia" ? {} : $
+)
