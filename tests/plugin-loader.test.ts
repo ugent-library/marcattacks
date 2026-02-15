@@ -15,4 +15,13 @@ describe("loadPlugin", () => {
 
         expect(stream).toBeInstanceOf(Transform);
     });
+    test("load the xml input plugin", async () => {
+        const plugin = await loadPlugin("xml","input");
+
+        expect(plugin).toBeDefined();
+
+        const stream = await plugin.transform();
+
+        expect(stream).toBeInstanceOf(Transform);
+    });
 });
