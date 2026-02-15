@@ -59,7 +59,7 @@ export function marcForEachSub(row: string[] | undefined , fun: (code:string, va
 /**
  * Given an marc record and a field-path return a string[] with all matching values
  */
-export function marcmap(record: string[][], find: string, opts: MARCMapOpts) : string[] {
+export function marcmap(record: string[][], find: string, opts: MARCMapOpts = {}) : string[] {
     const fullOpts = {
         join_char: opts.join_char ?? " "
     };
@@ -80,7 +80,7 @@ export function marcmap(record: string[][], find: string, opts: MARCMapOpts) : s
 }
 
 /**
- * Given a marc row and a code regex, return all matching values
+ * Given a marc row and a subfield regex, return all matching values
  */
 export function marcsubfields(row: string[], re: RegExp) : string[] {
     const result : string[] = [];

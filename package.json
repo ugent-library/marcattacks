@@ -27,7 +27,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "build:ts": "npx tsc",
     "build:watch": "npx tsc -w",
     "demo:alephseq": "npx marcattacks --to alephseq data/sample.xml",
@@ -45,6 +45,8 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
     "@types/n3": "^1.26.1",
     "@types/node": "^24.10.1",
     "@types/sax": "^1.2.7",
@@ -53,7 +55,9 @@
     "@types/streamify-string": "^1.0.4",
     "@types/tar-stream": "^3.1.4",
     "eslint": "^9.39.1",
+    "jest": "^30.2.0",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },

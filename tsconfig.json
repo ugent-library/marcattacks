@@ -8,9 +8,11 @@
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "esnext",
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     // For nodejs:
     // "lib": ["esnext"],
@@ -42,5 +44,10 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true
+  },
+  "include": [ "src/**/*" , "tests"],
+  "exclude": [ "node_modules", "dist", "**/*.test.ts", "**/*.spec.ts" ],
+  "ts-node": {
+    "esm": true
   }
 }
