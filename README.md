@@ -57,6 +57,10 @@ Transform the MARC input using a [JSONata](https://docs.jsonata.org/overview.htm
 marcattacks --param fix=./demo/demo.jsonata ./data/sample.xml
 ```
 
+## Stdin
+
+Use a pseudo URL `stdin://` to read from the standard input
+
 ## Remote files
 
 A remote SFTP path:
@@ -85,7 +89,7 @@ marcattacks s3://accessKey:secretKey@hostname:port/bucket/key
 
 use `s3s://...` for using an SSL layer.
 
-## Formats
+## Options
 
 ### Input (--from)
 
@@ -174,3 +178,19 @@ Or, for an S3 site:
 npx globtrotr s3s://accessKey:privateKey@hostname:port/bucket/@glob:xml
 ```
 
+## Concatenate files
+
+Some formats such as jsonl allow for concatenation of the output. With Bash grouped blocks marcattacks can then be used to concatenate files:
+
+```
+#!/bin/bash
+
+# Example how to process files in sequence and concatenate the output
+{
+    npx marcattacks --from alephseq --to jsonl data/one.alephseq
+    npx marcattacks --from xml --to jsonl data/sample.tar
+    npx marcattacks --from xml --to jsonl data/sample.tar.gz
+    npx marcattacks --from xml --to jsonl data/sample.xml.gz
+    npx marcattacks --from xml --to jsonl data/sample.xml
+} | npx marcattacks --from jsonl --to xml stdin://
+```
