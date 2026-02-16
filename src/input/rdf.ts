@@ -1,37 +1,66 @@
-import { Transform, type TransformCallback } from 'stream';
+import { Transform, type TransformCallback, PassThrough } from 'stream';
 import type { Record } from "../types/quad.js";
-import { parseStream } from "../util/rdf_parse.js";
+import { parseStreamAsParts } from "../util/rdf_parse.js";
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
 export async function transform(opts: any): Promise<Transform> {
-    const chunks: any[] = []; // Collect chunks in an array instead of a stream
+    let inputStream: PassThrough | null = null;
+    let partsStream: any = null;
 
     return new Transform({
         objectMode: true,
 
         transform(chunk: any, encoding: string, callback: TransformCallback) {
             logger.debug('chunk received');
-            chunks.push(chunk); 
-            callback(); 
-        },
 
-        async flush(callback: TransformCallback) {
             try {
-                logger.debug('flush started');
-                const fullBuffer = Buffer.concat(chunks); 
-                
-                const { Readable } = await import('stream');
-                const finalStream = Readable.from(fullBuffer);
+                // Initialize the input stream on first chunk
+                if (!inputStream) {
+                    inputStream = new PassThrough();
+                    const hint = opts.hint ? opts.hint : opts.path.href;
+                    
+                    partsStream = parseStreamAsParts(inputStream, hint);
 
-                const record: Record = await parseStream(finalStream, opts.path.href);
+                    partsStream.on('data', (quad: any) => {
+                        this.push({ quads: [quad] });
+                    });
 
-                this.push(record);
+                    partsStream.on('error', (error: any) => {
+                        logger.error(`RDF parsing error: ${error}`);
+                        this.destroy(error instanceof Error ? error : new Error(String(error)));
+                    });
+                }
+
+                // Pass chunks directly to the input stream without buffering
+                if (typeof chunk === 'string') {
+                    inputStream.write(Buffer.from(chunk));
+                }
+                else if (Buffer.isBuffer(chunk)) {
+                    inputStream.write(chunk);
+                }
+                else {
+                    throw new Error(`expecting a string or a Buffer but got a ${typeof chunk}`);
+                }
+
                 callback();
             } catch (error) {
                 logger.error(`RDF parsing error: ${error}`);
                 callback(error instanceof Error ? error : new Error(String(error)));
+            }
+        },
+
+        flush(callback: TransformCallback) {
+            logger.debug('flush started');
+            
+            if (inputStream) {
+                inputStream.end();
+                partsStream.on('end', () => {
+                    callback();
+                });
+            } else {
+                callback();
             }
         }
     });

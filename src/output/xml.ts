@@ -38,12 +38,12 @@ export async function transform(_param:any) : Promise<Transform> {
                 }
                 else if (tag.match(/^00/)) {
                     let value = marcsubfields(rec[i]!,/.*/)[0];
-                    output += `  <marc:controlfield tag="${tag}">${escapeXML(value)}</marc:controlfield>\n`;
+                    output += `  <marc:controlfield tag="${escapeXML(tag,{forAttribute:true})}">${escapeXML(value)}</marc:controlfield>\n`;
                 }
                 else {
-                    output += `  <marc:datafield tag="${tag}" ind1="${ind[0]}" ind2="${ind[1]}">\n`;
+                    output += `  <marc:datafield tag="${escapeXML(tag)}" ind1="${escapeXML(ind[0],{forAttribute:true})}" ind2="${escapeXML(ind[1],{forAttribute:true})}">\n`;
                     marcForEachSub(rec[i], (code,value) => {
-                        output += `    <marc:subfield code="${code}">${escapeXML(value)}</marc:subfield>\n`;
+                        output += `    <marc:subfield code="${escapeXML(code)}">${escapeXML(value)}</marc:subfield>\n`;
                     });
                     output += `  </marc:datafield>\n`;
                 }
@@ -76,19 +76,32 @@ export function escapeXML(
 
     let s = String(value);
 
-    // Remove control chars that are disallowed in XML 1.0:
-    // keep tab (0x09), newline (0x0A), carriage return (0x0D)
-    s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '');
+    // STEP 1: Remove/replace invalid UTF-8 and disallowed XML characters
+    
+    // Remove unpaired UTF-16 surrogates (invalid in JSON and problematic in XML)
+    s = s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '\uFFFD');  // unpaired high surrogates
+    s = s.replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '\uFFFD'); // unpaired low surrogates
+    
+    // Remove other disallowed XML 1.0 characters:
+    // Control chars: 0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F, 0x7F-0x9F
+    // Non-characters: 0xFFFE, 0xFFFF, 0x1FFFE, 0x1FFFF, etc.
+    s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uFFFE\uFFFF]/g, '');
+    
+    // Remove other non-characters (U+FFFE, U+FFFF in other planes)
+    // These can occur as U+FFFE, U+FFFF, U+1FFFE, U+1FFFF, etc.
+    s = s.replace(/[\uFDD0-\uFDEF]/g, '');
 
-    // Escape ampersand that are NOT part of a valid entity (avoid double-escape)
-    // Valid entity patterns: &name;  or  &#123;  or  &#x1A;
-    s = s.replace(/&(?!(?:[A-Za-z]+|#\d+|#x[0-9A-Fa-f]+);)/g, '&amp;');
-
-    // Escape the rest
-    s = s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // STEP 2: Escape XML special characters
+    // IMPORTANT: Always escape & FIRST to avoid double-escaping
+    s = s.replace(/&/g, '&amp;');
+    
+    // Escape other special characters
+    s = s.replace(/</g, '&lt;');
+    s = s.replace(/>/g, '&gt;');
 
     if (options?.forAttribute) {
-        s = s.replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+        s = s.replace(/"/g, '&quot;');
+        s = s.replace(/'/g, '&apos;');
     }
 
     return s;
