@@ -34,11 +34,16 @@ export async function transform(_param:any) : Promise<Transform> {
                     let code = rec[i]![j];
                     let val  = rec[i]![j+1];
 
+                    if (val === undefined) {
+                        // skip undefined values
+                        continue;
+                    }
+
                     if (tag!.match(/^LDR|00./g)) {
-                        sf += `${val}`;
+                        sf += `${escapeLine(val)}`;
                     }
                     else {
-                        sf += `\$\$${code}${val}`;
+                        sf += `\$\$${code}${escapeLine(val)}`;
                     }
                 }
 
@@ -49,4 +54,8 @@ export async function transform(_param:any) : Promise<Transform> {
             callback(null,output);
         }
     });
+}
+
+function escapeLine(val:string) : string {
+    return val.replaceAll(/[\x00-\x1F\x7F]/g,'');
 }
