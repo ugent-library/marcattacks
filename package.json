@@ -68,7 +68,7 @@
     "@rdfjs/types": "^1.1.2",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
-    "fast-xml-parser": "^5.3.4",
+    "fast-xml-parser": "^5.3.6",
     "jsonata": "^2.1.0",
     "jsonld": "^9.0.0",
     "log4js": "^6.9.1",
