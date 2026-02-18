@@ -22,9 +22,9 @@ export async function transform(_opts: any): Promise<Transform> {
                 if (line.length === 0) continue;
 
                 if (!line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
-                    const err = new Error(`syntax error in record ${recordNum + 1}`);
-                    logger.error(err.message);
-                    return callback(err);
+                    logger.error(`syntax error in record ${recordNum + 1}`);
+                    logger.error(`error> ${line}`);
+                    continue;
                 }
 
                 const [id, ...rest] = line.split(" ");
