@@ -5,7 +5,12 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(opts: any): Promise<Transform> {
+export interface InputRDFOptions {
+    hint?: string;
+    path?: URL;
+}
+
+export async function transform(opts: InputRDFOptions = {}): Promise<Transform> {
     let inputStream: PassThrough | null = null;
     let partsStream: any = null;
 
@@ -19,7 +24,11 @@ export async function transform(opts: any): Promise<Transform> {
                 // Initialize the input stream on first chunk
                 if (!inputStream) {
                     inputStream = new PassThrough();
-                    const hint = opts.hint ? opts.hint : opts.path.href;
+                    const hint = opts.hint ? 
+                                    opts.hint : 
+                                    opts.path?.href ?
+                                    opts.path.href : 
+                                    "local.ttl";
                     
                     partsStream = parseStreamAsParts(inputStream, hint);
 
