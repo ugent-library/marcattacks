@@ -1,9 +1,22 @@
 import { describe, test, expect } from "@jest/globals";
 import { loadPlugin } from "../../dist/plugin-loader.js";
 import { Readable } from 'node:stream';
+import 'jest-xml-matcher';
 
 const data = `
-{ "record": [ ["001", " ", " ", "_", "990036760400409161"], ["035", " ", " ", "a", "(RUG01)003676040"], ["100", "1", " ", "a", "Cassiers, Paul,", "d", "1965-2025"] ] }
+<?xml version="1.0" encoding="UTF-8"?>
+<marc:collection xmlns:marc="http://www.loc.gov/MARC21/slim">
+  <marc:record>
+    <marc:controlfield tag="001">990036760400409161</marc:controlfield>
+    <marc:datafield tag="035" ind1=" " ind2=" ">
+      <marc:subfield code="a">(RUG01)003676040</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="100" ind1="1" ind2=" ">
+      <marc:subfield code="a">Cassiers, Paul,</marc:subfield>
+      <marc:subfield code="d">1965-2025</marc:subfield>
+    </marc:datafield>
+  </marc:record>
+</marc:collection>
 `.trim();
 
 const json = {
@@ -14,9 +27,9 @@ const json = {
     ]
 };
 
-describe("output/jsonl", () => {
+describe("output/xml", () => {
     test("transform converts input correctly", async () => {
-        const plugin = await loadPlugin("jsonl", "output");
+        const plugin = await loadPlugin("xml", "output");
         const transformer = await plugin.transform(); 
 
         const results: string[] = [];
@@ -28,8 +41,9 @@ describe("output/jsonl", () => {
             Readable.from([json], { objectMode: true }).pipe(transformer);
         });
 
-        const output = results.join(" ");
+        const output = results.join("");
 
-        expect(JSON.parse(output)).toStrictEqual(JSON.parse(data));
+        // @ts-ignore (it works..i just know)
+        expect(output).toEqualXML(data);
     });
 });

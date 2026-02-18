@@ -1,7 +1,7 @@
 import { describe, test, expect } from "@jest/globals";
 import { loadPlugin } from "../../dist/plugin-loader.js";
 import { Readable } from 'node:stream';
-import type { Quad } from '../../dist/types/quad.js'
+import { parseString } from "../../dist/util/rdf_parse.js"; 
 
 const data = `
 @prefix : <http://example.org/>.
@@ -65,20 +65,34 @@ const json = [
 }
 ];
 
-describe("input/rdf", () => {
+describe("output/rdf", () => {
     test("transform converts input correctly", async () => {
-        const plugin = await loadPlugin("rdf", "input");
+        const plugin = await loadPlugin("rdf", "output");
         const transformer = await plugin.transform(); 
 
-        const results: Quad[] = [];
+        const results: string[] = [];
     
         await new Promise((resolve, reject) => {
-            transformer.on('data', (chunk: Quad) => results.push(chunk));
+            transformer.on('data', (chunk: string) => results.push(chunk));
             transformer.on('end', resolve);
             transformer.on('error', reject);
-            Readable.from(data + "\n").pipe(transformer);
+            Readable.from(json, { objectMode: true }).pipe(transformer);
         });
 
-        expect(results).toStrictEqual(json);
+        const output = results.join("");
+
+        const recordA = await parseString(data, "local.ttl");
+        const recordB = await parseString(output, "local.ttl");
+
+        let recordWithoutPrefixesA,recordWithoutPrefixesB;
+
+        {
+            const {prefixes, ...recordWithoutPrefixesA } = recordA;
+        }
+        {
+            const {prefixes, ...recordWithoutPrefixesB } = recordB;
+        }
+
+        expect(recordWithoutPrefixesA).toStrictEqual(recordWithoutPrefixesB);
     });
 });

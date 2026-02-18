@@ -3,7 +3,12 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(param:any) : Promise<Transform> {
+export interface OutputTSVOptions {
+    header?: "yes" | "no";
+}
+
+export async function transform(opts: OutputTSVOptions = {}) : Promise<Transform> {
+    // provide default empty object so callers can omit options
     let sortedKeys : string[];
 
     return new Transform({
@@ -20,7 +25,7 @@ export async function transform(param:any) : Promise<Transform> {
 
             if (! sortedKeys ) {
                 sortedKeys = Object.keys(data).sort();
-                if (param.header === "no") {
+                if (opts?.header && opts.header === "no") {
                     // ok skipped header
                 }
                 else {
