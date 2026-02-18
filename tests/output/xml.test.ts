@@ -28,7 +28,7 @@ const json = {
 };
 
 describe("output/xml", () => {
-    test("transform converts input correctly", async () => {
+    test("transform converts output correctly", async () => {
         const plugin = await loadPlugin("xml", "output");
         const transformer = await plugin.transform(); 
 

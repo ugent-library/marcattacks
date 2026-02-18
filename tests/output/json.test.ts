@@ -21,7 +21,7 @@ const json = {
 };
 
 describe("output/json", () => {
-    test("transform converts input correctly", async () => {
+    test("transform converts output correctly", async () => {
         const plugin = await loadPlugin("json", "output");
         const transformer = await plugin.transform(); 
 

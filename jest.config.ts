@@ -15,4 +15,5 @@ export default {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
   testTimeout: 30000,
+  setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ts'],
 } satisfies Config;

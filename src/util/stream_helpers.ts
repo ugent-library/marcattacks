@@ -66,7 +66,7 @@ export function createCountableSkippedStream(
 /**
  * Does nothing other than counting records
  */
-interface VerboseStream extends Transform {
+export interface VerboseStream extends Transform {
     getCount(): number;
 }
 export function createVerboseStream() : VerboseStream {

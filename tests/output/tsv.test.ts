@@ -14,7 +14,7 @@ const json = {
 };
 
 describe("output/tsv", () => {
-    test("transform converts input correctly", async () => {
+    test("transform converts output correctly", async () => {
         const plugin = await loadPlugin("tsv", "output");
         // pass in an empty options object to avoid undefined lookups
         const transformer = await plugin.transform({}); 

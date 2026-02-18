@@ -66,7 +66,7 @@ const json = [
 ];
 
 describe("output/rdf", () => {
-    test("transform converts input correctly", async () => {
+    test("transform converts output correctly", async () => {
         const plugin = await loadPlugin("rdf", "output");
         const transformer = await plugin.transform(); 
 

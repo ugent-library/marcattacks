@@ -15,7 +15,7 @@ const json = {
 };
 
 describe("output/jsonl", () => {
-    test("transform converts input correctly", async () => {
+    test("transform converts output correctly", async () => {
         const plugin = await loadPlugin("jsonl", "output");
         const transformer = await plugin.transform(); 
 

@@ -19,7 +19,7 @@ const json = {
 };
 
 describe("output/alephseq", () => {
-    test("transform converts input correctly", async () => {
+    test("transform converts output correctly", async () => {
         const plugin = await loadPlugin("alephseq", "output");
         const transformer = await plugin.transform(); 
 
