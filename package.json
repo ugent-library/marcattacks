@@ -64,6 +64,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.980.0",
     "@dsnp/parquetjs": "^1.8.7",
+    "@rdfjs/types": "^1.1.2",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
     "fast-xml-parser": "^5.3.4",

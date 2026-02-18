@@ -4,6 +4,7 @@ import type { Readable, Writable } from "stream";
 import { PassThrough } from "stream";
 import streamify from "streamify-string";
 import N3 from 'n3';
+import type * as RDF from '@rdfjs/types';
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
@@ -22,7 +23,7 @@ export async function parseStream(readable: Readable, path: string) : Promise<Re
         let graphSet = new Set<string>();
 
         rdfParser.parse(readable, { path })
-            .on('data', (quad) => {
+            .on('data', (quad: RDF.Quad) => {
 
                 // Ignore named graphs
                 if (quad.graph.termType === 'DefaultGraph') {
@@ -53,12 +54,14 @@ export async function parseStream(readable: Readable, path: string) : Promise<Re
                     }
                 };
 
-                if (quad.object.datatype) {
-                    part.object.as =  quad.object.datatype.value;
-                }
+                if (quad.object.termType === "Literal") {
+                    if (quad.object.datatype) {
+                        part.object.as =  quad.object.datatype.value;
+                    }
 
-                if (quad.object.language) {
-                    part.object.language = quad.object.language;
+                    if (quad.object.language) {
+                        part.object.language = quad.object.language;
+                    }
                 }
 
                 record.quads.push(part);
@@ -81,7 +84,7 @@ export function parseStreamAsParts(readable: Readable, path: string): Readable {
     let graphSet = new Set<string>();
 
     rdfParser.parse(readable, { path })
-        .on('data', (quad) => {
+        .on('data', (quad: RDF.Quad) => {
             // Ignore named graphs
             if (quad.graph.termType === 'DefaultGraph') {
                 // We are ok
@@ -111,12 +114,14 @@ export function parseStreamAsParts(readable: Readable, path: string): Readable {
                 }
             };
 
-            if (quad.object.datatype) {
-                part.object.as = quad.object.datatype.value;
-            }
+            if (quad.object.termType === "Literal") {
+                if (quad.object.datatype) {
+                    part.object.as = quad.object.datatype.value;
+                }
 
-            if (quad.object.language) {
-                part.object.language = quad.object.language;
+                if (quad.object.language) {
+                    part.object.language = quad.object.language;
+                }
             }
 
             output.push(part);
@@ -146,21 +151,21 @@ export async function writeString(data: Record, format?:string, writer?: N3.Writ
     }
 
     return new Promise<string>( (resolve, reject) => {
-        let quads : any[] = data['quads'];
+        let quads : Quad[] = data['quads'];
 
         logger.trace(`received ${quads.length} quads`);
 
         if (!quads) resolve("");
 
         for (let i = 0 ; i < quads.length ; i++) {
-            if (quads[i].subject && quads[i].predicate && quads[i].object) {
+            if (quads[i]?.subject && quads[i]?.predicate && quads[i]?.object) {
                 // ok
             }
             else continue;
                 
-            let subject   = { type: 'NamedNode', value: '', ...quads[i].subject};
-            let predicate = { type: 'NamedNode', value: '', ...quads[i].predicate};
-            let object    = { type: 'NamedNode', value: '', ...quads[i].object};
+            let subject   = { type: 'NamedNode', value: '', ...(quads[i]?.subject as any)};
+            let predicate = { type: 'NamedNode', value: '', ...(quads[i]?.predicate as any)};
+            let object    = { type: 'NamedNode', value: '', ...(quads[i]?.object as any)};
 
             let subjectValue = 
                 subject.type === 'NamedNode' ? namedNode(subject.value) 
