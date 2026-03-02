@@ -1,6 +1,8 @@
 (
     $marcadd := function($data,$field,$ind1,$ind2,$subfield,$value) {
-        $append($data,[[$field,$ind1,$ind2,$subfield,$value]])
+        $value != null ?
+            $append($data,[[$field,$ind1,$ind2,$subfield,$value]])
+            : $data
     };
 
     $marcremove := function($data,$field) {
