@@ -26,6 +26,6 @@
 
     $marcrecord($) ~> 
         $marcremove_if("856","u",/\.ugent\.be/) ~> 
-        $marcadd("856","4"," ","u","http://test.edu/") ~>
+        $marcadd("856","4"," ","u",$lookup($marcmap("001")[0])) ~>
         $asmarc; 
 )
