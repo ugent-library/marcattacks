@@ -1,0 +1,31 @@
+(
+    $marcadd := function($data,$field,$ind1,$ind2,$subfield,$value) {
+        $append($data,[[$field,$ind1,$ind2,$subfield,$value]])
+    };
+
+    $marcremove := function($data,$field) {
+        $data[$marctag($) != $field]
+    };
+
+    $marcremove_if := function($data,$field,$regex,$value) {(
+        $regex = "ind1" ? 
+                $data[$not(
+                    $marctag($) = $field and
+                    $marcind($)[0] = $value
+                )] :
+        $regex = "ind2" ?
+                $data[$not(
+                    $marctag($) = $field and
+                    $marcind($)[1] = $value
+                )] :
+        $data[$not( 
+            $marctag($) = $field and 
+            $marcsubfields($,$regex) ~> $join(" ") ~> $contains($value) 
+        )]
+    )};
+
+    $marcrecord($) ~> 
+        $marcremove_if("856","u",/\.ugent\.be/) ~> 
+        $marcadd("856","4"," ","u","http://test.edu/") ~>
+        $asmarc; 
+)
