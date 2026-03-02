@@ -16,8 +16,12 @@ export async function transform(_opts:any) : Promise<Transform> {
                 return;
             }
 
-            let id = marcmap(rec,"001",{});
-
+            let id = marcmap(rec,"001",{})[0];
+           
+            if (!id) {
+                id = "000000000";
+            }
+            
             let output = `${id} FMT   L BK\n`;
 
             for (let i = 0 ; i < rec.length ; i++) {
