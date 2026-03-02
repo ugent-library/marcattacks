@@ -3,11 +3,13 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(_opts: any): Promise<Transform> {
+export async function transform(opts: { delimiter: string }): Promise<Transform> {
     let recordNum = 0;
     let tail = "";
     let keys : string[];
-
+    let delimiter : string = opts['delimiter'] ?
+        opts['delimiter'].replace("\\t","\t") : "\t";
+    
     return new Transform({
         objectMode: true,
         transform(chunk: any, _encoding: string , callback: TransformCallback) {
@@ -19,7 +21,7 @@ export async function transform(_opts: any): Promise<Transform> {
 
                 if (!line.trim()) continue;
 
-                const fields = line.split("\t");
+                const fields = line.split(delimiter);
 
                 if (!keys) {
                     keys = fields;

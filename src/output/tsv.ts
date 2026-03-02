@@ -3,8 +3,10 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(param:any) : Promise<Transform> {
+export async function transform(opts: {header: string, delimiter: string}) : Promise<Transform> {
     let sortedKeys : string[];
+    let delimiter : string = opts['delimiter'] ?
+        opts['delimiter'].replace("\\t","\t") : "\t";
 
     return new Transform({
         objectMode: true,
@@ -20,11 +22,11 @@ export async function transform(param:any) : Promise<Transform> {
 
             if (! sortedKeys ) {
                 sortedKeys = Object.keys(data).sort();
-                if (param.header === "no") {
+                if (opts.header === "no") {
                     // ok skipped header
                 }
                 else {
-                    output += sortedKeys.join("\t") + "\n";
+                    output += sortedKeys.join(delimiter) + "\n";
                 }
             }
 
@@ -40,7 +42,7 @@ export async function transform(param:any) : Promise<Transform> {
                 }
             });
 
-            output += fields.join("\t") + "\n";
+            output += fields.join(delimiter) + "\n";
 
             logger.trace(`adding ${output.length} bytes`);
             callback(null,output);

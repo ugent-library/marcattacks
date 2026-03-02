@@ -7,7 +7,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(param: any) : Promise<Transform> {
+export async function transform(opts: { fix: string }) : Promise<Transform> {
     let query : string; 
 
     return new Transform({
@@ -15,12 +15,12 @@ export async function transform(param: any) : Promise<Transform> {
         async transform(data: any, _encoding, callback) {
             try {
                 if (!query) {
-                    if (param.fix) {
-                        if (fs.existsSync(param.fix)) {
-                            query = fs.readFileSync(param.fix,{ encoding: 'utf-8'});
+                    if (opts.fix) {
+                        if (fs.existsSync(opts.fix)) {
+                            query = fs.readFileSync(opts.fix,{ encoding: 'utf-8'});
                         }
                         else {
-                            throw Error(`no such file ${param.fix}`);
+                            throw Error(`no such file ${opts.fix}`);
                         }
                     }
                     else {

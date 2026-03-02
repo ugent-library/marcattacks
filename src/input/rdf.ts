@@ -5,7 +5,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(opts: any): Promise<Transform> {
+export async function transform(opts: { hint: string , path: URL }): Promise<Transform> {
     let inputStream: PassThrough | null = null;
     let partsStream: any = null;
 
