@@ -29,9 +29,9 @@ type S3Config = {
 
 const agentOptions = {
     keepAlive: true,
-    maxSockets: 50, // Adjust based on your concurrency needs
-    freeSocketTimeout: 30000, 
-    timeout: 60000
+    keepAliveMsecs: 60000,
+    freeSocketTimeout: 60000, 
+    timeout: 300000
 };
 
 const httpAgent = new HttpAgent(agentOptions);
