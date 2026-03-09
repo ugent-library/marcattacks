@@ -200,7 +200,7 @@ export async function attack(url: URL, opts: any): Promise<number> {
         if (countSkipStage) stages.push(countSkipStage);
 
         // Add verbose stream (always included)
-        const verboseStream = createVerboseStream();
+        const verboseStream = createVerboseStream(opts.logEvery);
         stages.push(verboseStream);
 
         // Add map transform stage if needed

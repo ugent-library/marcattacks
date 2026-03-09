@@ -69,7 +69,8 @@ export function createCountableSkippedStream(
 interface VerboseStream extends Transform {
     getCount(): number;
 }
-export function createVerboseStream() : VerboseStream {
+
+export function createVerboseStream(logEvery: number = 1000) : VerboseStream {
     let recordNum = 0;
     const start = performance.now();
     const transform = new Transform({
@@ -80,9 +81,9 @@ export function createVerboseStream() : VerboseStream {
             logger.trace(`recordNum: ${recordNum}`);
             logger.trace(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
 
-            if (recordNum % 1000 === 0) {
+            if (recordNum % logEvery === 0) {
                 const end = performance.now();
-                const duration = (end - start)/1000;
+                const duration = (end - start)/logEvery;
                 const speed = recordNum/duration;
                 logger.debug(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
                 logger.info(`record: ${recordNum} (${speed.toFixed(0)} rec/sec)`);
