@@ -13,6 +13,9 @@ import {
 import { Readable, Writable } from "stream";
 import log4js from 'log4js';
 import { getCleanURL, getStrippedURL } from "../util/stream_helpers.js";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { Agent as HttpAgent } from "http";
+import { Agent as HttpsAgent } from "https";
 
 const logger = log4js.getLogger();
 type S3Config = {
@@ -23,6 +26,16 @@ type S3Config = {
     accessKeyId?: string;
     secretAccessKey?: string;
 };
+
+const agentOptions = {
+    keepAlive: true,
+    maxSockets: 50, // Adjust based on your concurrency needs
+    freeSocketTimeout: 30000, 
+    timeout: 60000
+};
+
+const httpAgent = new HttpAgent(agentOptions);
+const httpsAgent = new HttpsAgent(agentOptions);
 
 export async function s3ReadStream(url: URL, options: { range?: string }): Promise<Readable> {
     const config = parseURL(url);
@@ -424,6 +437,10 @@ function makeClient(config: S3Config) : S3Client {
         endpoint: config.endpoint,
         forcePathStyle: true,
         region: config.region,
+        requestHandler: new NodeHttpHandler({
+            httpAgent: httpAgent,
+            httpsAgent: httpsAgent,
+        })
     };
 
     if (config.accessKeyId && config.secretAccessKey) {
