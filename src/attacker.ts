@@ -133,7 +133,7 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
     }
     
     if (opts.out) {
-        if (opts.out.startsWith("sftp")) {
+        if (/^sftp:/.test(opts.out)) {
             const url = new URL(opts.out);
             
             if (process.env.SFTP_USERNAME) {
@@ -147,8 +147,7 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
             logger.info(`put ${getCleanURL(url)}`);
             return await sftpWriteStream(url, opts);
         }
-        
-        if (opts.out.startsWith("s3")) {
+        else if (/^s3s?:/.test(opts.out)) {
             const url = new URL(opts.out);
 
             if (process.env.S3_ACCESS_KEY) {
@@ -162,8 +161,14 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
             logger.info(`put ${getCleanURL(url)}`);
             return await s3WriteStream(url, {});
         }
-        
-        return fs.createWriteStream(opts.out, { encoding: 'utf-8' });
+        else if (/^file:/.test(opts.out)) {
+            const url = new URL(opts.out);
+
+            return fs.createWriteStream(url.pathname, { encoding: 'utf-8' });
+        }
+        else {
+            return fs.createWriteStream(opts.out, { encoding: 'utf-8' });
+        }
     }
     
     return process.stdout;
