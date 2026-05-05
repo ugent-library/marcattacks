@@ -43,6 +43,7 @@
             "my": "http://lib.ugent.be/catalog/",
             "genid": "http://lib.ugent.be/.well-known/genid/",
             "dc": "http://purl.org/dc/elements/1.1/",
+            "iso639-2" : "http://id.loc.gov/vocabulary/iso639-2/",
             "@vocab": "http://schema.org/"
         },
         "@id": "my:" & $marcmap0("001"),
@@ -53,6 +54,8 @@
             "@type": "Person",
             "name": $marcmap0("100a") ~> $strip()
         },
+        "dc:date": $marcmap0("260c") ~> $strip(),
+        "dc:language": "iso639-2:" & $substring($marcmap0("008"),35,3) ~> $strip(),
         "dc:subject": $marcmap("500a") ~> $map(function ($val) {
             { 
                 "@id": $genid(),
