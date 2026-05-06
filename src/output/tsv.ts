@@ -5,11 +5,14 @@ const logger = log4js.getLogger();
 
 export interface OutputTSVOptions {
     header?: "yes" | "no";
+    delimiter?: string;
 }
 
 export async function transform(opts: OutputTSVOptions = {}) : Promise<Transform> {
     // provide default empty object so callers can omit options
     let sortedKeys : string[];
+    let delimiter : string = opts.delimiter ?
+        opts.delimiter.replace("\\t","\t") : "\t";
 
     return new Transform({
         objectMode: true,
@@ -29,7 +32,7 @@ export async function transform(opts: OutputTSVOptions = {}) : Promise<Transform
                     // ok skipped header
                 }
                 else {
-                    output += sortedKeys.join("\t") + "\n";
+                    output += sortedKeys.join(delimiter) + "\n";
                 }
             }
 
@@ -45,7 +48,7 @@ export async function transform(opts: OutputTSVOptions = {}) : Promise<Transform
                 }
             });
 
-            output += fields.join("\t") + "\n";
+            output += fields.join(delimiter) + "\n";
 
             logger.trace(`adding ${output.length} bytes`);
             callback(null,output);

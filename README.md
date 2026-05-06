@@ -98,6 +98,7 @@ use `s3s://...` for using an SSL layer.
 - jsonl
 - marc (ISO2709)
 - rdf
+- csv
 - tsv
 - xml (MARCXML)
 
@@ -108,6 +109,7 @@ use `s3s://...` for using an SSL layer.
 - jsonl
 - parquet
 - rdf
+- csv
 - tsv
 - xml (MARCXML)
 
