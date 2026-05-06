@@ -9,6 +9,38 @@ export async function transform(_opts: any): Promise<Transform> {
     let previd: string = "";
     let tail = "";
 
+    function processLine(line: string, stream: Transform): boolean {
+        if (!line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
+            logger.error(`syntax error in record ${recordNum + 1}`);
+            logger.error(`error> ${line}`);
+            return false;
+        }
+
+        const [id, ...rest] = line.split(" ");
+        const lineData = rest.join(" ");
+
+        if (previd && previd !== id) {
+            stream.push({ record: rec });
+            rec = [];
+            recordNum++;
+        }
+
+        const tag  = lineData.substring(0, 3);
+        const ind1 = lineData.substring(3, 4);
+        const ind2 = lineData.substring(4, 5);
+        const sf   = lineData.substring(8);
+        const parts = sf.split(/\$\$(.)/);
+
+        if (tag === 'FMT' || tag === 'LDR' || tag.startsWith("00")) {
+            rec.push([tag, ind1, ind2, "_", ...parts]);
+        } else {
+            rec.push([tag, ind1, ind2, ...parts.slice(1)]);
+        }
+
+        previd = id!;
+        return true;
+    }
+
     return new Transform({
         objectMode: true,
 
@@ -20,43 +52,15 @@ export async function transform(_opts: any): Promise<Transform> {
 
             for (const line of lines) {
                 if (line.length === 0) continue;
-
-                if (!line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
-                    const err = new Error(`syntax error in record ${recordNum + 1}`);
-                    logger.error(err.message);
-                    return callback(err);
-                }
-
-                const [id, ...rest] = line.split(" ");
-                const lineData = rest.join(" ");
-
-                if (previd && previd !== id) {
-                    this.push({ record: rec });
-                    rec = [];
-                    recordNum++;
-                }
-
-                const tag  = lineData?.substring(0, 3);
-                const ind1 = lineData?.substring(3, 4);
-                const ind2 = lineData?.substring(4, 5);
-                const sf   = lineData?.substring(8);
-                const parts = sf.split(/\$\$(.)/);
-
-                if (tag === 'FMT' || tag === 'LDR' || tag.startsWith("00")) {
-                    rec.push([tag, ind1, ind2, "_", ...parts]);
-                } else {
-                    rec.push([tag, ind1, ind2, ...parts.slice(1)]);
-                }
-                
-                previd = id!;
+                processLine(line,this);
             }
 
             callback();
         },
 
         flush(callback: TransformCallback) {
-            if (tail) {
-                logger.warn("ignoring partial chunk of data: ", tail);
+            if (tail.length > 0) {
+                processLine(tail,this);
             }
             
             if (rec.length > 0) {

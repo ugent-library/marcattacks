@@ -1,5 +1,4 @@
 import { Transform, type TransformCallback, PassThrough } from 'stream';
-import type { Record } from "../types/quad.js";
 import { parseStreamAsParts } from "../util/rdf_parse.js";
 import log4js from 'log4js';
 

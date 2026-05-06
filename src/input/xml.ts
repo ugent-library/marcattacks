@@ -51,14 +51,14 @@ export async function transform(_opts: any): Promise<Transform> {
         const localName = tag.replaceAll(/^\w+:/g, '');
         
         if (localName === 'leader') {
-            record.push(['LDR', ' ', ' ', '_', text]);
+            record.push(['LDR', ' ', ' ', '_', escapeLine(text)]);
         } else if (localName === 'controlfield') {
-            record.push([attrib.tag as string, ' ', ' ', '_', text]);
+            record.push([attrib.tag as string, ' ', ' ', '_', escapeLine(text)]);
         } else if (localName === 'datafield') {
             record.push([attrib.tag as string, attrib.ind1 as string, attrib.ind2 as string, ...subfield]);
             subfield = [];
         } else if (localName === 'subfield') {
-            subfield.push(sattrib.code as string, text);
+            subfield.push(sattrib.code as string, escapeLine(text));
         }
 
         if (localName === 'record') {
@@ -77,4 +77,8 @@ export async function transform(_opts: any): Promise<Transform> {
     });
 
     return transformStream;
+}
+
+function escapeLine(val:string) : string {
+    return val.replaceAll(/[\x00-\x1F\x7F]/g,'');
 }

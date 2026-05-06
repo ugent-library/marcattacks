@@ -23,20 +23,43 @@ export async function fileLatestFile(url: URL) : Promise<URL> {
        
         logger.debug(`directory: ${directory} ; extension: ${extension}`);
 
+        let candidate : string;
+        let candidateStats : fs.Stats;
+
         fs.readdir(directory, (err,files) => {
            if (err) {
-            throw new Error("Error finding latest file:", err);
+                throw new Error("Error finding latest file:", err);
            } 
 
            for (let i = 0 ; i < files.length ; i++) {
             if (files[i]?.toLowerCase().endsWith(extension)) {
-                logger.info(`resolved as file://${directory}${files[i]}`);
-                resolve(new URL("file://" + directory + files[i]));
-                return;
+                const testFile = "file://" + directory + files[i];
+                const stats = fs.statSync(directory + files[i]);
+                if (candidate) {
+                    if (stats.mtime > candidateStats.mtime ) {
+                        logger.debug(`found a more recent ${testFile} than ${candidate}`);
+                        candidate = testFile;
+                        candidateStats = stats;
+                    }
+                    else {
+                        logger.debug(`found ${testFile}, but older than ${candidate}`);
+                    }
+                }
+                else {
+                    logger.debug(`set candidate to ${testFile}`);
+                    candidate = testFile;
+                    candidateStats = stats;
+                }
             }
            }
 
-           throw new Error("No latest file found!");
+           if (!candidate) {
+            throw new Error("No latest file found!");
+           }
+           else {
+            logger.info(`resolved as ${candidate}`);
+            resolve(new URL(candidate));
+           }
         });
     });
 }

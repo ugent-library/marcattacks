@@ -11,13 +11,17 @@ const LDP = 'http://www.w3.org/ns/ldp#';
 const DCTERMS = 'http://purl.org/dc/terms/';
 
 export function httpReadStream(url: URL): Promise<Readable> {
+    const httpAgent = new http.Agent({ keepAlive: true, timeout: 60000 });
+    const httpsAgent = new https.Agent({ keepAlive: true, timeout: 60000 });
+
     return new Promise(async (resolve, reject) => {
         try {
             const client = url.protocol === 'http:' ? http : https;
+            const agent = url.protocol  === 'http:' ? httpAgent : httpsAgent;
 
             logger.debug(`resolve ${url.href}`);
 
-            const req = client.get(url, res => {
+            const req = client.get(url, { agent }, res => {
                 const statusCode = res.statusCode || 0;
 
                 logger.debug(`statusCode = ${statusCode}`);
@@ -74,6 +78,10 @@ export async function httpLatestObject(url: URL): Promise<URL> {
         const store = new N3.Store();
 
         return new Promise((resolve, reject) => {
+            stream.on('error' , (err) => {
+                logger.error('stream failed during RDF parsing');
+                reject(err);
+            });
             parser.parse(stream, (error, quad) => {
                 if (error) return reject(error);
                 if (quad) {
@@ -134,6 +142,10 @@ export async function httpGlobFiles(url: URL): Promise<URL[]> {
         const matchedUrls: URL[] = [];
 
         return new Promise((resolve, reject) => {
+            stream.on('error' , (err) => {
+                logger.error('stream failed during RDF parsing');
+                reject(err);
+            });
             parser.parse(stream, (error, quad) => {
                 if (error) {
                     logger.debug(error);

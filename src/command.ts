@@ -27,6 +27,9 @@ program.version(pkg.version)
     .option('--key <keyfile>', 'private key file')
     .option('--key-env <env>','private key environment variable')
     .option('--log <format>','logging format')
+    .option('--log-every <num>','logging info for every <num> lines',
+        (value) => parseInt(value,10), 1000
+    )
     .option('--info','output debugging messages')
     .option('--debug','output more debugging messages')
     .option('--trace','output much more debugging messages');
