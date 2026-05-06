@@ -1,7 +1,7 @@
 import { Transform, type TransformCallback } from "stream";
 import { parse, type Options as CsvParseOptions } from "csv-parse";
 
-export async function transform(opts: { delimiter?: string }): Promise<Transform> {
+export async function transform(opts: { delimiter?: string } = {}): Promise<Transform> {
     const delimiter: string = opts['delimiter'] ?? ",";
 
     const parser = parse({

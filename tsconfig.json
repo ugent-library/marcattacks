@@ -45,7 +45,7 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": [ "src/**/*" , "tests"],
+  "include": [ "src/**/*" ],
   "exclude": [ "node_modules", "dist", "**/*.test.ts", "**/*.spec.ts" ],
   "ts-node": {
     "esm": true

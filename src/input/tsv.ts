@@ -3,7 +3,7 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(opts: { delimiter: string }): Promise<Transform> {
+export async function transform(opts: { delimiter?: string } = {}): Promise<Transform> {
     let recordNum = 0;
     let tail = "";
     let keys : string[];
