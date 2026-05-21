@@ -1,8 +1,9 @@
 import path from "path";
+import type { Transform } from "stream";
 
 export async function loadPlugin(
     spec: string, type: "input" | "output" | "transform"
-) {
+) : Promise<any> {
   // spec can be:
   //  - "./local/file.js"
   //  - "/absolute/path/to/plugin.js"

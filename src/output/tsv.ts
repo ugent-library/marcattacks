@@ -3,10 +3,16 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(opts: {header: string, delimiter: string}) : Promise<Transform> {
+export interface OutputTSVOptions {
+    header?: "yes" | "no";
+    delimiter?: string;
+}
+
+export async function transform(opts: OutputTSVOptions = {}) : Promise<Transform> {
+    // provide default empty object so callers can omit options
     let sortedKeys : string[];
-    let delimiter : string = opts['delimiter'] ?
-        opts['delimiter'].replace("\\t","\t") : "\t";
+    let delimiter : string = opts.delimiter ?
+        opts.delimiter.replace("\\t","\t") : "\t";
 
     return new Transform({
         objectMode: true,
@@ -22,7 +28,7 @@ export async function transform(opts: {header: string, delimiter: string}) : Pro
 
             if (! sortedKeys ) {
                 sortedKeys = Object.keys(data).sort();
-                if (opts.header === "no") {
+                if (opts?.header && opts.header === "no") {
                     // ok skipped header
                 }
                 else {

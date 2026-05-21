@@ -1,6 +1,6 @@
 {
   "name": "marcattacks",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "A powerful streaming MARC21 to RDF converter with JSONata transformation and S3 support.",
   "keywords": [
     "marc21",
@@ -19,6 +19,7 @@
   "type": "module",
   "author": "",
   "repository": "https://codeberg.org/phochste/marcattacks.git",
+  "prepare": "npm run build:ts",
   "bin": {
     "marcattacks": "./dist/command.js",
     "globtrotr": "./dist/globber.js"
@@ -27,7 +28,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "build:ts": "npx tsc",
     "build:watch": "npx tsc -w",
     "demo:alephseq": "npx marcattacks --to alephseq data/sample.xml",
@@ -45,15 +46,20 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
     "@types/n3": "^1.26.1",
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.12.2",
     "@types/sax": "^1.2.7",
     "@types/ssh2-sftp-client": "^9.0.5",
     "@types/stream-json": "^1.7.8",
     "@types/streamify-string": "^1.0.4",
     "@types/tar-stream": "^3.1.4",
     "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "jest-xml-matcher": "^1.2.0",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
@@ -61,11 +67,12 @@
     "@aws-sdk/client-s3": "^3.980.0",
     "@dsnp/parquetjs": "^1.8.7",
     "@fast-csv/parse": "^5.0.5",
+    "@rdfjs/types": "^1.1.2",
     "commander": "^14.0.2",
     "csv-parse": "^6.2.1",
     "csv-stringify": "^6.7.0",
     "dotenv": "^17.2.3",
-    "fast-xml-parser": "^5.3.4",
+    "fast-xml-parser": "^5.3.6",
     "jsonata": "^2.1.0",
     "jsonld": "^9.0.0",
     "log4js": "^6.9.1",

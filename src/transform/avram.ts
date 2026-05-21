@@ -1,5 +1,4 @@
 import { Transform } from "stream";
-import { marcmap } from "../marcmap.js";
 
 /**
  * Transform to a stream of [Avram](https://format.gbv.de/schema/avram/specification) records

@@ -1,11 +1,15 @@
 import { Transform, type TransformCallback, PassThrough } from 'stream';
-import type { Record } from "../types/quad.js";
 import { parseStreamAsParts } from "../util/rdf_parse.js";
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(opts: { hint: string , path: URL }): Promise<Transform> {
+export interface InputRDFOptions {
+    hint?: string;
+    path?: URL;
+}
+
+export async function transform(opts: InputRDFOptions = {}): Promise<Transform> {
     let inputStream: PassThrough | null = null;
     let partsStream: any = null;
 
@@ -19,7 +23,11 @@ export async function transform(opts: { hint: string , path: URL }): Promise<Tra
                 // Initialize the input stream on first chunk
                 if (!inputStream) {
                     inputStream = new PassThrough();
-                    const hint = opts.hint ? opts.hint : opts.path.href;
+                    const hint = opts.hint ? 
+                                    opts.hint : 
+                                    opts.path?.href ?
+                                    opts.path.href : 
+                                    "local.ttl";
                     
                     partsStream = parseStreamAsParts(inputStream, hint);
 

@@ -1,5 +1,6 @@
 import log4js from 'log4js';
 import { loadPlugin } from './plugin-loader.js';
+import * as marcUtils from './marcmap.js';
 import { sftpLatestFile, sftpReadStream , sftpWriteStream } from './stream/sftpstream.js';
 import { httpLatestObject, httpReadStream } from './stream/httpstream.js';
 import { Readable } from 'stream';
@@ -101,7 +102,7 @@ export async function createInputTransformStage(url: URL, opts: {from: string, p
     }
 
     const mod = await loadPlugin(opts.from, 'input');
-    return await mod.transform(Object.assign({ path: url }, opts.param));
+    return await mod.transform(Object.assign({ path: url }, opts.param), { utils: marcUtils });
 }
 
 export async function createCountSkipStage(opts: {count?: number, skip?: number}): Promise<Transform | null> {
@@ -114,7 +115,7 @@ export async function createCountSkipStage(opts: {count?: number, skip?: number}
 export async function createMapTransformStage(opts: any): Promise<Transform | null> {
     if (opts.map) {
         const mod = await loadPlugin(opts.map, 'transform');
-        return await mod.transform(opts.param);
+        return await mod.transform(opts.param, { utils: marcUtils });
     }
     return null;
 }
@@ -177,7 +178,7 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
 export async function createOutputTransformStage(opts: any): Promise<Transform | null> {
     if (opts.to) {
         const mod = await loadPlugin(opts.to, 'output');
-        return await mod.transform(opts.param);
+        return await mod.transform(opts.param, { utils: marcUtils });
     }
     return null;
 }
