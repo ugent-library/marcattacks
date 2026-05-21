@@ -61,7 +61,7 @@ export function marcForEachSub(row: string[] | undefined , fun: (code:string, va
  */
 export function marcmap(record: string[][], find: string, opts: MARCMapOpts = {}) : string[] {
     const fullOpts = {
-        join_char: opts.join_char ?? " "
+        join_char: opts?.join_char ?? " "
     };
 
     const results : string[] = [];
