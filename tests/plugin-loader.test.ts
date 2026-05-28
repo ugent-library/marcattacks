@@ -1,6 +1,9 @@
 import { describe, test, expect } from "@jest/globals";
 import { loadPlugin } from "../dist/plugin-loader.js";
+import * as marcUtils from "../dist/marcmap.js";
 import { Transform } from "stream";
+
+const ctx = { utils: marcUtils };
 
 describe("loadPlugin", () => {
     test("load unknown plugin throws error", async () => {
@@ -11,7 +14,7 @@ describe("loadPlugin", () => {
 
         expect(plugin).toBeDefined();
 
-        const stream = await plugin.transform();
+        const stream = await plugin.transform({}, ctx);
 
         expect(stream).toBeInstanceOf(Transform);
     });
@@ -20,7 +23,7 @@ describe("loadPlugin", () => {
 
         expect(plugin).toBeDefined();
 
-        const stream = await plugin.transform();
+        const stream = await plugin.transform({}, ctx);
 
         expect(stream).toBeInstanceOf(Transform);
     });

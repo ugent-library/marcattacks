@@ -1,4 +1,3 @@
-import type { Config } from "jest";
 import { createDefaultEsmPreset } from "ts-jest";
 
 const presetConfig = createDefaultEsmPreset({});
@@ -16,4 +15,4 @@ export default {
   },
   testTimeout: 30000,
   setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ts'],
-} satisfies Config;
+};
