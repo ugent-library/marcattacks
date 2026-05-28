@@ -11,8 +11,8 @@ export async function transform(_opts: any): Promise<Transform> {
 
     function processLine(line: string, stream: Transform): boolean {
         if (!line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
-            logger.error(`syntax error in record ${recordNum + 1}`);
-            logger.error(`error> ${line}`);
+            logger.warn(`syntax error in record ${recordNum + 1}`);
+            logger.warn(`skipping> ${line}`);
             return false;
         }
 
