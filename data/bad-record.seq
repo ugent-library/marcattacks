@@ -1,0 +1,51 @@
+9936865518009161 FMT   L BK
+9936865518009161 LDR   L 01603nam a2200373 i 4500
+9936865518009161 001   L 9936865518009161
+9936865518009161 005   L 20250629094627.0
+9936865518009161 006   L m     o  d |
+9936865518009161 007   L cr#-n---------
+9936865518009161 008   L 250629s2022    caua    ob    001 0 eng d
+9936865518009161 020   L $$a9781503631922
+9936865518009161 020   L $$a1503631923
+9936865518009161 0247  L $$a10.1515/9781503631922$$2doi
+9936865518009161 035   L $$a(CKB)5460000000197545
+9936865518009161 035   L $$aEBL7012570
+9936865518009161 035   L $$a(AU-PeEL)EBL7012570
+9936865518009161 035   L $$a(DE-B1597)627348
+9936865518009161 035   L $$a(DE-B1597)9781503631922
+9936865518009161 035   L $$a(MiAaPQ)EBC7012570
+9936865518009161 035   L $$a(OCoLC)1311413335
+9936865518009161 035   L $$a(Au-PeEL)EBL7012570
+9936865518009161 035   L $$a(Perlego)4213408
+9936865518009161 035   L $$a(EXLCZ)995460000000197545
+9936865518009161 040   L $$aMiAaPQ$$beng$$erda$$epn$$cMiAaPQ$$dMiAaPQ
+9936865518009161 043   L $$an-us---
+9936865518009161 044   L $$acau$$cUS-CA
+9936865518009161 050 4 L $$aKF2979$$b.S553 2022
+9936865518009161 072 7 L $$aLAW050000$$2bisacsh
+9936865518009161 0820  L $$a346.73048$$223
+9936865518009161 1001  L $$aSilbey, Jessica,$$eauthor.
+9936865518009161 24510 L $$aAgainst progress :$$bintellectual property and fundamental values in the internet age /$$cJessica Silbey.
+9936865518009161 250   L $$aFirst edition.
+9936865518009161 264 1 L $$aStanford, California :$$bStanford University Press,$$c[2022]
+9936865518009161 264 4 L $$c©2022
+9936865518009161 300   L $$a1 online resource (450 p.)
+9936865518009161 336   L $$atext$$btxt$$2rdacontent
+9936865518009161 337   L $$acomputer$$bc$$2rdamedia
+9936865518009161 338   L $$aonline resource$$bcr$$2rdacarrier
+9936865518009161 500   L $$aDescription based upon print version of record.
+9936865518009161 504   L $$aIncludes bibliographical references and index.
+9936865518009161 50500 L $$tFrontmatter --$$tTable of Contents --$$tAcknowledgments --$$tIntroduction: Is Progress More? --$$t1 Everybody’s a Photographer Now: The Case of Digital Photography --$$t2 Equality --$$t3 Privacy --$$t4 Distributive Justice (or “Fairer Uses”) --$$t5 Precarity and Institutional Failures --$$tConclusion --$$tAppendix A: Research Method and Data Collection --$$tAppendix B: Interviews --$$tNotes --$$tBibliography --$$tIndex
+9936865518009161 5208  L $$aA thoughtful analysis of intellectual property debates in law and culture as a bellwether of changing social justice needs in the internet age.
+9936865518009161 541ח  L $$aחיזוק תחום קניין רוחני.
+9936865518009161 588   L $$aDescription based on print version record and CIP data provided by publisher; resource not viewed.
+9936865518009161 588   L $$aDescription based on print version record.
+9936865518009161 650 0 L $$aIntellectual property$$zUnited States.
+9936865518009161 650 0 L $$aTechnology and law$$zUnited States.
+9936865518009161 77608 L $$z9781503608306
+9936865518009161 77608 L $$z1503608301
+9936865518009161 906   L $$aBOOK
+9936865518009161 952   L $$a53269131290009161$$853269131290009161
+9936865518009161 8524  L $$aUGENT$$9UGENT-CB
+9936865518009161 919   L $$augent-rug01
+9936865518009161 920   L $$abook
