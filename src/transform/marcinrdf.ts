@@ -3,9 +3,13 @@ import { type Record, isRecord } from "../types/quad.js";
 import { parseString } from "../util/rdf_parse.js";
 import { marcmap } from "../marcmap.js";
 
+export interface MarcInRDFOptions {
+    parse?: "jsonld" | "turtle" | "notation3";
+}
+
 // An experimental processor that does a literal translation of
 // alephseq into something JSON-LD-ish
-export async function transform(opts: { parse: string }) : Promise<Transform> {
+export async function transform(opts: MarcInRDFOptions = {}) : Promise<Transform> {
     return new Transform({
         objectMode: true,
         async transform(data: any, _encoding, callback) {
@@ -15,7 +19,9 @@ export async function transform(opts: { parse: string }) : Promise<Transform> {
     });
 }
 
-async function makeRdfData(data: any, opts: { parse: string }) : Promise<Record> {
+async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Record> {
+    const parse = opts.parse ? opts.parse : "jsonld";
+
     // First take a guess if we already have a Record 
     // Stupid guess but sufficient for now
     if (isRecord(data)) {
@@ -39,10 +45,50 @@ async function makeRdfData(data: any, opts: { parse: string }) : Promise<Record>
     clone['@id'] = `http://example.org/record/${id}` ;
     clone['@type'] = 'ex:Record';
 
-    if (opts.parse && opts.parse === 'true') {
+    if (parse === "turtle") {
         return await parseString(JSON.stringify(clone), "data.jsonld");
+    }
+    else if (parse === "notation3") {
+        const record : any = { 
+            "text" : serializeRecord(clone)
+        };
+        return record;
     }
     else {
         return clone;
     }
+}
+
+function serializeRecord(record: any) : string {
+    const id = record ['@id'];
+    const ex = "http://example.org/ns#";
+    let result = `<${id}> a <${ex}Record>.\n`;
+    const fields = record['record'];
+
+    for (let i = 0 ; i < fields.length ; i++) {
+        const tag  = fields[i][0];
+        const rest = fields[i].splice(1);
+        result += `<${id}> <${ex}f${tag}> ${serializeArray(rest)}.\n`;
+    }
+
+    return result.trim();
+}
+
+function serializeArray(array: any[]) {
+    const result : string = "(" + array.map(x => {
+        if (Array.isArray(x)) {
+            return serializeArray(x);
+        }
+        else {
+            return serializeValue(x);
+        }
+    }).join(" ") + ")";
+    return result;
+}
+
+function serializeValue(value: any) {
+    const result = "\"" + 
+        value.replaceAll(/\\/g,"\\\\").replaceAll(/"/g,"\\\"") + 
+        "\"";
+    return result;
 }
