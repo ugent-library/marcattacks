@@ -4,7 +4,7 @@ import { parseString } from "../util/rdf_parse.js";
 import { marcmap } from "../marcmap.js";
 
 export interface MarcInRDFOptions {
-    parse?: "jsonld" | "turtle" | "notation3";
+    parse?: "jsonld" | "turtle" | "field" | "full";
 }
 
 // An experimental processor that does a literal translation of
@@ -48,9 +48,15 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
     if (parse === "turtle") {
         return await parseString(JSON.stringify(clone), "data.jsonld");
     }
-    else if (parse === "notation3") {
+    else if (parse === "field") {
         const record : any = { 
-            "text" : serializeRecord(clone)
+            "text" : serializeFieldRecord(clone)
+        };
+        return record;
+    }
+    else if (parse === "full") {
+        const record : any = { 
+            "text" : serializeFullRecord(clone)
         };
         return record;
     }
@@ -59,7 +65,7 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
     }
 }
 
-function serializeRecord(record: any) : string {
+function serializeFieldRecord(record: any) : string {
     const id = record ['@id'];
     const ex = "http://example.org/ns#";
     let result = `<${id}> a <${ex}Record>.\n`;
@@ -73,6 +79,17 @@ function serializeRecord(record: any) : string {
 
     return result.trim();
 }
+
+function serializeFullRecord(record: any) : string {
+    const id = record ['@id'];
+    const ex = "http://example.org/ns#";
+    let result = `<${id}> a <${ex}Record>.\n`;
+
+    result += `<${id}> <${ex}record> ${serializeArray(record['record'])}.\n`;
+
+    return result.trim();
+}
+
 
 function serializeArray(array: any[]) {
     const result : string = "(" + array.map(x => {
