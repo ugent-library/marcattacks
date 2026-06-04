@@ -105,21 +105,36 @@ use `s3s://...` for using an SSL layer.
 ### Output (--to)
 
 - alephseq (Aleph sequential)
+- csv
+  - opts:
+    - header: string
+    - delimiter: string
 - json
 - jsonl
+- multipart 
+  - opts: 
+    - header: string
+    - delimited: string
+    - noEndDelimited: true | false
 - parquet
+  - opts:
+    - schema: string (path)
 - rdf
 - csv
 - tsv
+  - opts:
+    - header: string
+    - delimiter: string
 - xml (MARCXML)
 
 ### Transform (--map)
 
 - avram : A mapper from MARC to [Avram](https://format.gbv.de/schema/avram/specification) 
 - jsonata : A jsonata fixer (_default_)
-- marcids : A mapper from MARC to a list of record ids
 - marc2rdf : A mapper from MARC to RDF (demonstrator)
-
+- marcids : A mapper from MARC to a list of record ids
+- marcinrdf : A naive mapper from MARC into RDF producing a list of lists (demonstrator)
+   
 Or, provide your own transformers using JavaScript plugins. See: ./plugin/demo.js for an example.
 
 ### Param (--param)
