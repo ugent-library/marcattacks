@@ -56,6 +56,22 @@ export function marcForEachSub(row: string[] | undefined , fun: (code:string, va
     }
 }
 
+// The tag and subfield regex derived from a field-path depend only on the
+// path string, so compile them once per distinct path. Field-paths form a
+// tiny fixed set (a handful of MARC tags), so this cache stays small.
+const findCache = new Map<string, { tagName: string, subRegex: RegExp }>();
+
+function parseFind(find: string): { tagName: string, subRegex: RegExp } {
+    let parsed = findCache.get(find);
+    if (!parsed) {
+        const tagName = find.substring(0, 3);
+        const subMatch = find.substring(3) ? find.substring(3).split("").join("|") : ".*";
+        parsed = { tagName, subRegex: new RegExp(`^${subMatch}$`) };
+        findCache.set(find, parsed);
+    }
+    return parsed;
+}
+
 /**
  * Given an marc record and a field-path return a string[] with all matching values
  */
@@ -66,16 +82,14 @@ export function marcmap(record: string[][], find: string, opts: MARCMapOpts = {}
 
     const results : string[] = [];
 
-    const tagName = find.substring(0,3);
-    const subMatch = find.substring(3) ? find.substring(3).split("").join("|") : ".*";
-    const subRegex = new RegExp(`^${subMatch}$`);
-    
+    const { tagName, subRegex } = parseFind(find);
+
     for (const row of record) {
         if (row[0] === tagName) {
             results.push(marcsubfields(row,subRegex).join(fullOpts.join_char));
         }
     }
-    
+
     return results;
 }
 
