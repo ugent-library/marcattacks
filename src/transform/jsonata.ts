@@ -9,62 +9,59 @@ import log4js from 'log4js';
 const logger = log4js.getLogger();
 
 export async function transform(opts: { fix: string, lookup: string }) : Promise<Transform> {
-    let query : string; 
-
     let lookup : Record<string,string> = {};
-    
+
     if (opts.lookup) {
         lookup = await loadLookup(opts.lookup);
     }
 
     logger.info(lookup);
 
+    // Resolve the query once, up front, instead of on every record.
+    let query : string;
+    if (opts.fix) {
+        if (fs.existsSync(opts.fix)) {
+            query = fs.readFileSync(opts.fix,{ encoding: 'utf-8'});
+        }
+        else {
+            throw Error(`no such file ${opts.fix}`);
+        }
+    }
+    else {
+        query = '$';
+    }
+    logger.debug(query);
+
+    // The identity expression is a pure pass-through: skip jsonata entirely.
+    if (query.trim() === '$') {
+        return new Transform({
+            objectMode: true,
+            transform(data: any, _encoding: BufferEncoding, callback: Stream.TransformCallback) {
+                callback(null, data);
+            }
+        });
+    }
+
+    // Compile the expression and register helper functions ONCE. The helpers
+    // read the record currently being processed via `current`; the stream is
+    // strictly sequential (each evaluate is awaited) so this is safe.
+    let current: any;
+    const expression = jsonata(query);
+    expression.registerFunction('marcmap', (code: string) => marcmap(current['record'], code, {}));
+    expression.registerFunction('marctag', (row: string[]) => marctag(row));
+    expression.registerFunction('marcind', (row: string[]) => marcind(row));
+    expression.registerFunction('marcsubfields', (row: string[], regex: string) => marcsubfields(row, new RegExp(regex)));
+    expression.registerFunction('marcrecord', () => current['record']);
+    expression.registerFunction('asmarc', (data: string[][]) => ({ "record": data }));
+    expression.registerFunction('genid', () => genid());
+    expression.registerFunction('lookup', (key) => lookup[key]);
+
     return new Transform({
         objectMode: true,
         async transform(data: any, _encoding: BufferEncoding, callback: Stream.TransformCallback) {
             try {
-                if (!query) {
-                    if (opts.fix) {
-                        if (fs.existsSync(opts.fix)) {
-                            query = fs.readFileSync(opts.fix,{ encoding: 'utf-8'});
-                        }
-                        else {
-                            throw Error(`no such file ${opts.fix}`);
-                        }
-                    }
-                    else {
-                        query = '$';
-                    }
-
-                    logger.debug(query);
-                }
-                const expression = jsonata(query);
-                expression.registerFunction('marcmap', (code: string) => {
-                    return marcmap(data['record'],code,{});
-                });
-                expression.registerFunction('marctag', (row: string[]) => {
-                    return marctag(row);
-                });
-                expression.registerFunction('marcind', (row: string[]) => {
-                    return marcind(row);
-                });
-                expression.registerFunction('marcsubfields', (row: string[],regex: string) => {
-                    return marcsubfields(row, new RegExp(regex));
-                });
-                expression.registerFunction('marcrecord', () => {
-                    return data['record'];
-                });
-                expression.registerFunction('asmarc', (data: string[][]) => {
-                    return { "record": data};
-                });
-                expression.registerFunction('genid', () => {
-                    return genid();
-                });
-                expression.registerFunction('lookup', (key) => {
-                    return lookup[key];
-                });
-                data = await expression.evaluate(data);
-                callback(null,data);
+                current = data;
+                callback(null, await expression.evaluate(data));
             }
             catch (err: any) {
                 logger.info(err);
