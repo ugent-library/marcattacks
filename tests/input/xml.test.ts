@@ -40,6 +40,6 @@ describe("input/xml", () => {
             Readable.from(data + "\n").pipe(transformer);
         });
 
-        expect(results[0]).toStrictEqual(json);
+        expect(results[0].record).toStrictEqual(json.record);
     });
 });

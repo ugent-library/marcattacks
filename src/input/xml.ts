@@ -1,5 +1,6 @@
 import { Transform, type TransformCallback } from 'stream';
 import sax from 'sax';
+import { CLEAN } from '../util/marc_record.js';
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
@@ -62,8 +63,9 @@ export async function transform(_opts: any): Promise<Transform> {
         }
 
         if (localName === 'record') {
-            // Push the completed record object down the pipeline
-            transformStream.push({ record });
+            // Push the completed record object down the pipeline.
+            // Text values are stripped of control chars above -> mark clean.
+            transformStream.push({ record, [CLEAN]: true });
             record = [];
         }
     });
