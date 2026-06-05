@@ -101,6 +101,7 @@ use `s3s://...` for using an SSL layer.
 - csv
 - tsv
 - xml (MARCXML)
+- fastxml (optimized parser for MARCXML)
 
 ### Output (--to)
 
