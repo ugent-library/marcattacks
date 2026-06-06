@@ -57,7 +57,7 @@ Transform the MARC input using a [JSONata](https://docs.jsonata.org/overview.htm
 marcattacks --param fix=./demo/demo.jsonata ./data/sample.xml
 ```
 
-Or transform using a [Catmandu](https://librecat.org/) **Fix** script — a declarative,
+Or transform using a [Catmandu](https://github.com/LibreCat/Catmandu) **Fix** script — a declarative,
 line-based mapping language built for library metadata (and faster than JSONata):
 
 ```
@@ -88,6 +88,8 @@ The `types.csv` is a two column lookup list in CSV format. E.g.
 A,B
 Book,http://example.org/ns#Book
 ```
+
+The `fix` mapper implements a subset of the most common Catmandu Fix builtins created by the [LibreCat project](https://librecat.org). A full reference for the Fix language can be found here:  https://librecat.org/assets/catmandu_cheat_sheet.pdf.
 
 ## Stdin
 
@@ -149,6 +151,7 @@ use `s3s://...` for using an SSL layer.
     - header: string
     - delimited: string
     - noEndDelimited: true | false
+- null (output nothing, for benchmarking)
 - parquet
   - opts:
     - schema: string (path)
