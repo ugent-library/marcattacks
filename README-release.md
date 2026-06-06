@@ -15,3 +15,9 @@ New feature:
 ```
 npm version minor
 ```
+
+New major:
+
+```
+npm version major
+```
