@@ -182,6 +182,34 @@ Provide a params to the mapper, input and output. See examples:
 - `npm run demo:n3`
 - `npm run biblio:one`
 
+### Parallelism (--workers)
+
+`--workers <n>` runs the map stage (`--map`) on `<n>` worker threads while the
+main thread handles I/O, parsing and serialization. Output order is preserved.
+Default is `1` (no workers; the normal pipeline).
+
+It only helps when **the map is the bottleneck** — i.e. a heavy, interpreted
+[JSONata](https://docs.jsonata.org/) transform (`--param fix=...jsonata`). There
+it scales to roughly 1.8× (capped by main-thread coordination, not the map).
+
+It does **not** help — and is usually a little slower — when the map is cheap,
+because the per-record cost of shipping records to/from threads then outweighs
+the work. In particular:
+
+- The **Fix** mapper (`--map fix`) is compiled and runs at ~100k+ rec/s, so it
+  is almost never the bottleneck. Do not use `--workers` with it.
+- Plain conversions with no real map (default identity) gain nothing.
+
+For those cases the bottleneck is the reader/writer, not the map. The biggest
+lever is the input reader: prefer **`--from fastxml`** over the default sax
+`xml` reader (roughly 2× on MARCXML). For example, instead of `--workers`:
+
+```
+marcattacks --from fastxml --to jsonl --map fix --param fix=./demo/marc2rdf.fix input.xml.gz
+```
+
+Rule of thumb: **heavy jsonata → `--workers`; everything else → `--from fastxml`.**
+
 ### Writable (--out)
 
 - _default_: stdout
