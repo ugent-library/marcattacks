@@ -170,6 +170,45 @@ describe("Fix conformance — ported from Catmandu t/", () => {
         expect(out.record.some((f: string[]) => f.includes("skip"))).toBe(false);
     });
 
+    test("conditions: comparisons / type checks / in (all-values semantics)", () => {
+        // a condition is true iff there is >=1 value and ALL values pass
+        const t = (cond: string, data: any) => "m" in compileFix(`if ${cond} add_field(m, Y) end`)(structuredClone(data));
+        expect(t("greater_than(year, 2018)", { year: "2019" })).toBe(true);
+        expect(t("greater_than(year, 2018)", { year: 2018 })).toBe(false);
+        expect(t("greater_than(nums.*, 5)", { nums: [6, 7, 8] })).toBe(true);
+        expect(t("greater_than(nums.*, 5)", { nums: [1, 2, 9] })).toBe(false); // not ALL > 5
+        expect(t("less_than(year, 2018)", { year: 2017 })).toBe(true);
+        expect(t("is_number(v)", { v: "42" })).toBe(true);
+        expect(t("is_number(xs.*)", { xs: [1, "a"] })).toBe(false);
+        expect(t("is_object(v)", { v: { a: 1 } })).toBe(true);
+        expect(t("is_object(v)", { v: [1] })).toBe(false);
+        expect(t("is_null(v)", { v: null })).toBe(true);
+        expect(t("is_null(v)", { v: 0 })).toBe(false);
+        expect(t("is_true(v)", { v: 1 })).toBe(true);          // loose
+        expect(t("is_true(v, strict, 1)", { v: 1 })).toBe(false); // strict: only real bool
+        expect(t("is_true(v, strict, 1)", { v: true })).toBe(true);
+        expect(t("is_false(v)", { v: "false" })).toBe(true);
+        expect(t("in(a, b)", { a: 42, b: 42 })).toBe(true);
+        expect(t("in(a, b)", { a: 1, b: [1, 2, 3] })).toBe(true);  // scalar in array
+        expect(t("in(a, b)", { a: "x", b: { x: 1 } })).toBe(true); // scalar in hash
+        expect(t("in(a, b)", { a: 1, b: 2 })).toBe(false);
+    });
+
+    test("conditions: MARC (marc_any_match, marc_all_match, marc_has_many)", () => {
+        const rec = {
+            record: [
+                ["245", "1", "0", "a", "Perl Programming"],
+                ["500", " ", " ", "a", "x"], ["500", " ", " ", "a", "y"],
+                ["100", " ", " ", "a", "Wall"],
+            ],
+        };
+        const t = (cond: string) => "m" in compileFix(`if ${cond} add_field(m, Y) end`)(structuredClone(rec));
+        expect(t("marc_any_match(245a, Perl)")).toBe(true);
+        expect(t("marc_all_match(500a, x)")).toBe(false);   // not all 500$a == x
+        expect(t("marc_has_many(500)")).toBe(true);          // 500 appears twice
+        expect(t("marc_has_many(245)")).toBe(false);         // 245 once
+    });
+
     test("genid", () => {
         const out = buildFix("genid", ["x"])({});
         expect(out.x).toMatch(/^genid:[0-9a-f-]{36}$/);
