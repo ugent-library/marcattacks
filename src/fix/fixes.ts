@@ -351,6 +351,62 @@ export const FIXES: Record<string, FixBuilder> = {
         };
     },
 
+    // parse_text(PATH, PATTERN): parse a string via regex -> hash (named
+    // groups), array (numbered groups), or unchanged (no groups / no match).
+    parse_text: ([path, pattern]) => {
+        const re = new RegExp(pattern!);
+        return new Path(path!).updater((v) => {
+            const m = re.exec(String(v));
+            if (!m) return v;
+            if (m.groups && Object.keys(m.groups).length) return { ...m.groups };
+            if (m.length > 1) return m.slice(1);
+            return v;
+        }, 'string');
+    },
+
+    // int(PATH): first integer in a string, else array/hash size, else 0.
+    int: ([path]) => new Path(path!).updater((v) => {
+        if (typeof v === 'number') return Math.trunc(v);
+        if (typeof v === 'string') { const m = /([+-]?[0-9]+)/.exec(v); return m ? Number(m[1]) : 0; }
+        if (isArray(v)) return v.length;
+        if (isHash(v)) return Object.keys(v).length;
+        return 0;
+    }),
+
+    // string(PATH): stringify a value / join array / join hash values (sorted keys).
+    string: ([path]) => new Path(path!).updater((v) => {
+        if (typeof v === 'string' || typeof v === 'number') return String(v);
+        if (isArray(v) && v.every((x: Data) => typeof x === 'string' || typeof x === 'number')) return v.join('');
+        if (isHash(v) && Object.values(v).every((x: Data) => typeof x === 'string' || typeof x === 'number')) {
+            return Object.keys(v).sort().map((k) => v[k]).join('');
+        }
+        return '';
+    }),
+
+    // uri_encode / uri_decode (percent encoding, like Perl URI::Escape)
+    uri_encode: ([path]) => new Path(path!).updater(
+        (v) => encodeURIComponent(String(v)).replace(/[!*'()]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase()),
+        'string'),
+    uri_decode: ([path]) => new Path(path!).updater((v) => decodeURIComponent(String(v)), 'string'),
+
+    // compact(PATH): drop null/undefined values from an array.
+    compact: ([path]) => new Path(path!).updater(
+        (arr) => arr.filter((x: Data) => x !== null && x !== undefined), 'array'),
+
+    // expand_date([FIELD=date]): split a date value into year/month/day at root.
+    expand_date: ([field]) => {
+        const get = new Path(field ?? 'date').getter();
+        return (data: Data) => {
+            const v = get(data)[0];
+            if (typeof v !== 'string') return data;
+            const parts = v.split(/\D+/).filter((p) => p !== '');
+            if (parts.length >= 1) data.year = parts[0];          // string
+            if (parts.length >= 2) data.month = Number(parts[1]); // number
+            if (parts.length >= 3) data.day = Number(parts[2]);   // number
+            return data;
+        };
+    },
+
     // --- misc ---
     nothing: () => (data: Data) => data,
 };

@@ -237,6 +237,33 @@ describe("Fix conformance — ported from Catmandu t/", () => {
             .toEqual({ a: { b: 1 }, c: [10, 20] });
     });
 
+    test("parse_text / int / string / uri_encode / uri_decode / compact / expand_date", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        // parse_text: numbered groups -> array, named groups -> hash
+        expect(run('parse_text(d, "(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d)")', { d: "2015-03-07" }))
+            .toEqual({ d: ["2015", "03", "07"] });
+        expect(run('parse_text(d, "(?<year>\\\\d{4})-(?<month>\\\\d{2})")', { d: "2015-03" }))
+            .toEqual({ d: { year: "2015", month: "03" } });
+        // int
+        expect(run("int(y)", { y: "2016" })).toEqual({ y: 2016 });
+        expect(run("int(y)", { y: "bar-123baz" })).toEqual({ y: -123 });
+        expect(run("int(y)", { y: "" })).toEqual({ y: 0 });
+        expect(run("int(a)", { a: ["x", "y"] })).toEqual({ a: 2 });
+        // string
+        expect(run("string(y)", { y: 2016 })).toEqual({ y: "2016" });
+        expect(run("string(foo)", { foo: ["a", "b", "c"] })).toEqual({ foo: "abc" });
+        // uri_encode / uri_decode
+        expect(run("uri_encode(s)", { s: "café x/y!" })).toEqual({ s: "caf%C3%A9%20x%2Fy%21" });
+        expect(run("uri_decode(s)", { s: "caf%C3%A9%20x%2Fy%21" })).toEqual({ s: "café x/y!" });
+        // compact
+        expect(run("compact(list)", { list: [null, "hello", null, "world"] })).toEqual({ list: ["hello", "world"] });
+        // expand_date
+        expect(run("expand_date()", { date: "2001-09-11" }))
+            .toEqual({ date: "2001-09-11", year: "2001", month: 9, day: 11 });
+        expect(run("expand_date(datestamp)", { datestamp: "2001:09" }))
+            .toEqual({ datestamp: "2001:09", year: "2001", month: 9 });
+    });
+
     test("paste", () => {
         expect(fix("paste", ["my.string", "a", "b", "c", "d"], { a: "eeny", b: "meeny", c: "miny", d: "moe" }))
             .toMatchObject({ my: { string: "eeny meeny miny moe" } });
