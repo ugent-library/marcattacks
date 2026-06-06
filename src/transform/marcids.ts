@@ -20,6 +20,9 @@ export async function transform(_opts: any) : Promise<Transform> {
             if (id.length == 1) {
                 callback(null,{id: id[0]});
             }
+            else {
+                callback(null);
+            }
         }
     });
 }
