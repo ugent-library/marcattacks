@@ -186,7 +186,15 @@ Provide a params to the mapper, input and output. See examples:
 
 `--workers <n>` runs the map stage (`--map`) on `<n>` worker threads while the
 main thread handles I/O, parsing and serialization. Output order is preserved.
-Default is `1` (no workers; the normal pipeline).
+
+The default is **`auto`**, which uses **CPU cores − 1** — leaving one core free
+for the main thread (parsing / I/O / serialization / result reordering). Using
+*all* cores oversubscribes the machine and is typically a few percent slower, so
+`cores − 1` is the sweet spot. Pass an explicit number to override (e.g.
+`--workers 4`), or **`--workers 1` to disable threading** and run the plain
+single-threaded pipeline. Only parallelizable maps (`jsonata`, `fix`) use
+threads; for any other map the auto default falls back to single-threaded
+silently.
 
 It only helps when **the map is the bottleneck** — i.e. a heavy, interpreted
 [JSONata](https://docs.jsonata.org/) transform (`--param fix=...jsonata`). There
@@ -197,18 +205,24 @@ because the per-record cost of shipping records to/from threads then outweighs
 the work. In particular:
 
 - The **Fix** mapper (`--map fix`) is compiled and runs at ~100k+ rec/s, so it
-  is almost never the bottleneck. Do not use `--workers` with it.
-- Plain conversions with no real map (default identity) gain nothing.
+  is almost never the bottleneck. It *is* parallelizable, so the `auto` default
+  will thread it — but that adds shipping overhead for no gain, so pass
+  **`--workers 1`** with `--map fix`.
+- Plain conversions with no real map (default identity) gain nothing — though
+  the default `jsonata` map is parallelizable, so `auto` threads it anyway;
+  pass `--workers 1` if you want to be sure it doesn't.
 
 For those cases the bottleneck is the reader/writer, not the map. The biggest
 lever is the input reader: prefer **`--from fastxml`** over the default sax
-`xml` reader (roughly 2× on MARCXML). For example, instead of `--workers`:
+`xml` reader (roughly 2× on MARCXML). For example, with a Fix map, disable
+workers and use the fast reader:
 
 ```
-marcattacks --from fastxml --to jsonl --map fix --param fix=./demo/marc2rdf.fix input.xml.gz
+marcattacks --from fastxml --workers 1 --to jsonl --map fix --param fix=./demo/marc2rdf.fix input.xml.gz
 ```
 
-Rule of thumb: **heavy jsonata → `--workers`; everything else → `--from fastxml`.**
+Rule of thumb: **heavy jsonata → keep the `auto` default (or set `--workers <n>`);
+fix / cheap / no map → `--workers 1` + `--from fastxml`.**
 
 ### Writable (--out)
 
