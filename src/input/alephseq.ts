@@ -4,6 +4,9 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
+const VALID_LINE = /^\w+\s[\x20-\x7E]{5}\sL\s/;  // <id> <tag+ind1+ind2> L <data>
+const SUBFIELD = /\$\$(.)/;                       // splits "$$avalue" subfields
+
 export async function transform(_opts: any): Promise<Transform> {
     let recordNum = 0;
     let rec: string[][] = [];
@@ -14,14 +17,20 @@ export async function transform(_opts: any): Promise<Transform> {
     const decoder = new StringDecoder("utf8");
 
     function processLine(line: string, stream: Transform): boolean {
-        if (!line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
+        // Validate the line prefix "<id> <tag+ind> L ". Same accept/reject as
+        // the original /^\w+\s[\x20-\x7E]{5}\sL\s.*/u but cheaper: no trailing
+        // .* (it always matched), no /u (ASCII only), and test() not match().
+        if (!VALID_LINE.test(line)) {
             logger.warn(`syntax error in record ${recordNum + 1}`);
             logger.warn(`skipping> ${line}`);
             return false;
         }
 
-        const [id, ...rest] = line.split(" ");
-        const lineData = rest.join(" ");
+        // Split id from the rest on the first space (was split(" ")+join(" "),
+        // which split the whole line on every space and rejoined it).
+        const sp = line.indexOf(" ");
+        const id = line.slice(0, sp);
+        const lineData = line.slice(sp + 1);
 
         if (previd && previd !== id) {
             stream.push({ record: rec });
@@ -33,7 +42,7 @@ export async function transform(_opts: any): Promise<Transform> {
         const ind1 = lineData.substring(3, 4);
         const ind2 = lineData.substring(4, 5);
         const sf   = lineData.substring(8);
-        const parts = sf.split(/\$\$(.)/);
+        const parts = sf.split(SUBFIELD);
 
         if (tag === 'FMT' || tag === 'LDR' || tag.startsWith("00")) {
             rec.push([tag, ind1, ind2, "_", ...parts]);
