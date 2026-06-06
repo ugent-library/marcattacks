@@ -178,5 +178,6 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
     }
 
     logger.info(`map running on ${N} worker threads (batch ${BATCH}, in-flight cap ${CAP}, timeout ${TIMEOUT}ms)`);
+    (stream as any).isWorkerPool = true;   // lets callers/tests tell a threaded map stage from a serial one
     return stream;
 }

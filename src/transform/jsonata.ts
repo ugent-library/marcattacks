@@ -8,6 +8,12 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
+// JSONata is heavy/interpreted, so the `--workers auto` default should spread it
+// across threads. (Cheap maps like `fix` are parallelizable too but do NOT set
+// this, so auto leaves them single-threaded; an explicit --workers N still
+// threads any parallelizable map.)
+export const autoParallel = true;
+
 // Build a pure record -> record(Promise) mapper. Shared by the in-process
 // transform() and by the worker pool (so the heavy evaluate() can run on
 // worker threads). Expression + helper functions are compiled once.

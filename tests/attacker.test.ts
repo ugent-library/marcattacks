@@ -12,6 +12,7 @@ import {
     createOutputWriteStream,
     resolveWorkerCount,
     isAutoWorkers,
+    shouldParallelize,
 } from "../dist/attacker.js";
 import { SlowWritable } from "../dist/stream/slow-writable.js";
 import { Writable } from "node:stream";
@@ -36,6 +37,19 @@ function sink(): { stream: Writable; text: () => string } {
         write(chunk, _enc, cb) { chunks.push(chunk.toString()); cb(); },
     });
     return { stream, text: () => chunks.join("") };
+}
+
+// Push one record through a map stage and return the single emitted record
+// (closing the stage so any worker threads terminate).
+function runOne(stage: any, rec: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+        const seen: any[] = [];
+        stage.on("data", (r: any) => seen.push(r));
+        stage.on("error", reject);
+        stage.on("end", () => resolve(seen[0]));
+        stage.write(rec);
+        stage.end();
+    });
 }
 
 describe("attacker — PipelineError", () => {
@@ -154,28 +168,51 @@ describe("attacker — resolveWorkerCount (--workers default)", () => {
         expect(resolveWorkerCount("", 8)).toBe(1);
     });
 
-    test("auto + parallelizable map (cores>1) builds a worker-pool stage", async () => {
-        // 'fix' is parallelizable; with no --workers (auto) on a multi-core host
-        // this must engage the pool, which we detect by its 'flush' wiring being
-        // distinct from the plain transform: simplest robust check is that it is
-        // a Transform that maps correctly through worker threads.
+    test("shouldParallelize: auto only threads maps that opt in (autoParallel)", () => {
+        const fix = { parallelizable: true, autoParallel: false };   // cheap, opts out
+        const jsonata = { parallelizable: true, autoParallel: true }; // heavy, opts in
+        const rdf = { parallelizable: false, autoParallel: false };   // no createMapper
+
+        // auto (cores 8 -> 7 workers): only the opted-in map threads
+        expect(shouldParallelize("auto", jsonata, 8)).toBe(true);
+        expect(shouldParallelize("auto", fix, 8)).toBe(false);
+        expect(shouldParallelize("auto", rdf, 8)).toBe(false);
+    });
+
+    test("shouldParallelize: an explicit --workers N threads any parallelizable map", () => {
+        const fix = { parallelizable: true, autoParallel: false };
+        const rdf = { parallelizable: false, autoParallel: false };
+
+        expect(shouldParallelize("4", fix, 8)).toBe(true);   // explicit overrides the opt-out
+        expect(shouldParallelize("4", rdf, 8)).toBe(false);  // ...but not a non-parallelizable map
+        expect(shouldParallelize("1", fix, 8)).toBe(false);  // 1 disables threading
+    });
+
+    test("shouldParallelize: auto resolving to 1 worker never threads", () => {
+        const jsonata = { parallelizable: true, autoParallel: true };
+        expect(shouldParallelize("auto", jsonata, 1)).toBe(false);
+    });
+
+    test("auto + cheap map (fix) runs SERIAL, but maps correctly", async () => {
+        // fix is parallelizable but does not opt into auto-threading, so the
+        // auto default must NOT build a worker pool for it.
         const stage: any = await createMapTransformStage({
             map: "fix",
             param: { fix: 'add_field("w","1")' },
             // workers omitted -> auto
         });
-        expect(typeof stage.pipe).toBe("function");
-        // run a record through and confirm the map applied, then close workers.
-        const seen: any[] = [];
-        await new Promise<void>((resolve, reject) => {
-            stage.on("data", (r: any) => seen.push(r));
-            stage.on("error", reject);
-            stage.on("end", () => resolve());
-            stage.write({ record: [["001", " ", " ", "_", "1"]] });
-            stage.end();
+        expect(stage.isWorkerPool).toBeFalsy();
+        expect(await runOne(stage, { record: [["001", " ", " ", "_", "1"]] })).toMatchObject({ w: "1" });
+    });
+
+    test("explicit --workers on fix builds a worker-pool stage that still maps", async () => {
+        const stage: any = await createMapTransformStage({
+            map: "fix",
+            param: { fix: 'add_field("w","1")' },
+            workers: "2",
         });
-        expect(seen).toHaveLength(1);
-        expect(seen[0].w).toBe("1");
+        expect(stage.isWorkerPool).toBe(true);
+        expect(await runOne(stage, { record: [["001", " ", " ", "_", "1"]] })).toMatchObject({ w: "1" });
     });
 });
 

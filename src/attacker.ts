@@ -126,19 +126,36 @@ export function resolveWorkerCount(workersOpt: unknown, cores: number = availabl
         : (parseInt(String(workersOpt), 10) || 1);
 }
 
+// Decide whether the map runs on worker threads:
+//  - the resolved worker count must be > 1, and
+//  - the map must be parallelizable (exposes createMapper), and
+//  - in `auto` mode the map must also opt in (autoParallel) — so cheap maps
+//    like `fix` stay single-threaded by default; an EXPLICIT --workers N
+//    threads any parallelizable map regardless of autoParallel.
+export function shouldParallelize(
+    workersOpt: unknown,
+    caps: { parallelizable: boolean; autoParallel: boolean },
+    cores: number = availableParallelism(),
+): boolean {
+    if (resolveWorkerCount(workersOpt, cores) <= 1) return false;
+    if (!caps.parallelizable) return false;
+    return !isAutoWorkers(workersOpt) || caps.autoParallel;
+}
+
 export async function createMapTransformStage(opts: any): Promise<Transform | null> {
     if (opts.map) {
         const mod = await loadPlugin(opts.map, 'transform');
-        // A map is parallelizable iff it exposes a per-record createMapper().
-        const isAuto = isAutoWorkers(opts.workers);
+        const parallelizable = typeof mod.createMapper === 'function';
+        const autoParallel = mod.autoParallel === true;
         const workers = resolveWorkerCount(opts.workers);
-        if (workers > 1) {
-            if (typeof mod.createMapper === 'function') {
-                return createWorkerPool({ map: opts.map, param: opts.param, workers });
-            }
-            // Only nag when the user explicitly asked for threads; the auto
-            // default falls back to serial silently for non-parallelizable maps.
-            if (!isAuto) logger.warn(`--workers ${workers} ignored: map '${opts.map}' is not parallelizable`);
+        if (shouldParallelize(opts.workers, { parallelizable, autoParallel })) {
+            return createWorkerPool({ map: opts.map, param: opts.param, workers });
+        }
+        // Only nag when the user EXPLICITLY asked for threads on a map that
+        // can't use them; auto stays quiet (and cheap parallelizable maps just
+        // run serial under auto by design).
+        if (workers > 1 && !parallelizable && !isAutoWorkers(opts.workers)) {
+            logger.warn(`--workers ${workers} ignored: map '${opts.map}' is not parallelizable`);
         }
         return await mod.transform(opts.param, { utils: marcUtils });
     }
