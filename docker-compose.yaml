@@ -31,7 +31,23 @@ services:
         sleep 2;
         mc alias set docker http://minio:3371 minioadmin minioadmin;
         mc mb docker/bbl --ignore-existing;
-  
+
+  sftp:
+    image: atmoz/sftp:alpine
+    ports:
+      - 2222:22
+    volumes:
+      # read-only seed: the repo's sample data (client sees it under /files)
+      - ./data:/home/marc/files:ro
+      # writable target for write-back tests (chowned to the user by the init
+      # script below, since named-volume mountpoints come up owned by root)
+      - sftp-upload:/home/marc/upload
+      - ./docker/sftp.d/chown-upload.sh:/etc/sftp.d/chown-upload.sh:ro
+    # format: user:password:UID:GID:upload-subdir
+    command: marc:marcpass:1001:1001:upload
+
 volumes:
   minio-data:
+    driver: local
+  sftp-upload:
     driver: local
