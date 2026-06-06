@@ -13,7 +13,14 @@ export interface CondBlock {
     then: Statement[];
     otherwise: Statement[];
 }
-export type Statement = FixCall | CondBlock;
+export interface BindBlock {
+    type: 'bind';
+    name: string;
+    args: string[];
+    body: Statement[];
+    doset: boolean;
+}
+export type Statement = FixCall | CondBlock | BindBlock;
 
 export function parseFix(src: string): Statement[] {
     let i = 0;
@@ -96,11 +103,13 @@ export function parseFix(src: string): Statement[] {
                 let otherwise: Statement[] = [];
                 if (thenBlock.stop === 'else') otherwise = parseBlock(['end']).stmts;
                 stmts.push({ type: 'cond', kind: word, cond: { name: condName, args: condArgs }, then: thenBlock.stmts, otherwise });
-            } else if (word === 'do') {
-                // bind: flatten its body (full bind semantics not implemented)
-                while (i < n && src[i] !== '(' && src[i] !== '\n' && !isSpace(src[i]!)) i++;
-                if (src[i] === '(') readArgs();
-                stmts.push(...parseBlock(['end']).stmts);
+            } else if (word === 'do' || word === 'doset') {
+                while (i < n && isSpace(src[i]!)) i++;
+                const bindName = readWord();
+                while (i < n && isSpace(src[i]!)) i++;
+                const bindArgs = src[i] === '(' ? readArgs() : [];
+                const body = parseBlock(['end']).stmts;
+                stmts.push({ type: 'bind', name: bindName, args: bindArgs, body, doset: word === 'doset' });
             } else {
                 while (i < n && isSpace(src[i]!)) i++;
                 const args = src[i] === '(' ? readArgs() : [];

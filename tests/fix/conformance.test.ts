@@ -133,6 +133,19 @@ describe("Fix conformance — ported from Catmandu t/", () => {
         expect(run("if all_match(id, '\\(viaf\\)') add_field(viaf, yes) end", { id: "(ugent)1" })).toEqual({ id: "(ugent)1" });
     });
 
+    test("binds: do list", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        // list over array of objects (no var): apply the block to each element
+        expect(run("do list(path:items) add_field(seen, y) end", { items: [{ a: 1 }, { a: 2 }] }))
+            .toEqual({ items: [{ a: 1, seen: "y" }, { a: 2, seen: "y" }] });
+        // list with var: build an array of objects from a list of values
+        // (the marc2rdf subjects idiom, validated identical to the real catmandu CLI)
+        expect(run(
+            "marc_map('500a', _s, split, 1) do list(path:_s, var:x) copy_field(x, out.$append.name) add_field(out.$last.t, S) end remove_field(_s) remove_field(record)",
+            { record: [["500", " ", " ", "a", "one"], ["500", " ", " ", "a", "two"]] }
+        )).toEqual({ out: [{ name: "one", t: "S" }, { name: "two", t: "S" }] });
+    });
+
     test("genid", () => {
         const out = buildFix("genid", ["x"])({});
         expect(out.x).toMatch(/^genid:[0-9a-f-]{36}$/);

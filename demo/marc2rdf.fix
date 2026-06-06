@@ -38,5 +38,10 @@ replace_all('dc:date','\s*[,.:/]$','')
 marc_map('008/35-37','dc:language')
 prepend('dc:language','iso639-2:')
 
-marc_map('500a','dc:subject.$append.name', split:1)
-add_field('dc:subject.*.@type','Subject')
+marc_map('500a','_subjects', split:1)
+do list(path:'_subjects', var:'s')
+  copy_field('s','dc:subject.$append.name')
+  add_field('dc:subject.$last.@type','Subject')
+  genid('dc:subject.$last.@id')
+end
+remove_field('_subjects')

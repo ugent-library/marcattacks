@@ -1,17 +1,20 @@
 import { parseFix, type Statement } from './parser.js';
 import { buildFix } from './fixes.js';
 import { buildCondition } from './conditions.js';
+import { buildBind } from './binds.js';
 
 export { Path } from './path.js';
 export { FIXES, buildFix } from './fixes.js';
 export { parseFix } from './parser.js';
 export { buildCondition } from './conditions.js';
+export { buildBind } from './binds.js';
 
 type Runner = (data: any) => any;
 
 function compileStatements(stmts: Statement[]): Runner {
     const runners: Runner[] = stmts.map((s) => {
         if (s.type === 'fix') return buildFix(s.name, s.args);
+        if (s.type === 'bind') return buildBind(s.name, s.args, compileStatements(s.body), s.doset);
         const cond = buildCondition(s.cond.name, s.cond.args);
         const thenRun = compileStatements(s.then);
         const elseRun = compileStatements(s.otherwise);
