@@ -1,19 +1,33 @@
-import { parseFix } from './parser.js';
+import { parseFix, type Statement } from './parser.js';
 import { buildFix } from './fixes.js';
+import { buildCondition } from './conditions.js';
 
 export { Path } from './path.js';
 export { FIXES, buildFix } from './fixes.js';
 export { parseFix } from './parser.js';
+export { buildCondition } from './conditions.js';
+
+type Runner = (data: any) => any;
+
+function compileStatements(stmts: Statement[]): Runner {
+    const runners: Runner[] = stmts.map((s) => {
+        if (s.type === 'fix') return buildFix(s.name, s.args);
+        const cond = buildCondition(s.cond.name, s.cond.args);
+        const thenRun = compileStatements(s.then);
+        const elseRun = compileStatements(s.otherwise);
+        const wantTrue = s.kind === 'if';
+        return (data: any) => (cond(data) === wantTrue ? thenRun(data) : elseRun(data));
+    });
+    return (data: any) => {
+        for (const r of runners) data = r(data);
+        return data;
+    };
+}
 
 /**
  * Compile a Catmandu Fix script into a record -> record function.
- * The whole script is parsed and its fixers built once; the returned function
- * just runs the chain, so it is cheap to apply per record.
+ * Parsed and built once; the returned function just runs the chain per record.
  */
 export function compileFix(src: string): (data: any) => any {
-    const fixers = parseFix(src).map((c) => buildFix(c.name, c.args));
-    return (data: any) => {
-        for (const f of fixers) data = f(data);
-        return data;
-    };
+    return compileStatements(parseFix(src));
 }

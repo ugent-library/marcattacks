@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
-import { buildFix } from "../../dist/fix/index.js";
+import { buildFix, compileFix } from "../../dist/fix/index.js";
 
 // Apply a fix the way Catmandu's unit tests do: build it from args, run on a
 // (cloned) input record, compare to the expected output. Cases are ported
@@ -115,6 +115,30 @@ describe("Fix conformance — ported from Catmandu t/", () => {
         expect(fix("marc_map", ["024a", "isbn", "value", "Y"], rec()).isbn).toBeUndefined(); // no 024 -> untouched
         expect(fix("marc_map", ["001", "found", "value", "Y"], rec()).found).toBe("Y");      // value: constant
         expect(fix("marc_map", ["100a", "deep.$append.name"], rec()).deep).toBeUndefined();   // no 100 -> untouched
+    });
+
+    test("conditionals: if / unless / else + conditions", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        // if exists
+        expect(run("if exists(a) add_field(seen, yes) end", { a: 1 })).toEqual({ a: 1, seen: "yes" });
+        expect(run("if exists(a) add_field(seen, yes) end", { b: 1 })).toEqual({ b: 1 });
+        // unless
+        expect(run("unless exists(a) add_field(missing, yes) end", { b: 1 })).toEqual({ b: 1, missing: "yes" });
+        // if/else
+        expect(run("if exists(a) add_field(r, A) else add_field(r, B) end", { a: 1 })).toEqual({ a: 1, r: "A" });
+        expect(run("if exists(a) add_field(r, A) else add_field(r, B) end", {})).toEqual({ r: "B" });
+        // all_equal / all_match
+        expect(run("if all_equal(t, book) set_field(t, Book) end", { t: "book" })).toEqual({ t: "Book" });
+        expect(run("if all_match(id, '\\(viaf\\)') add_field(viaf, yes) end", { id: "(viaf)123" })).toEqual({ id: "(viaf)123", viaf: "yes" });
+        expect(run("if all_match(id, '\\(viaf\\)') add_field(viaf, yes) end", { id: "(ugent)1" })).toEqual({ id: "(ugent)1" });
+    });
+
+    test("genid", () => {
+        const out = buildFix("genid", ["x"])({});
+        expect(out.x).toMatch(/^genid:[0-9a-f-]{36}$/);
+        // fresh id per wildcard slot
+        const out2 = compileFix("genid(items.*.id)")({ items: [{}, {}] });
+        expect(out2.items[0].id).not.toBe(out2.items[1].id);
     });
 
     test("paste", () => {

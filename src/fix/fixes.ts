@@ -5,6 +5,7 @@
 
 import { Path, isArray } from './path.js';
 import { marcmap } from '../marcmap.js';
+import { randomUUID } from 'node:crypto';
 
 type Data = any;
 type Fixer = (data: Data) => Data;
@@ -109,24 +110,57 @@ export const FIXES: Record<string, FixBuilder> = {
 
     // --- MARC: reuse marcattacks' existing marcmap() for field extraction ---
     // marc_map(MARC_PATH, JSON_PATH, split:0|1, join:Str, value:Str)
+    // Mirrors Catmandu::Fix::marc_map's emit loop: the result is a list of
+    // values and each value is created at JSON_PATH (so a $append/numeric
+    // target appends one element per value). Supports a /from-to substring.
     marc_map: (args) => {
-        const marcPath = args[0]!;
+        const marcPath0 = args[0]!;
         const jsonPath = args[1]!;
         const opts: Record<string, string | undefined> = {};
         for (let i = 2; i < args.length; i += 2) opts[args[i]!] = args[i + 1];
         const split = opts.split === '1' || opts.split === 'true';
-        const joinChar = opts.join ?? ' ';
+        const joinChar = opts.join ?? '';   // Catmandu marc_map default join is empty
         const value = opts.value;
-        const creator = new Path(jsonPath).creator(undefined);
+
+        // substring suffix, e.g. 008/35-37
+        let marcPath = marcPath0;
+        let from: number | undefined;
+        let len = 1;
+        const sub = /^(.*)\/(\d+)(?:-(\d+))?$/.exec(marcPath0);
+        if (sub) { marcPath = sub[1]!; from = Number(sub[2]); if (sub[3] !== undefined) len = Number(sub[3]) - from + 1; }
+
+        const p = new Path(jsonPath);
+        const lastKey = p.keys.length ? p.keys[p.keys.length - 1]! : '';
+        const forceArray = /^(\$.*|[0-9]+)$/.test(lastKey);
+        const creator = p.creator(undefined);
+
         return (data: Data) => {
             const rec = data?.record;
             if (!isArray(rec)) return data;
-            const vals = marcmap(rec, marcPath, { join_char: joinChar });
-            if (!vals.length) return data;                 // no match -> leave record untouched
-            if (value !== undefined) return creator(data, value); // value:Str -> set constant if field exists
-            return creator(data, split ? vals : vals.join(''));
+            // marcmap() yields one entry per tag-matched field; an empty string
+            // means the field matched the tag but had no matching subfield.
+            // Catmandu drops those, so filter them out.
+            let vals = marcmap(rec, marcPath, { join_char: joinChar }).filter((v) => v !== '');
+            if (from !== undefined) {
+                vals = vals.map((v) => (v.length > from! ? v.substr(from!, len) : undefined))
+                    .filter((v): v is string => v !== undefined);
+            }
+            if (!vals.length) return data;
+
+            let result: Data[];
+            if (value !== undefined) result = [value];                 // value:Str -> constant when field exists
+            else if (forceArray) result = vals;                        // append/numeric target: one element per value
+            else if (split) result = [vals];                           // split: a single array value
+            else result = [vals.join(joinChar)];                       // default: one joined string
+
+            for (const v of result) data = creator(data, v);
+            return data;
         };
     },
+
+    // genid(PATH): create / overwrite each terminal slot with a fresh id.
+    // A fresh id is generated per slot (so PATH.* yields a distinct id each).
+    genid: ([path]) => new Path(path!).creator(() => `genid:${randomUUID()}`),
 
     // --- misc ---
     nothing: () => (data: Data) => data,
