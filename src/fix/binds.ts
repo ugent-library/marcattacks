@@ -7,9 +7,17 @@
 // `doset` returns the bound result.
 
 import { Path, isHash, isArray } from './path.js';
+import { REJECT } from './signal.js';
 
 type Data = any;
 type Runner = (data: Data) => Data;
+
+// structured field hash for marc_each's `var` (tag/ind1/ind2/subfields)
+function fieldToHash(row: string[]): Data {
+    const subfields: Data[] = [];
+    for (let i = 3; i < row.length; i += 2) subfields.push({ [row[i]!]: row[i + 1] });
+    return { tag: row[0], ind1: row[1], ind2: row[2], subfields };
+}
 
 function parseOpts(args: string[]): Record<string, string> {
     const o: Record<string, string> = {};
@@ -44,6 +52,25 @@ export function buildBind(name: string, args: string[], body: Runner, doset: boo
                 result = []; // zero
             }
             return doset ? result : root;
+        };
+    }
+
+    // marc_each: iterate each MARC field; run the block on a record holding
+    // just that field; accumulate the resulting fields. reject() drops a field.
+    if (name === 'marc_each') {
+        const varName = opts.var;
+        return (data: Data) => {
+            const rows: string[][] = (data && isArray(data.record)) ? data.record : [];
+            const out: string[][] = [];
+            for (const row of rows) {
+                data.record = [row];
+                if (varName !== undefined) data[varName] = fieldToHash(row);
+                const fixed = body(data);
+                if (fixed !== REJECT && fixed && isArray(fixed.record)) out.push(...fixed.record);
+                if (varName !== undefined) delete data[varName];
+            }
+            data.record = out;
+            return data;
         };
     }
 

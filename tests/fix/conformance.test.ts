@@ -146,6 +146,27 @@ describe("Fix conformance — ported from Catmandu t/", () => {
         )).toEqual({ out: [{ name: "one", t: "S" }, { name: "two", t: "S" }] });
     });
 
+    test("marc_each bind (MARC field iteration, marc_match, reject)", () => {
+        const rec = () => ({
+            record: [
+                ["001", " ", " ", "_", "R1"],
+                ["500", " ", " ", "a", "Test"],
+                ["500", " ", " ", "a", "Test2", "e", "skip"],
+                ["500", " ", " ", "a", "Test3"],
+            ],
+        });
+        // copy 500 -> note unless $e == skip (Catmandu's documented example)
+        expect(compileFix(
+            "do marc_each() unless marc_match('500e', skip) marc_map('500', note.$append) end end remove_field(record)"
+        )(rec())).toEqual({ note: ["Test", "Test3"] });
+        // reject() drops the matching field, keeps the rest
+        const out = compileFix(
+            "do marc_each() if marc_match('500e', skip) reject() end end"
+        )(rec());
+        expect(out.record.length).toBe(3);
+        expect(out.record.some((f: string[]) => f.includes("skip"))).toBe(false);
+    });
+
     test("genid", () => {
         const out = buildFix("genid", ["x"])({});
         expect(out.x).toMatch(/^genid:[0-9a-f-]{36}$/);

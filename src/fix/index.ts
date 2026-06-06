@@ -2,12 +2,14 @@ import { parseFix, type Statement } from './parser.js';
 import { buildFix } from './fixes.js';
 import { buildCondition } from './conditions.js';
 import { buildBind } from './binds.js';
+import { REJECT } from './signal.js';
 
 export { Path } from './path.js';
 export { FIXES, buildFix } from './fixes.js';
 export { parseFix } from './parser.js';
 export { buildCondition } from './conditions.js';
 export { buildBind } from './binds.js';
+export { REJECT } from './signal.js';
 
 type Runner = (data: any) => any;
 
@@ -22,7 +24,10 @@ function compileStatements(stmts: Statement[]): Runner {
         return (data: any) => (cond(data) === wantTrue ? thenRun(data) : elseRun(data));
     });
     return (data: any) => {
-        for (const r of runners) data = r(data);
+        for (const r of runners) {
+            data = r(data);
+            if (data === REJECT) return REJECT; // stop the sequence on reject()
+        }
         return data;
     };
 }

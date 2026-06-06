@@ -6,6 +6,7 @@
 import { Path, isArray } from './path.js';
 import { marcmap } from '../marcmap.js';
 import { randomUUID } from 'node:crypto';
+import { REJECT } from './signal.js';
 
 type Data = any;
 type Fixer = (data: Data) => Data;
@@ -161,6 +162,15 @@ export const FIXES: Record<string, FixBuilder> = {
     // genid(PATH): create / overwrite each terminal slot with a fresh id.
     // A fresh id is generated per slot (so PATH.* yields a distinct id each).
     genid: ([path]) => new Path(path!).creator(() => `genid:${randomUUID()}`),
+
+    // marc_remove(TAG): drop all MARC fields with the given tag.
+    marc_remove: ([tag]) => (data: Data) => {
+        if (data && isArray(data.record)) data.record = data.record.filter((r: string[]) => r[0] !== tag);
+        return data;
+    },
+
+    // reject(): drop the current record / field (used inside marc_each etc.)
+    reject: () => () => REJECT,
 
     // --- misc ---
     nothing: () => (data: Data) => data,
