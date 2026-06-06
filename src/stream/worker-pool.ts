@@ -108,7 +108,15 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
     // push as many ready records as the downstream will take
     function pump(): void {
         const before = outQueue.length;
-        while (outQueue.length && stream.push(outQueue[0])) outQueue.shift();
+        // push() returns false when the consumer is backed up, but the record
+        // it was given HAS been accepted — so always shift it off the queue,
+        // then stop pushing. (Leaving it on the queue re-pushes the same record
+        // on the next _read, looping forever once a real sink applies
+        // backpressure; the null sink never does, which masked this.)
+        while (outQueue.length) {
+            const ok = stream.push(outQueue.shift());
+            if (!ok) break;
+        }
         if (dbg() && outQueue.length > 0 && outQueue.length === before) {
             logger.debug(`downstream full, holding ${outQueue.length} records`);
         }
