@@ -114,17 +114,24 @@ export async function createCountSkipStage(opts: {count?: number, skip?: number}
     return null;
 }
 
+// --workers is "auto" by default = CPU cores - 1, leaving a core for the main
+// thread (parse / I/O / serialize / reorder). An explicit number is honored
+// as-is; "1" (or auto resolving to 1 on a single core) disables threading.
+export function isAutoWorkers(workersOpt: unknown): boolean {
+    return workersOpt === undefined || workersOpt === 'auto';
+}
+export function resolveWorkerCount(workersOpt: unknown, cores: number = availableParallelism()): number {
+    return isAutoWorkers(workersOpt)
+        ? Math.max(1, cores - 1)
+        : (parseInt(String(workersOpt), 10) || 1);
+}
+
 export async function createMapTransformStage(opts: any): Promise<Transform | null> {
     if (opts.map) {
         const mod = await loadPlugin(opts.map, 'transform');
-        // --workers default is "auto" = CPU cores - 1, leaving a core for the
-        // main thread (parse / I/O / serialize / reorder). An explicit number is
-        // honored as-is; "1" (or auto resolving to 1 on a single core) disables
-        // threading. A map is parallelizable iff it exposes createMapper().
-        const isAuto = opts.workers === undefined || opts.workers === 'auto';
-        const workers = isAuto
-            ? Math.max(1, availableParallelism() - 1)
-            : (parseInt(opts.workers, 10) || 1);
+        // A map is parallelizable iff it exposes a per-record createMapper().
+        const isAuto = isAutoWorkers(opts.workers);
+        const workers = resolveWorkerCount(opts.workers);
         if (workers > 1) {
             if (typeof mod.createMapper === 'function') {
                 return createWorkerPool({ map: opts.map, param: opts.param, workers });

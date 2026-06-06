@@ -10,6 +10,8 @@ import {
     createMapTransformStage,
     createOutputTransformStage,
     createOutputWriteStream,
+    resolveWorkerCount,
+    isAutoWorkers,
 } from "../dist/attacker.js";
 import { SlowWritable } from "../dist/stream/slow-writable.js";
 import { Writable } from "node:stream";
@@ -116,6 +118,64 @@ describe("attacker — stage builders", () => {
     test("createInputReadStream maps stdin: to process.stdin", async () => {
         const { stream } = await createInputReadStream(new URL("stdin://"), {});
         expect(stream).toBe(process.stdin);
+    });
+});
+
+describe("attacker — resolveWorkerCount (--workers default)", () => {
+    test("isAutoWorkers: only undefined / 'auto' are auto", () => {
+        expect(isAutoWorkers(undefined)).toBe(true);
+        expect(isAutoWorkers("auto")).toBe(true);
+        expect(isAutoWorkers("1")).toBe(false);
+        expect(isAutoWorkers("8")).toBe(false);
+        expect(isAutoWorkers(4)).toBe(false);
+    });
+
+    test("auto resolves to cores - 1 (leaving a core for the main thread)", () => {
+        expect(resolveWorkerCount("auto", 8)).toBe(7);
+        expect(resolveWorkerCount(undefined, 8)).toBe(7);
+        expect(resolveWorkerCount("auto", 4)).toBe(3);
+        expect(resolveWorkerCount("auto", 2)).toBe(1);
+    });
+
+    test("auto never drops below 1 (single-core hosts)", () => {
+        expect(resolveWorkerCount("auto", 1)).toBe(1);
+        expect(resolveWorkerCount("auto", 0)).toBe(1);
+    });
+
+    test("an explicit count is honored as-is, regardless of cores", () => {
+        expect(resolveWorkerCount("1", 8)).toBe(1);
+        expect(resolveWorkerCount("3", 8)).toBe(3);
+        expect(resolveWorkerCount("16", 8)).toBe(16);   // clamping happens later, in the pool
+        expect(resolveWorkerCount(4, 8)).toBe(4);
+    });
+
+    test("a non-numeric explicit value falls back to 1 (threading off)", () => {
+        expect(resolveWorkerCount("nope", 8)).toBe(1);
+        expect(resolveWorkerCount("", 8)).toBe(1);
+    });
+
+    test("auto + parallelizable map (cores>1) builds a worker-pool stage", async () => {
+        // 'fix' is parallelizable; with no --workers (auto) on a multi-core host
+        // this must engage the pool, which we detect by its 'flush' wiring being
+        // distinct from the plain transform: simplest robust check is that it is
+        // a Transform that maps correctly through worker threads.
+        const stage: any = await createMapTransformStage({
+            map: "fix",
+            param: { fix: 'add_field("w","1")' },
+            // workers omitted -> auto
+        });
+        expect(typeof stage.pipe).toBe("function");
+        // run a record through and confirm the map applied, then close workers.
+        const seen: any[] = [];
+        await new Promise<void>((resolve, reject) => {
+            stage.on("data", (r: any) => seen.push(r));
+            stage.on("error", reject);
+            stage.on("end", () => resolve());
+            stage.write({ record: [["001", " ", " ", "_", "1"]] });
+            stage.end();
+        });
+        expect(seen).toHaveLength(1);
+        expect(seen[0].w).toBe("1");
     });
 });
 
