@@ -1,4 +1,5 @@
 import { Transform, type TransformCallback } from "stream";
+import { StringDecoder } from "node:string_decoder";
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
@@ -8,6 +9,9 @@ export async function transform(_opts: any): Promise<Transform> {
     let rec: string[][] = [];
     let previd: string = "";
     let tail = "";
+    // decode bytes to UTF-8 across chunk boundaries (a multi-byte character may
+    // be split between two chunks; StringDecoder buffers the incomplete bytes)
+    const decoder = new StringDecoder("utf8");
 
     function processLine(line: string, stream: Transform): boolean {
         if (!line.match(/^\w+\s[\x20-\x7E]{5}\sL\s.*/u)) {
@@ -45,7 +49,7 @@ export async function transform(_opts: any): Promise<Transform> {
         objectMode: true,
 
         transform(chunk: any, _encoding: string, callback: TransformCallback) {
-            const data = tail + chunk.toString();
+            const data = tail + decoder.write(chunk);
             const lines = data.split(/\r?\n/);
 
             tail = lines.pop() || "";
@@ -59,10 +63,11 @@ export async function transform(_opts: any): Promise<Transform> {
         },
 
         flush(callback: TransformCallback) {
+            tail += decoder.end();   // flush any buffered trailing bytes
             if (tail.length > 0) {
                 processLine(tail,this);
             }
-            
+
             if (rec.length > 0) {
                 this.push({ record: rec });
             }
