@@ -1,6 +1,6 @@
 // Parser for Catmandu Fix scripts. Supports statement-form fix calls plus
-// if/unless ... [else] ... end conditional blocks. (do...end binds are parsed
-// but their body is flattened — full bind semantics are not yet implemented.)
+// if/unless ... [else] ... end conditional blocks and do/doset ... end binds
+// (compiled with full bind semantics by index.ts via buildBind).
 //
 // Tokens follow Catmandu::Fix::Parser: bare strings, single/double quoted
 // strings (with Catmandu's escape rules), and `, : =>` as separators.
