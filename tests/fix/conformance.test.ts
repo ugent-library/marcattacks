@@ -100,6 +100,23 @@ describe("Fix conformance — ported from Catmandu t/", () => {
         expect(fix("split_field", ["splitme", ","], { splitme: ["a", "b", "c"] })).toEqual({ splitme: ["a", "b", "c"] });
     });
 
+    test("marc_map (reuses marcattacks marcmap)", () => {
+        const rec = () => ({
+            record: [
+                ["001", " ", " ", "_", "123"],
+                ["245", "1", "0", "a", "Hello", "b", "World"],
+                ["500", " ", " ", "a", "note1"],
+                ["500", " ", " ", "a", "note2"],
+            ],
+        });
+        expect(fix("marc_map", ["001", "id"], rec()).id).toBe("123");
+        expect(fix("marc_map", ["245ab", "title", "join", " "], rec()).title).toBe("Hello World");
+        expect(fix("marc_map", ["500a", "notes", "split", "1"], rec()).notes).toEqual(["note1", "note2"]);
+        expect(fix("marc_map", ["024a", "isbn", "value", "Y"], rec()).isbn).toBeUndefined(); // no 024 -> untouched
+        expect(fix("marc_map", ["001", "found", "value", "Y"], rec()).found).toBe("Y");      // value: constant
+        expect(fix("marc_map", ["100a", "deep.$append.name"], rec()).deep).toBeUndefined();   // no 100 -> untouched
+    });
+
     test("paste", () => {
         expect(fix("paste", ["my.string", "a", "b", "c", "d"], { a: "eeny", b: "meeny", c: "miny", d: "moe" }))
             .toMatchObject({ my: { string: "eeny meeny miny moe" } });

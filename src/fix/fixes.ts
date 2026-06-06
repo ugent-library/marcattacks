@@ -4,6 +4,7 @@
 // (see the conformance tests, which are ported from Catmandu's own t/).
 
 import { Path, isArray } from './path.js';
+import { marcmap } from '../marcmap.js';
 
 type Data = any;
 type Fixer = (data: Data) => Data;
@@ -103,6 +104,27 @@ export const FIXES: Record<string, FixBuilder> = {
                 else for (const v of p.getter(data)) if (isValue(v)) vals.push(v);
             }
             return creator(data, vals.join(joinChar));
+        };
+    },
+
+    // --- MARC: reuse marcattacks' existing marcmap() for field extraction ---
+    // marc_map(MARC_PATH, JSON_PATH, split:0|1, join:Str, value:Str)
+    marc_map: (args) => {
+        const marcPath = args[0]!;
+        const jsonPath = args[1]!;
+        const opts: Record<string, string | undefined> = {};
+        for (let i = 2; i < args.length; i += 2) opts[args[i]!] = args[i + 1];
+        const split = opts.split === '1' || opts.split === 'true';
+        const joinChar = opts.join ?? ' ';
+        const value = opts.value;
+        const creator = new Path(jsonPath).creator(undefined);
+        return (data: Data) => {
+            const rec = data?.record;
+            if (!isArray(rec)) return data;
+            const vals = marcmap(rec, marcPath, { join_char: joinChar });
+            if (!vals.length) return data;                 // no match -> leave record untouched
+            if (value !== undefined) return creator(data, value); // value:Str -> set constant if field exists
+            return creator(data, split ? vals : vals.join(''));
         };
     },
 
