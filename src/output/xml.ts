@@ -68,6 +68,24 @@ export async function transform(_opts:any) : Promise<Transform> {
     });
 }
 
+// True if the string contains any character escapeXML would change: & < >
+// (and " ' for attributes), disallowed XML 1.0 control chars, surrogates, or
+// non-characters. A single char-code scan; lets the common (clean) case skip
+// the 5-7 regex replaces below. No literal control chars in source.
+function needsEscape(s: string, forAttribute: boolean): boolean {
+    for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        if (c === 38 || c === 60 || c === 62) return true;                 // & < >
+        if (forAttribute && (c === 34 || c === 39)) return true;           // " '
+        if (c <= 0x08 || c === 0x0B || c === 0x0C || (c >= 0x0E && c <= 0x1F)) return true; // ctrl
+        if (c >= 0x7F && c <= 0x9F) return true;
+        if (c >= 0xD800 && c <= 0xDFFF) return true;                       // surrogates
+        if (c >= 0xFDD0 && c <= 0xFDEF) return true;                       // non-chars
+        if (c === 0xFFFE || c === 0xFFFF) return true;
+    }
+    return false;
+}
+
 export function escapeXML(
   value: string | number | null | undefined,
   options?: { forAttribute?: boolean }
@@ -75,6 +93,9 @@ export function escapeXML(
     if (value === null || value === undefined) return '';
 
     let s = String(value);
+
+    // Fast path: most values are clean, so skip the regex replaces below.
+    if (!needsEscape(s, options?.forAttribute === true)) return s;
 
     // STEP 1: Remove/replace invalid UTF-8 and disallowed XML characters
     
