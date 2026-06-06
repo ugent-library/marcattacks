@@ -157,7 +157,17 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
     }
 
     for (let i = 0; i < N; i++) {
-        const w = new Worker(workerUrl, { workerData: { map: opts.map, param: opts.param } });
+        // stdout/stderr: true keeps each worker's stdio OUT of the parent's
+        // process.stdout/stderr. By default Node pipes every worker's stdio
+        // through to the parent, attaching close/error/finish listeners to the
+        // parent WriteStream per worker -> a MaxListenersExceededWarning once
+        // --workers crosses ~8. Workers here are pure compute and report results
+        // and errors over postMessage, so they never need the parent's console.
+        const w = new Worker(workerUrl, {
+            workerData: { map: opts.map, param: opts.param },
+            stdout: true,
+            stderr: true,
+        });
         workers.push(w);
         w.on('message', (msg: any) => {
             if (msg && msg.ready) { idle.push(w); dispatch(); if (dbg()) logger.debug(`worker ${idle.length}/${N} ready`); }
