@@ -8,14 +8,15 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
-export async function transform(opts: { fix: string, lookup: string }) : Promise<Transform> {
+// Build a pure record -> record(Promise) mapper. Shared by the in-process
+// transform() and by the worker pool (so the heavy evaluate() can run on
+// worker threads). Expression + helper functions are compiled once.
+export async function createMapper(opts: { fix: string, lookup: string }) : Promise<(data: any) => any> {
     let lookup : Record<string,string> = {};
 
     if (opts.lookup) {
         lookup = await loadLookup(opts.lookup);
     }
-
-    logger.info(lookup);
 
     // Resolve the query once, up front, instead of on every record.
     let query : string;
@@ -34,17 +35,12 @@ export async function transform(opts: { fix: string, lookup: string }) : Promise
 
     // The identity expression is a pure pass-through: skip jsonata entirely.
     if (query.trim() === '$') {
-        return new Transform({
-            objectMode: true,
-            transform(data: any, _encoding: BufferEncoding, callback: Stream.TransformCallback) {
-                callback(null, data);
-            }
-        });
+        return (data: any) => data;
     }
 
     // Compile the expression and register helper functions ONCE. The helpers
-    // read the record currently being processed via `current`; the stream is
-    // strictly sequential (each evaluate is awaited) so this is safe.
+    // read the record currently being processed via `current`; each evaluate
+    // is awaited before the next, so this is safe.
     let current: any;
     const expression = jsonata(query);
     expression.registerFunction('marcmap', (code: string) => marcmap(current['record'], code, {}));
@@ -56,12 +52,17 @@ export async function transform(opts: { fix: string, lookup: string }) : Promise
     expression.registerFunction('genid', () => genid());
     expression.registerFunction('lookup', (key) => lookup[key]);
 
+    return async (data: any) => { current = data; return expression.evaluate(data); };
+}
+
+export async function transform(opts: { fix: string, lookup: string }) : Promise<Transform> {
+    const mapper = await createMapper(opts);
+
     return new Transform({
         objectMode: true,
         async transform(data: any, _encoding: BufferEncoding, callback: Stream.TransformCallback) {
             try {
-                current = data;
-                callback(null, await expression.evaluate(data));
+                callback(null, await mapper(data));
             }
             catch (err: any) {
                 logger.info(err);
