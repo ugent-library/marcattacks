@@ -57,6 +57,30 @@ Transform the MARC input using a [JSONata](https://docs.jsonata.org/overview.htm
 marcattacks --param fix=./demo/demo.jsonata ./data/sample.xml
 ```
 
+Or transform using a [Catmandu](https://librecat.org/) **Fix** script — a declarative,
+line-based mapping language built for library metadata (and faster than JSONata):
+
+```
+marcattacks --to jsonl --map fix --param fix=./demo/marc2rdf.fix ./data/sample.xml
+```
+
+A Fix script is a list of `name(args)` statements, with `if/unless ... end`
+conditionals and `do ... end` binds:
+
+```
+marc_map('245ab', title, join: ' ')   # copy MARC 245$a$b into title
+upcase(title)                          # uppercase it
+add_field(type, Book)                  # add a constant field
+lookup(type, ./types.csv)              # map a value through a CSV table
+do marc_each()                         # loop over each MARC field
+  unless marc_match('500e', skip)
+    marc_map('500', note.$append)
+  end
+end
+```
+
+See `./demo/marc2rdf.fix` and `./demo/example.fix` for complete examples.
+
 ## Stdin
 
 Use a pseudo URL `stdin://` to read from the standard input
@@ -131,6 +155,7 @@ use `s3s://...` for using an SSL layer.
 ### Transform (--map)
 
 - avram : A mapper from MARC to [Avram](https://format.gbv.de/schema/avram/specification) 
+- fix : A [Catmandu](https://librecat.org/) Fix-language mapper (`--param fix=<file>`). See `./demo/marc2rdf.fix`
 - jsonata : A jsonata fixer (_default_)
 - marc2rdf : A mapper from MARC to RDF (demonstrator)
 - marcids : A mapper from MARC to a list of record ids
