@@ -87,3 +87,25 @@ globtrotr 'sftp://marc:marcpass@localhost:2222/files/@glob:xml'
 marcattacks data/sample.xml --from xml --to jsonl \
   --out sftp://marc:marcpass@localhost:2222/upload/out.jsonl
 ```
+
+### HTTP
+
+An `nginx` server on port `8080` serves the repo's `data/` directory as static
+files. HTTP is **read-only** (there is no HTTP write backend).
+
+For `@latest:` / `@glob:`, marcattacks does not parse a directory listing — it
+GETs the container URL and parses the response as RDF, reading `ldp:contains`
+members and `dcterms:modified`. The server therefore returns an LDP container
+document (`docker/http/container.ttl`) at `/`; edit it to add or re-date members.
+
+```
+# read a static file
+marcattacks --from xml http://localhost:8080/sample.xml --to json
+
+# resolve the newest member with a given extension
+marcattacks --from xml 'http://localhost:8080/@latest:xml'
+
+# list container members
+globtrotr 'http://localhost:8080/@glob:xml'
+globtrotr 'http://localhost:8080/@glob:*'
+```

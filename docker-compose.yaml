@@ -46,6 +46,18 @@ services:
     # format: user:password:UID:GID:upload-subdir
     command: marc:marcpass:1001:1001:upload
 
+  http:
+    image: nginx:alpine
+    ports:
+      - 8080:80
+    volumes:
+      # serve the repo's sample data as static files (read-only)
+      - ./data:/usr/share/nginx/html:ro
+      # an LDP container doc served at / so http:// @latest: and @glob: resolve
+      # (mounted outside the read-only web root, then aliased in nginx.conf)
+      - ./docker/http/container.ttl:/srv/container.ttl:ro
+      - ./docker/http/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
 volumes:
   minio-data:
     driver: local

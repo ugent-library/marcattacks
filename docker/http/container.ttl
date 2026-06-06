@@ -1,0 +1,15 @@
+# LDP container description served at http://localhost:8080/ (see nginx.conf).
+# marcattacks' httpLatestObject()/httpGlobFiles() read ldp:contains to list
+# members and dcterms:modified to pick the newest for @latest:. Member IRIs are
+# relative, so they resolve against the container URL (http://localhost:8080/).
+@prefix ldp: <http://www.w3.org/ns/ldp#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<>
+    a ldp:Container, ldp:BasicContainer ;
+    ldp:contains <sample.xml>, <sample.xml.gz>, <biblio.json> .
+
+<sample.xml>    dcterms:modified "2026-02-15T09:16:00Z"^^xsd:dateTime .
+<sample.xml.gz> dcterms:modified "2026-02-10T09:16:00Z"^^xsd:dateTime .
+<biblio.json>   dcterms:modified "2026-01-07T17:26:00Z"^^xsd:dateTime .
