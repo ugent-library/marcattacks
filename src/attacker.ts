@@ -18,6 +18,7 @@ import {
 } from './util/stream_helpers.js';
 import { fileLatestFile, fileReadStream } from './stream/filestream.js';
 import { createWorkerPool } from './stream/worker-pool.js';
+import { availableParallelism } from 'node:os';
 
 const logger = log4js.getLogger();
 
@@ -116,14 +117,21 @@ export async function createCountSkipStage(opts: {count?: number, skip?: number}
 export async function createMapTransformStage(opts: any): Promise<Transform | null> {
     if (opts.map) {
         const mod = await loadPlugin(opts.map, 'transform');
-        const workers = parseInt(opts.workers ?? '1', 10) || 1;
-        // Run the map across worker threads when requested and supported. A map
-        // is parallelizable iff it exposes a pure per-record createMapper().
+        // --workers default is "auto" = CPU cores - 1, leaving a core for the
+        // main thread (parse / I/O / serialize / reorder). An explicit number is
+        // honored as-is; "1" (or auto resolving to 1 on a single core) disables
+        // threading. A map is parallelizable iff it exposes createMapper().
+        const isAuto = opts.workers === undefined || opts.workers === 'auto';
+        const workers = isAuto
+            ? Math.max(1, availableParallelism() - 1)
+            : (parseInt(opts.workers, 10) || 1);
         if (workers > 1) {
             if (typeof mod.createMapper === 'function') {
                 return createWorkerPool({ map: opts.map, param: opts.param, workers });
             }
-            logger.warn(`--workers ${workers} ignored: map '${opts.map}' is not parallelizable`);
+            // Only nag when the user explicitly asked for threads; the auto
+            // default falls back to serial silently for non-parallelizable maps.
+            if (!isAuto) logger.warn(`--workers ${workers} ignored: map '${opts.map}' is not parallelizable`);
         }
         return await mod.transform(opts.param, { utils: marcUtils });
     }
