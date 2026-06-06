@@ -28,7 +28,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit",
     "build:ts": "npx tsc",
     "build:watch": "npx tsc -w",
     "demo:alephseq": "npx marcattacks --to alephseq data/sample.xml",
