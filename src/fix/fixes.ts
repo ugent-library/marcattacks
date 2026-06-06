@@ -7,6 +7,7 @@ import { Path, isArray, isHash, KEEP, DROP } from './path.js';
 import { marcmap } from '../marcmap.js';
 import { randomUUID } from 'node:crypto';
 import { REJECT } from './signal.js';
+import { sprintf, collapseHash, expandHash } from './util.js';
 import fs from 'node:fs';
 
 type Data = any;
@@ -270,9 +271,97 @@ export const FIXES: Record<string, FixBuilder> = {
     // vacuum(): recursively delete empty fields (null, blank string, [], {}).
     vacuum: () => (data: Data) => { vacuum(data); return data; },
 
+    // format(PATH, SPEC): sprintf the value (string / array / hash) with SPEC.
+    format: ([path, spec]) => new Path(path!).updater((v) => {
+        if (isArray(v)) return sprintf(spec!, v);
+        if (isHash(v)) return sprintf(spec!, Object.entries(v).flat());
+        return sprintf(spec!, [v]);
+    }),
+
+    // count(PATH): replace an array/hash value with its size.
+    count: ([path]) => new Path(path!).updater((v) =>
+        isArray(v) ? v.length : isHash(v) ? Object.keys(v).length : v),
+
+    // set_array(PATH, v...) / set_hash(PATH, k, v, ...): set to a fresh array/hash.
+    set_array: (args) => new Path(args[0]!).setter(() => [...args.slice(1)]),
+    set_hash: (args) => new Path(args[0]!).setter(() => {
+        const o: Data = {}; const vs = args.slice(1);
+        for (let i = 0; i < vs.length; i += 2) o[vs[i]!] = vs[i + 1];
+        return o;
+    }),
+
+    // from_json(PATH) / to_json(PATH)
+    from_json: ([path]) => new Path(path!).updater((v) => JSON.parse(v), 'string'),
+    to_json: ([path]) => new Path(path!).updater((v) => JSON.stringify(v)),
+
+    // rename(PATH, SEARCH, REPLACE): regex-rename hash keys under PATH (recursive).
+    rename: ([path, search, replace]) => {
+        const re = new RegExp(search!, 'g');
+        const renamer = (node: Data): Data => {
+            if (isHash(node)) {
+                for (const old of Object.keys(node)) {
+                    const val = node[old];
+                    const nw = old.replace(re, replace!);
+                    if (nw !== old) { delete node[old]; node[nw] = val; }
+                    renamer(val);
+                }
+            } else if (isArray(node)) {
+                for (const el of node) renamer(el);
+            }
+            return node;
+        };
+        return new Path(path!).updater(renamer);
+    },
+
+    // filter(PATH, REGEX, invert:1): keep array values (not) matching REGEX.
+    filter: (args) => {
+        const opts: Record<string, string | undefined> = {};
+        for (let i = 2; i < args.length; i += 2) opts[args[i]!] = args[i + 1];
+        const re = new RegExp(args[1]!);
+        const invert = opts.invert === '1' || opts.invert === 'true';
+        return new Path(args[0]!).updater((arr) =>
+            arr.filter((x: Data) => re.test(String(x)) !== invert), 'array');
+    },
+
+    // flatten(PATH): recursively flatten nested arrays into one flat array.
+    flatten: ([path]) => new Path(path!).updater((arr) => {
+        let a = arr;
+        while (a.some((x: Data) => isArray(x))) a = a.flatMap((x: Data) => (isArray(x) ? x : [x]));
+        return a;
+    }, 'array'),
+
+    // collapse([sep]) / expand([sep]): whole-record flatten / nest (dot convention)
+    collapse: (args) => {
+        const sep = parseDashOpt(args, 'sep');
+        return (data: Data) => {
+            const c = collapseHash(data);
+            if (sep === undefined || sep === '.') return c;
+            const o: Data = {};
+            for (const k of Object.keys(c)) o[k.replaceAll('.', sep)] = c[k];
+            return o;
+        };
+    },
+    expand: (args) => {
+        const sep = parseDashOpt(args, 'sep');
+        return (data: Data) => {
+            if (sep === undefined || sep === '.') return expandHash(data);
+            const o: Data = {};
+            for (const k of Object.keys(data)) o[k.replaceAll(sep, '.')] = data[k];
+            return expandHash(o);
+        };
+    },
+
     // --- misc ---
     nothing: () => (data: Data) => data,
 };
+
+// parse a Catmandu-style "-sep => x" / "sep: x" option out of an arg list
+function parseDashOpt(args: string[], name: string): string | undefined {
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === name || args[i] === `-${name}`) return args[i + 1];
+    }
+    return undefined;
+}
 
 function isEmpty(v: Data): boolean {
     return v === undefined || v === null

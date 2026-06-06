@@ -208,6 +208,35 @@ describe("Fix conformance — ported from Catmandu t/", () => {
             .toEqual({ a: "x", h: [1] });
     });
 
+    test("format / count / set_array / set_hash / from_json / to_json", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        expect(run('format(n, "%-10.10d")', { n: 41 })).toEqual({ n: "0000000041" });
+        expect(run('format(n, "%05.2f")', { n: 3.14159 })).toEqual({ n: "03.14" });
+        expect(run('format(s, "[%s]")', { s: "hi" })).toEqual({ s: "[hi]" });
+        expect(run("count(tags)", { tags: ["a", "b", "c"] })).toEqual({ tags: 3 });
+        expect(run("count(h)", { h: { a: 1, b: 2 } })).toEqual({ h: 2 });
+        expect(run("set_array(foo, a, b, c)", {})).toEqual({ foo: ["a", "b", "c"] });
+        expect(run("set_hash(foo, a, 1, b, 2)", {})).toEqual({ foo: { a: "1", b: "2" } });
+        expect(run("from_json(j)", { j: '{"a":[1,2]}' })).toEqual({ j: { a: [1, 2] } });
+        expect(run("to_json(j)", { j: { a: [1, 2] } })).toEqual({ j: '{"a":[1,2]}' });
+    });
+
+    test("rename / filter / flatten / collapse / expand", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        expect(run('rename(d, "\\\\.", "-")', { d: { "ns.foo": "v", x: { "ns.bar": "w" } } }))
+            .toEqual({ d: { "ns-foo": "v", x: { "ns-bar": "w" } } });
+        expect(run('filter(words, "Pa")', { words: ["Patrick", "Nicolas", "Paul"] }))
+            .toEqual({ words: ["Patrick", "Paul"] });
+        expect(run('filter(words, "Pa", invert, 1)', { words: ["Patrick", "Nicolas", "Paul"] }))
+            .toEqual({ words: ["Nicolas"] });
+        expect(run("flatten(deep)", { deep: [1, [2, 3], 4, [5, [6, 7]]] }))
+            .toEqual({ deep: [1, 2, 3, 4, 5, 6, 7] });
+        expect(run("collapse()", { a: { b: 1 }, c: [10, 20] }))
+            .toEqual({ "a.b": 1, "c.0": 10, "c.1": 20 });
+        expect(run("expand()", { "a.b": 1, "c.0": 10, "c.1": 20 }))
+            .toEqual({ a: { b: 1 }, c: [10, 20] });
+    });
+
     test("paste", () => {
         expect(fix("paste", ["my.string", "a", "b", "c", "d"], { a: "eeny", b: "meeny", c: "miny", d: "moe" }))
             .toMatchObject({ my: { string: "eeny meeny miny moe" } });
