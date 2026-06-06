@@ -3,10 +3,11 @@
 // fixer from a path plus arguments. Semantics follow Catmandu::Fix::* exactly
 // (see the conformance tests, which are ported from Catmandu's own t/).
 
-import { Path, isArray } from './path.js';
+import { Path, isArray, isHash, KEEP, DROP } from './path.js';
 import { marcmap } from '../marcmap.js';
 import { randomUUID } from 'node:crypto';
 import { REJECT } from './signal.js';
+import fs from 'node:fs';
 
 type Data = any;
 type Fixer = (data: Data) => Data;
@@ -172,9 +173,127 @@ export const FIXES: Record<string, FixBuilder> = {
     // reject(): drop the current record / field (used inside marc_each etc.)
     reject: () => () => REJECT,
 
+    // lookup(PATH, FILE, default:X, delete:1, sep_char:C): map values through a
+    // 2-column CSV (key,val; no header). No match -> default / delete / keep.
+    lookup: (args) => {
+        const path = args[0]!;
+        const file = args[1]!;
+        const opts: Record<string, string | undefined> = {};
+        for (let i = 2; i < args.length; i += 2) opts[args[i]!] = args[i + 1];
+        const sep = opts.sep_char ?? ',';
+        const dict = new Map<string, string>();
+        for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+            if (!line) continue;
+            const idx = line.indexOf(sep);
+            if (idx < 0) continue;
+            dict.set(line.slice(0, idx), line.slice(idx + sep.length));
+        }
+        const del = opts.delete === '1' || opts.delete === 'true';
+        const hasDefault = 'default' in opts;
+        return new Path(path).rewrite((v) => {
+            if ((typeof v === 'string' || typeof v === 'number') && dict.has(String(v))) return dict.get(String(v));
+            if (del) return DROP;
+            if (hasDefault) return opts.default;
+            return KEEP;
+        });
+    },
+
+    // retain(PATH, ...): keep only the listed paths, drop everything else.
+    retain: (paths) => {
+        const getters = paths.map((p) => new Path(p).getter());
+        const creators = paths.map((p) => new Path(p).creator(undefined));
+        return (data: Data) => {
+            const temp: Data = {};
+            for (let i = 0; i < paths.length; i++) {
+                for (const v of getters[i]!(data)) creators[i]!(temp, v);
+            }
+            if (isHash(data)) { for (const k of Object.keys(data)) delete data[k]; Object.assign(data, temp); }
+            return data;
+        };
+    },
+
+    // retain_field(PATH): delete every sibling of the final key under its parent.
+    retain_field: ([path]) => {
+        const p = new Path(path!);
+        const key = p.keys.length ? p.keys[p.keys.length - 1]! : '';
+        const keep = key.replace(/^['"]|['"]$/g, '');
+        const parentGet = new Path(p.keys.slice(0, -1).join('.')).getter();
+        return (data: Data) => {
+            const parents = p.keys.length <= 1 ? [data] : parentGet(data);
+            for (const c of parents) if (isHash(c)) for (const k of Object.keys(c)) if (k !== keep) delete c[k];
+            return data;
+        };
+    },
+
+    // substring(PATH, offset, [length], [replacement])
+    substring: (args) => {
+        const path = args[0]!;
+        const off = Number(args[1]);
+        const a2 = args[2];
+        const a3 = args[3];
+        return new Path(path).updater((v) => {
+            const s = String(v);
+            if (a3 !== undefined) {                       // replacement form
+                const len = Number(a2);
+                return s.slice(0, off) + a3 + s.slice(off + len);
+            }
+            if (a2 !== undefined) return s.substr(off, Number(a2));
+            return s.substr(off);
+        }, 'value');
+    },
+
+    // sort_field(PATH, uniq:1, reverse:1, numeric:1)
+    sort_field: (args) => {
+        const path = args[0]!;
+        const opts: Record<string, string | undefined> = {};
+        for (let i = 1; i < args.length; i += 2) opts[args[i]!] = args[i + 1];
+        const doUniq = opts.uniq === '1';
+        const rev = opts.reverse === '1';
+        const num = opts.numeric === '1';
+        return new Path(path).updater((arr) => {
+            let defined = arr.filter((x: Data) => x !== undefined && x !== null);
+            const hadUndef = defined.length !== arr.length;
+            if (doUniq) { const seen = new Set(); defined = defined.filter((x: Data) => { const k = String(x); if (seen.has(k)) return false; seen.add(k); return true; }); }
+            defined.sort(num ? (a: Data, b: Data) => Number(a) - Number(b) : (a: Data, b: Data) => String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0);
+            if (rev) defined.reverse();
+            if (hadUndef) defined.push(null);             // undefs collapse to one at the end (undef_position default last)
+            return defined;
+        }, 'array');
+    },
+
+    // uniq(PATH): strip duplicate values from an array (keep first occurrence).
+    uniq: ([path]) => new Path(path!).updater((arr) => {
+        const seen = new Set<string>();
+        return arr.filter((x: Data) => { const k = String(x); if (seen.has(k)) return false; seen.add(k); return true; });
+    }, 'array'),
+
+    // vacuum(): recursively delete empty fields (null, blank string, [], {}).
+    vacuum: () => (data: Data) => { vacuum(data); return data; },
+
     // --- misc ---
     nothing: () => (data: Data) => data,
 };
+
+function isEmpty(v: Data): boolean {
+    return v === undefined || v === null
+        || (typeof v === 'string' && !/\S/.test(v))
+        || (isArray(v) && v.length === 0)
+        || (isHash(v) && Object.keys(v).length === 0);
+}
+
+function vacuum(node: Data): void {
+    if (isHash(node)) {
+        for (const k of Object.keys(node)) {
+            if (isEmpty(node[k])) delete node[k];
+            else { vacuum(node[k]); if (isEmpty(node[k])) delete node[k]; }
+        }
+    } else if (isArray(node)) {
+        for (let i = node.length - 1; i >= 0; i--) {
+            if (isEmpty(node[i])) node.splice(i, 1);
+            else { vacuum(node[i]); if (isEmpty(node[i])) node.splice(i, 1); }
+        }
+    }
+}
 
 export function buildFix(name: string, args: string[]): Fixer {
     const builder = FIXES[name];

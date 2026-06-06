@@ -22,6 +22,10 @@ type ValueFn = (current: Data, root: Data) => Data;
 
 const SPECIAL = new Set(['*', '$first', '$last', '$append', '$prepend']);
 
+// rewrite() callback verdicts: keep the value, drop the slot, or set a new value
+export const KEEP: unique symbol = Symbol('keep');
+export const DROP: unique symbol = Symbol('drop');
+
 export function isHash(x: Data): boolean {
     return x !== null && typeof x === 'object' && !Array.isArray(x);
 }
@@ -224,6 +228,47 @@ export class Path {
         const obj = node ?? {};
         obj[unquote(key)] = Path.create(obj[unquote(key)], rest, makeVal);
         return obj;
+    }
+
+    // rewrite each existing terminal value: fn returns KEEP (no change),
+    // DROP (remove the slot), or any other value to set. Handles deletion of
+    // array elements (*, index, $first/$last) and hash keys.
+    rewrite(fn: (v: Data) => Data): (data: Data) => Data {
+        const keys = this.keys;
+        const apply = (container: Data, key: string) => {
+            if (key === '*') {
+                if (!isArray(container)) return;
+                const out: Data[] = [];
+                for (const el of container) {
+                    const r = fn(el);
+                    if (r === DROP) continue;
+                    out.push(r === KEEP ? el : r);
+                }
+                container.splice(0, container.length, ...out);
+            } else if (key === '$first' || key === '$last' || /^(0|[1-9][0-9]*)$/.test(key)) {
+                const idx = key === '$first' ? 0 : key === '$last' ? container?.length - 1 : Number(key);
+                if (isArray(container) && idx >= 0 && idx < container.length) {
+                    const r = fn(container[idx]);
+                    if (r === DROP) container.splice(idx, 1);
+                    else if (r !== KEEP) container[idx] = r;
+                } else if (isHash(container) && unquote(key) in container) {
+                    const uq = unquote(key); const r = fn(container[uq]);
+                    if (r === DROP) delete container[uq]; else if (r !== KEEP) container[uq] = r;
+                }
+            } else {
+                const uq = unquote(key);
+                if (isHash(container) && uq in container) {
+                    const r = fn(container[uq]);
+                    if (r === DROP) delete container[uq]; else if (r !== KEEP) container[uq] = r;
+                }
+            }
+        };
+        return (data: Data) => {
+            if (keys.length === 0) return data;
+            const key = keys[keys.length - 1]!;
+            Path.navigate(data, keys.slice(0, -1), (c) => apply(c, key));
+            return data;
+        };
     }
 
     creator(value: Data | ValueFn): (data: Data, val?: Data) => Data {

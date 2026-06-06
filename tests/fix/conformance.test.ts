@@ -1,5 +1,8 @@
 import { describe, test, expect } from "@jest/globals";
 import { buildFix, compileFix } from "../../dist/fix/index.js";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 // Apply a fix the way Catmandu's unit tests do: build it from args, run on a
 // (cloned) input record, compare to the expected output. Cases are ported
@@ -173,6 +176,36 @@ describe("Fix conformance — ported from Catmandu t/", () => {
         // fresh id per wildcard slot
         const out2 = compileFix("genid(items.*.id)")({ items: [{}, {}] });
         expect(out2.items[0].id).not.toBe(out2.items[1].id);
+    });
+
+    test("lookup / retain / retain_field / substring / sort_field / uniq / vacuum", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        const csv = path.join(os.tmpdir(), `marcattacks-fixtest-${process.pid}.csv`);
+        fs.writeFileSync(csv, "Earth,Terra\nMars,Ares\n");
+        try {
+            // lookup
+            expect(run(`lookup(planet, ${csv})`, { planet: "Earth" })).toEqual({ planet: "Terra" });
+            expect(run(`lookup(planet, ${csv})`, { planet: "Pluto" })).toEqual({ planet: "Pluto" });
+            expect(run(`lookup(planet, ${csv}, default, X)`, { planet: "Pluto" })).toEqual({ planet: "X" });
+            expect(run(`lookup(planet, ${csv}, delete, 1)`, { planet: "Pluto" })).toEqual({});
+            expect(run(`lookup(planets.*, ${csv}, delete, 1)`, { planets: ["Pluto", "Earth"] })).toEqual({ planets: ["Terra"] });
+        } finally {
+            fs.unlinkSync(csv);
+        }
+        // retain / retain_field
+        expect(run("retain(a, c)", { a: 1, b: 2, c: 3 })).toEqual({ a: 1, c: 3 });
+        expect(run("retain_field(foo.bar)", { foo: { bar: 1, baz: 2, qux: 3 } })).toEqual({ foo: { bar: 1 } });
+        // substring
+        expect(run("substring(s, 0, 3)", { s: "abcdefg" })).toEqual({ s: "abc" });
+        expect(run("substring(s, 2)", { s: "abcdefg" })).toEqual({ s: "cdefg" });
+        // sort_field / uniq
+        expect(run("sort_field(tags)", { tags: ["foo", "bar", "bar"] })).toEqual({ tags: ["bar", "bar", "foo"] });
+        expect(run("sort_field(tags, uniq, 1)", { tags: ["foo", "bar", "bar"] })).toEqual({ tags: ["bar", "foo"] });
+        expect(run("sort_field(nums, numeric, 1)", { nums: [100, 1, 10] })).toEqual({ nums: [1, 10, 100] });
+        expect(run("uniq(tags)", { tags: ["foo", "bar", "bar", "foo"] })).toEqual({ tags: ["foo", "bar"] });
+        // vacuum
+        expect(run("vacuum()", { a: "x", b: "", c: [], d: {}, e: null, f: { g: "" }, h: ["", 1] }))
+            .toEqual({ a: "x", h: [1] });
     });
 
     test("paste", () => {
