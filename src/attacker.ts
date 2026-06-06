@@ -263,7 +263,13 @@ export async function attack(url: URL, opts: any): Promise<number> {
             // Add output write stream
             const outStream = await createOutputWriteStream(opts);
             stages.push(outStream);
-            
+
+            // Let the count limiter wait for THIS sink to finish flushing
+            // before it tears the pipeline down, instead of a fixed timer.
+            if (countSkipStage && 'setFlushTarget' in countSkipStage) {
+                (countSkipStage as any).setFlushTarget(outStream);
+            }
+
             try {
                 await pipeline(stages);
                 result = verboseStream.getCount();

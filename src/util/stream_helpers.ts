@@ -1,4 +1,4 @@
-import { Readable, Transform, type TransformCallback } from 'stream';
+import { Readable, Transform, type Writable, type TransformCallback } from 'stream';
 import log4js from 'log4js';
 import { createGunzip } from 'zlib';
 import tar from 'tar-stream';
@@ -6,18 +6,41 @@ import tar from 'tar-stream';
 const logger = log4js.getLogger();
 
 /**
+ * A count/skip limiter that can be told which downstream sink to wait for
+ * before it tears the pipeline down.
+ */
+export interface CountableStream extends Transform {
+    /**
+     * Register the final writable sink. When the record limit is reached the
+     * limiter ends the stream (push(null)) and then waits for this sink to
+     * actually finish flushing before destroying the pipeline — instead of
+     * guessing with a fixed timer. Safe to call with process.stdout.
+     */
+    setFlushTarget(target: Writable): void;
+}
+
+/**
+ * How long to wait for a flush target that never emits 'finish'.
+ * process.stdout/stderr are never end()ed by pipeline(), so 'finish' will
+ * not fire for them; this fallback keeps the pipeline from hanging.
+ */
+const FLUSH_FALLBACK_MS = 2000;
+
+/**
  * Limits and skips objects in a Readable stream.
  * @param count Maximum number of objects to emit (optional)
  * @param skip Number of objects to ignore from the start (optional)
  */
 export function createCountableSkippedStream(
-    count?: number, 
+    count?: number,
     skip: number = 0
-): Transform {
+): CountableStream {
     let skipped = 0;
     let pushed = 0;
+    let limitReached = false;
+    let flushTarget: Writable | undefined;
 
-    return new Transform({
+    const stream = new Transform({
         objectMode: true,
         transform(chunk: any, _encoding: BufferEncoding, callback: TransformCallback) {
             if (skipped < skip) {
@@ -26,18 +49,13 @@ export function createCountableSkippedStream(
                 return callback(); // Drop the chunk
             }
 
+            // Already past the limit: end the readable side and park upstream
+            // (no callback) so we stop reading the source. Mirrors the original
+            // control flow — the repeated push(null) matters for propagating EOF
+            // cleanly through a downstream worker pool.
             if (count !== undefined && pushed >= count) {
-                logger.debug("Limit reached, closing gracefully...");
-        
-                this.push(null); 
-    
-                // Hacky but I do not know another way to close all streams and
-                // be able to let them flush their content
-                setTimeout(() => {
-                    logger.debug("delay finished, completing transform callback");
-                    this.destroy();
-                },2000);
-                
+                this.push(null);
+                closeGracefully();
                 return;
             }
 
@@ -45,22 +63,73 @@ export function createCountableSkippedStream(
             pushed++;
 
             logger.debug(`pushed: ${pushed}`);
-        
-            if (count !== undefined && pushed === count) {
-                logger.debug("Limit reached, closing gracefully...");
-                this.push(null);
 
-                // Hacky but I do not know another way to close all streams and
-                // be able to let them flush their content
-                setTimeout(() => {
-                    logger.debug("delay finished, completing transform callback");
-                    this.destroy();
-                },2000);
+            // Hitting the limit: end the readable side so downstream flushes.
+            // We still call callback() below (the boundary chunk) so 'end'
+            // propagates; the *next* chunk parks the source via the guard above.
+            if (count !== undefined && pushed === count) {
+                closeGracefully();
             }
 
             callback();
         }
-    });
+    }) as CountableStream;
+
+    stream.setFlushTarget = (target: Writable) => { flushTarget = target; };
+
+    /**
+     * Reached the record limit: end the downstream chain so the sink flushes,
+     * then destroy the pipeline once the sink has actually finished (rather
+     * than after a fixed delay). The destroy surfaces as ERR_STREAM_PREMATURE_
+     * CLOSE upstream, which the caller treats as a clean limiter stop.
+     */
+    function closeGracefully() {
+        if (limitReached) return;
+        limitReached = true;
+
+        logger.debug("Limit reached, closing gracefully...");
+        stream.push(null); // EOF -> downstream transforms flush -> sink finishes
+
+        let torn = false;
+        let fallback: ReturnType<typeof setTimeout> | undefined;
+        const teardown = (why: string) => {
+            if (torn) return;
+            torn = true;
+            // Clear the orphaned fallback timer; a pending timer would keep the
+            // event loop alive (and delay process exit) long after teardown.
+            if (fallback) clearTimeout(fallback);
+            logger.debug(`sink ${why}, tearing down pipeline`);
+            stream.destroy();
+        };
+
+        // stdout/stderr are never end()ed by pipeline(), so they never emit
+        // 'finish'/'close'. Don't wait on events that won't come — fall straight
+        // through to the original fixed-timer teardown (this also keeps the
+        // default jsonata worker-pool case working, which the timer delay covers).
+        const isStd = !flushTarget
+            || flushTarget === process.stdout
+            || flushTarget === process.stderr;
+
+        if (isStd) {
+            setTimeout(() => teardown('timer (stdout/no target)'), FLUSH_FALLBACK_MS);
+            return;
+        }
+
+        if (flushTarget.writableFinished) {
+            teardown('already finished');
+            return;
+        }
+
+        // Real sink (S3, sftp, file): tear down the moment it has flushed,
+        // rather than after a fixed delay. The fallback timer only fires if the
+        // sink never finishes for some reason, so we don't hang.
+        flushTarget.once('finish', () => teardown('finished'));
+        flushTarget.once('close', () => teardown('closed'));
+        flushTarget.once('error', () => teardown('errored'));
+        fallback = setTimeout(() => teardown('flush fallback timer'), FLUSH_FALLBACK_MS);
+    }
+
+    return stream;
 }
 
 /**
