@@ -68,7 +68,7 @@ A Fix script is a list of `name(args)` statements, with `if/unless ... end`
 conditionals and `do ... end` binds:
 
 ```
-marc_map('245ab', title, join: ' ')   # copy MARC 245$a$b into title
+marc_map('245ab', title, join: ' ')    # copy MARC 245$a$b into title
 upcase(title)                          # uppercase it
 add_field(type, Book)                  # add a constant field
 lookup(type, ./types.csv)              # map a value through a CSV table
@@ -77,9 +77,17 @@ do marc_each()                         # loop over each MARC field
     marc_map('500', note.$append)
   end
 end
+remove_field(record)
 ```
 
 See `./demo/marc2rdf.fix` and `./demo/example.fix` for complete examples.
+
+The `types.csv` is a two column lookup list in CSV format. E.g.
+
+```
+A,B
+Book,http://example.org/ns#Book
+```
 
 ## Stdin
 
