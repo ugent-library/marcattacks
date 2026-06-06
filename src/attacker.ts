@@ -17,6 +17,7 @@ import {
     getCleanURL
 } from './util/stream_helpers.js';
 import { fileLatestFile, fileReadStream } from './stream/filestream.js';
+import { createWorkerPool } from './stream/worker-pool.js';
 
 const logger = log4js.getLogger();
 
@@ -115,6 +116,15 @@ export async function createCountSkipStage(opts: {count?: number, skip?: number}
 export async function createMapTransformStage(opts: any): Promise<Transform | null> {
     if (opts.map) {
         const mod = await loadPlugin(opts.map, 'transform');
+        const workers = parseInt(opts.workers ?? '1', 10) || 1;
+        // Run the map across worker threads when requested and supported. A map
+        // is parallelizable iff it exposes a pure per-record createMapper().
+        if (workers > 1) {
+            if (typeof mod.createMapper === 'function') {
+                return createWorkerPool({ map: opts.map, param: opts.param, workers });
+            }
+            logger.warn(`--workers ${workers} ignored: map '${opts.map}' is not parallelizable`);
+        }
         return await mod.transform(opts.param, { utils: marcUtils });
     }
     return null;

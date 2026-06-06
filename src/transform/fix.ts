@@ -13,6 +13,16 @@ const logger = log4js.getLogger();
  * `fix` may be a path to a Fix file or an inline Fix script. The script is
  * parsed and compiled once; the compiled chain runs per record.
  */
+// Pure record -> record mapper (returns REJECT for dropped records). Shared by
+// transform() and the worker pool. Compiled once.
+export async function createMapper(opts: { fix?: string }): Promise<(data: any) => any> {
+    let src = opts.fix ?? '';
+    if (src && fs.existsSync(src)) {
+        src = fs.readFileSync(src, { encoding: 'utf-8' });
+    }
+    return compileFix(src);
+}
+
 export async function transform(opts: { fix?: string }): Promise<Transform> {
     let src = opts.fix ?? '';
     if (src && fs.existsSync(src)) {
