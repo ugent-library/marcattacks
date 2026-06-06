@@ -1,7 +1,7 @@
 import { Transform } from 'stream';
 import fs from 'fs';
 import log4js from 'log4js';
-import { compileFix } from '../fix/index.js';
+import { compileFix, REJECT } from '../fix/index.js';
 
 const logger = log4js.getLogger();
 
@@ -24,7 +24,9 @@ export async function transform(opts: { fix?: string }): Promise<Transform> {
         objectMode: true,
         transform(data: any, _encoding, callback) {
             try {
-                callback(null, fix(data));
+                const out = fix(data);
+                if (out === REJECT) callback();   // rejected record -> drop it
+                else callback(null, out);
             } catch (err: any) {
                 logger.error('fix error', err.message);
                 callback(err);
