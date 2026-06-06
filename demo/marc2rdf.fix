@@ -1,0 +1,47 @@
+add_field('@context.my','http://lib.ugent.be/catalog/')
+add_field('@context.genid','http://lib.ugent.be/.well-known/genid/')
+add_field('@context.dc','http://purl.org/dc/elements/1.1/')
+add_field('@context.iso639-2','http://id.loc.gov/vocabulary/iso639-2/')
+add_field('@context.@vocab','http://schema.org/')
+
+marc_map('001','@id')
+prepend('@id','my:')
+
+marc_map('920a','_type')
+add_field('@type','CreativeWork')
+if all_equal('_type','book')           set_field('@type','Book')         end
+if all_equal('_type','catalog')        set_field('@type','Book')         end
+if all_equal('_type','dissertation')   set_field('@type','Thesis')       end
+if all_equal('_type','image')          set_field('@type','VisualWork')   end
+if all_equal('_type','manuscript')     set_field('@type','Book')         end
+if all_equal('_type','map')            set_field('@type','Map')          end
+if all_equal('_type','periodical')     set_field('@type','Periodical')   end
+if all_equal('_type','phd')            set_field('@type','Thesis')       end
+remove_field('_type')
+
+marc_map('245ab','dc:title', join:' ')
+replace_all('dc:title','\s*[,.:/]$','')
+
+add_field('dc:creator.@type','Person')
+marc_map('100a','dc:creator.name')
+replace_all('dc:creator.name','\s*[,.:/]$','')
+marc_map('1000','dc:creator.@id')
+if all_match('dc:creator.@id','\(viaf\)')
+  replace_all('dc:creator.@id','.*\(viaf\)(.*)','https://viaf.org/viaf/${1}')
+else
+  genid('dc:creator.@id')
+end
+
+marc_map('260c','dc:date')
+replace_all('dc:date','\s*[,.:/]$','')
+
+marc_map('008/35-37','dc:language')
+prepend('dc:language','iso639-2:')
+
+marc_map('500a','_subjects', split:1)
+do list(path:'_subjects', var:'s')
+  copy_field('s','dc:subject.$append.name')
+  add_field('dc:subject.$last.@type','Subject')
+  genid('dc:subject.$last.@id')
+end
+remove_field('_subjects')

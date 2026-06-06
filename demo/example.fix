@@ -1,0 +1,11 @@
+# Example Catmandu Fix script (subset supported by marcattacks)
+#   marcattacks --from json --to jsonl --map fix --param fix=./demo/example.fix input.json
+
+add_field(type, Book)              # add a constant field
+copy_field(title, label)           # copy one field to another
+upcase(label)                      # uppercase a value in place
+move_field(old, archived)          # rename a field
+split_field(tags, ',')             # "a,b,c" -> ["a","b","c"]
+join_field(authors, '; ')          # ["a","b"] -> "a; b"
+replace_all(year, '(\d{4})', '[${1}]')   # regex substitution with backrefs
+paste(citation, title, year, join_char:' -- ')   # build a string from fields
