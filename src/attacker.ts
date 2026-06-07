@@ -24,10 +24,14 @@ const logger = log4js.getLogger();
 
 export class PipelineError extends Error {
     public readonly statusCode: number;
+    // True when the failure is just the downstream reader closing the pipe
+    // (e.g. `| less` then `q`, or `| head`). The CLI exits quietly in that case.
+    public readonly readerDisconnected: boolean;
 
-    constructor(message: string, statusCode: number) {
+    constructor(message: string, statusCode: number, readerDisconnected: boolean = false) {
         super(message);
         this.statusCode = statusCode;
+        this.readerDisconnected = readerDisconnected;
 
         Object.setPrototypeOf(this, PipelineError.prototype);
 
@@ -279,7 +283,19 @@ export async function attack(url: URL, opts: any): Promise<number> {
 
                 if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
                     logger.info("stream closed by limiter.");
-                } 
+                }
+                else if (isReaderClosedPipe(err)) {
+                    // The downstream reader closed the output pipe before we were
+                    // done writing — e.g. `| less` then `q`, or `| head`. This is
+                    // a normal, expected shutdown, not a failure. Throw a "quiet"
+                    // error so the CLI still tears the pipeline (and any worker
+                    // threads) down via process.exit, but WITHOUT printing a
+                    // colorized stack to the tty — which would otherwise race a
+                    // pager's terminal-restore sequence and wedge the terminal
+                    // (requiring `reset`).
+                    logger.info("output pipe closed by reader");
+                    throw new PipelineError(err.message, 0, true);
+                }
                 else {
                     logger.debug(err);
                     logger.error("pipeline closed prematurely");
@@ -295,6 +311,17 @@ export async function attack(url: URL, opts: any): Promise<number> {
         }
     }
     return result;
+}
+
+// EPIPE/ECONNRESET surfaced anywhere in the error chain means the reader on the
+// other end of our output went away. Check the wrapped cause too, since pipeline
+// errors can nest the original.
+function isReaderClosedPipe(err: any): boolean {
+    for (let e = err; e; e = e.cause) {
+        if (e.code === 'EPIPE' || e.code === 'ERR_STREAM_DESTROYED') return true;
+        if (typeof e.message === 'string' && /\bEPIPE\b/.test(e.message)) return true;
+    }
+    return false;
 }
 
 function isWritableStream(obj: any): boolean {
