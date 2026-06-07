@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { attack, PipelineError } from './attacker.js';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from "node:url";
+import { execSync } from 'node:child_process';
 import fs from 'fs';
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -79,7 +80,52 @@ if (opts.config) {
     dotenv.config({ path: opts.config , quiet: true });
 }
 
+installReaderDisconnectGuard();
+
 main();
+
+// When the reader on the other end of our stdout pipe goes away — `| less`/`| more`
+// then `q`, `| head`, a closed network socket — Node surfaces EPIPE on stdout.
+// React the instant that happens, directly on the stream, rather than waiting for
+// the pipeline rejection: under backpressure (a pager holding the pipe while we
+// wait for `drain`) that rejection can be delayed or, through the worker pool,
+// never arrive at all — which is the hang.
+function installReaderDisconnectGuard() {
+    process.stdout.on('error', (err: any) => {
+        if (err && (err.code === 'EPIPE' || /\bEPIPE\b/.test(String(err.message)))) {
+            restoreTerminalAndDie();
+        }
+    });
+}
+
+// Exit cleanly after the output reader disconnected, leaving the terminal usable.
+//
+// Two things conspire to wedge the terminal (no echo, needs `reset`) when piped to
+// a pager that you quit mid-stream:
+//  1. The pager puts the tty in raw mode; we may notice the closed pipe before it
+//     has fully restored.
+//  2. Node ignores SIGPIPE, so (unlike `head`/`yes`) we linger, and a *normal* Node
+//     exit then runs libuv's exit-time TTY reset which re-applies the raw termios
+//     libuv had captured — re-wedging the tty even if we'd fixed it.
+//
+// So we force the controlling terminal back to a sane mode with `stty sane`, then
+// terminate with a SIGNAL: SIGKILL skips libuv's TTY reset, so our sane state is the
+// last word. (`stty sane` + a normal exit does NOT work — the reset clobbers it.)
+// If there is no controlling terminal (piped/cron) `stty` fails harmlessly.
+//
+// NOTE: this fixes the direct/global-install case (`marcattacks … | less`). It can
+// NOT fully fix `npx marcattacks … | less`: the `npx` Node parent exits *after* us
+// and runs its own libuv TTY reset, which we have no way to suppress from a child.
+function restoreTerminalAndDie(): never {
+    try {
+        execSync('stty sane < /dev/tty 2> /dev/null', { stdio: 'ignore', timeout: 2000 });
+    } catch {
+        // no controlling tty, or stty unavailable — nothing to restore
+    }
+    process.kill(process.pid, 'SIGKILL');
+    // unreachable; satisfies the `never` return type
+    throw new Error('unreachable');
+}
 
 function configureDefaultLogger(output: string) {
     log4js.configure({
@@ -154,6 +200,12 @@ async function main() : Promise<void> {
         logger.info(`peak RSS: ${usage.maxRSS / 1024} MB`);
     }
     catch (e) {
+        if (e instanceof PipelineError && e.readerDisconnected) {
+            // Fallback path: the reader-closed-pipe surfaced through the pipeline
+            // rejection rather than the direct stdout 'error' guard. Restore the
+            // terminal and die the same way. (See restoreTerminalAndDie.)
+            restoreTerminalAndDie();
+        }
         logger.error(e);
         if (e instanceof PipelineError) {
             logger.error("pipeline error");

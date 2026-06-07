@@ -254,4 +254,32 @@ describe("attacker — attack() end to end", () => {
         expect(count).toBe(1);
         expect(JSON.parse(out.text().trim()).flagged).toBe("yes");
     });
+
+    // When the downstream reader closes the pipe (e.g. `| less` then `q`, or
+    // `| head`), the sink write fails with EPIPE. attack() must surface this as
+    // a *quiet* PipelineError (readerDisconnected=true, statusCode 0) so the CLI
+    // exits silently — never dumping a colorized stack to the tty that would
+    // race a pager's terminal-restore sequence and wedge the terminal.
+    test("attack() flags an EPIPE from the reader as a quiet PipelineError", async () => {
+        const input = path.join(dir, "records3.json");
+        fs.writeFileSync(input, JSON.stringify([{ record: [["001", " ", " ", "_", "111"]] }]));
+
+        // A sink that behaves like a closed pipe: every write fails with EPIPE.
+        const brokenPipe = new Writable({
+            write(_chunk, _enc, cb) {
+                const err: any = new Error("write EPIPE");
+                err.code = "EPIPE";
+                cb(err);
+            },
+        });
+
+        await expect(attack(new URL(`file://${input}`), {
+            from: "json",
+            to: "jsonl",
+            out: brokenPipe,
+        })).rejects.toMatchObject({
+            readerDisconnected: true,
+            statusCode: 0,
+        });
+    });
 });

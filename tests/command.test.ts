@@ -94,4 +94,25 @@ describe("command (CLI)", () => {
         const { code } = await runCli(["/no/such/path.json", "--from", "json", "--to", "jsonl"]);
         expect(code).toBe(8);
     });
+
+    // Regression: when the reader on the other end of stdout goes away (a pager
+    // quit, `| head`, a dropped socket), the CLI must exit promptly instead of
+    // deadlocking while paused on backpressure waiting for a `drain` that never
+    // comes. Without the reader-disconnect guard this hangs until the timeout.
+    test("exits promptly when the stdout reader disconnects mid-stream", async () => {
+        const big = path.join(dir, "big.json");
+        fs.writeFileSync(big, JSON.stringify(
+            Array.from({ length: 20000 }, (_, i) => ({ record: [["001", " ", " ", "_", String(i)]] })),
+        ));
+
+        const exited = await new Promise<boolean>((resolve) => {
+            const child = spawn(process.execPath, [cli, big, "--from", "json", "--to", "jsonl"], { cwd: dir });
+            const timer = setTimeout(() => { child.kill("SIGKILL"); resolve(false); }, 10000);
+            // Read a little, then tear the read end down to simulate the reader leaving.
+            child.stdout.once("data", () => child.stdout.destroy());
+            child.on("close", () => { clearTimeout(timer); resolve(true); });
+        });
+
+        expect(exited).toBe(true);
+    });
 });
