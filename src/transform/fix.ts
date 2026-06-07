@@ -1,7 +1,7 @@
 import { Transform } from 'stream';
 import fs from 'fs';
 import log4js from 'log4js';
-import { compileFix, REJECT } from '../fix/index.js';
+import { compileFix, REJECT } from 'catmandu-fix-js';
 
 const logger = log4js.getLogger();
 

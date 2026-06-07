@@ -9,7 +9,7 @@
 //                    { seq, error: string }
 import { parentPort, workerData } from 'node:worker_threads';
 import { loadPlugin } from './plugin-loader.js';
-import { REJECT } from './fix/signal.js';
+import { REJECT } from 'catmandu-fix-js';
 
 const { map, param } = workerData as { map: string; param: any };
 
