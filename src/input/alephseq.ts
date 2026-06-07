@@ -33,7 +33,7 @@ export async function transform(_opts: any): Promise<Transform> {
         const lineData = line.slice(sp + 1);
 
         if (previd && previd !== id) {
-            stream.push({ _id: previd, record: rec });
+            stream.push({ record: rec });
             rec = [];
             recordNum++;
         }
@@ -82,7 +82,7 @@ export async function transform(_opts: any): Promise<Transform> {
             }
 
             if (rec.length > 0) {
-                this.push({ _id: previd, record: rec });
+                this.push({ record: rec });
             }
             callback();
         }
