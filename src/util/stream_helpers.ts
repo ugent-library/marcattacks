@@ -106,11 +106,11 @@ export function createCountableSkippedStream(
         // 'finish'/'close'. Don't wait on events that won't come — fall straight
         // through to the original fixed-timer teardown (this also keeps the
         // default jsonata worker-pool case working, which the timer delay covers).
-        const isStd = !flushTarget
+        // Checking flushTarget inline (rather than via a helper bool) lets TS
+        // narrow it to a defined Writable for the real-sink branch below.
+        if (!flushTarget
             || flushTarget === process.stdout
-            || flushTarget === process.stderr;
-
-        if (isStd) {
+            || flushTarget === process.stderr) {
             setTimeout(() => teardown('timer (stdout/no target)'), FLUSH_FALLBACK_MS);
             return;
         }
