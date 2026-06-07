@@ -104,7 +104,7 @@ These act only on existing string values.
 | `trim(path, [mode])` | `mode` = `whitespace` (default), `nonword`, or `diacritics` |
 | `prepend(path, str)` | |
 | `append(path, str)` | |
-| `replace_all(path, search, replace)` | regex substitution, `$1`/`${1}` backrefs |
+| `replace_all(path, search, replace)` | regex substitution, `$1`/`${1}` backrefs; `\w`/`\W` are Unicode-aware (accented letters count as word chars, as in Perl) |
 | `substring(path, off, [len], [replacement])` | extract or replace a substring |
 | `format(path, spec)` | sprintf-style; works on a value, array, or hash |
 | `paste(target, parts…, [join_char, c])` | concatenate fields/literals; `~text` = literal |
@@ -156,9 +156,9 @@ These act only on existing string values.
 
 | Function | Notes |
 | --- | --- |
-| `marc_map(marc_path, json_path, [split:1], [join:str], [value:str])` | extract MARC fields into a JSON path; default `join` is empty; supports a substring suffix such as `008/35-37` |
+| `marc_map(marc_path, json_path, [split:1], [join:str], [value:str])` | extract MARC fields into a JSON path; default `join` is empty; `split:1` yields one element per matching subfield value; supports a substring suffix such as `008/35-37` |
 | `marc_remove(tag)` | drop all MARC fields with the given tag |
-| `marc_xml([path=record])` | serialize the MARC `record` array to a MARCXML `<record>` string (unprefixed MARC21 slim namespace) and store it at `path` (default: replace `record` in place) |
+| `marc_xml([path=record])` | serialize the MARC `record` array to a compact `marc:`-prefixed MARCXML `<marc:record>` string (MARC21 slim namespace; escapes `< > & " '`) and store it at `path` (default: replace `record` in place) |
 
 ### Control / misc
 
