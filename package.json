@@ -8,6 +8,7 @@
     "rdf",
     "bibframe",
     "jsonata",
+    "catmandu",
     "notation3",
     "linked-data",
     "marcxml",
