@@ -170,6 +170,73 @@ describe("Fix conformance — ported from Catmandu t/", () => {
         expect(out.record.some((f: string[]) => f.includes("skip"))).toBe(false);
     });
 
+    test("marc_xml (serialize the MARC record to MARCXML)", () => {
+        const rec = () => ({
+            record: [
+                ["LDR", " ", " ", "_", "00000nam a2200000 a 4500"],
+                ["001", " ", " ", "_", "R1"],
+                ["100", "1", " ", "a", "Smith, J.", "d", "1900-1980"],
+                ["245", "1", "0", "a", "A <title> & 'more'"],
+            ],
+        });
+        // marc_xml(record) replaces the array with the XML string; the script
+        // idiom then moves it to a display field.
+        const out = compileFix("marc_xml(record) move_field(record, marc_display)")(rec());
+        expect(out.record).toBeUndefined();
+        expect(out.marc_display).toBe(
+            '<marc:record xmlns:marc="http://www.loc.gov/MARC21/slim">' +
+            '<marc:leader>00000nam a2200000 a 4500</marc:leader>' +
+            '<marc:controlfield tag="001">R1</marc:controlfield>' +
+            '<marc:datafield tag="100" ind1="1" ind2=" ">' +
+            '<marc:subfield code="a">Smith, J.</marc:subfield>' +
+            '<marc:subfield code="d">1900-1980</marc:subfield>' +
+            '</marc:datafield>' +
+            '<marc:datafield tag="245" ind1="1" ind2="0">' +
+            '<marc:subfield code="a">A &lt;title&gt; &amp; &apos;more&apos;</marc:subfield>' +
+            '</marc:datafield>' +
+            '</marc:record>'
+        );
+        // a record with no `record` array is left untouched
+        expect(compileFix("marc_xml(record)")({ id: 1 })).toEqual({ id: 1 });
+    });
+
+    test("binds: do with (descend into a path)", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        // with over an array: block runs on each element as root
+        expect(run("do with(path:colors) upcase(name) end", { colors: [{ name: "red" }, { name: "green" }] }))
+            .toEqual({ colors: [{ name: "RED" }, { name: "GREEN" }] });
+        // positional path form
+        expect(run("do with(colors) add_field(seen, y) end", { colors: [{ name: "red" }] }))
+            .toEqual({ colors: [{ name: "red", seen: "y" }] });
+        // with over a hash: block runs once on that hash as root
+        expect(run("do with(path:author) upcase(last) end", { author: { last: "smith" } }))
+            .toEqual({ author: { last: "SMITH" } });
+        // scalar (or missing) path leaves the record untouched
+        expect(run("do with(path:x) add_field(seen, y) end", { x: "plain" }))
+            .toEqual({ x: "plain" });
+        expect(run("do with(path:nope) add_field(seen, y) end", { a: 1 }))
+            .toEqual({ a: 1 });
+    });
+
+    test("binds: do each (loop array/hash entries via var)", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        // each over a hash: var exposes {key, value}; build an array of pairs
+        expect(run(
+            "do each(path:data, var:c) copy_field(c.key, kv.$append.key) copy_field(c.value, kv.$last.value) end remove_field(data)",
+            { data: { foo: 1, bar: 2 } }
+        )).toEqual({ kv: [{ key: "foo", value: 1 }, { key: "bar", value: 2 }] });
+        // each over an array: var exposes {index, value}
+        expect(run(
+            "do each(path:xs, var:c) copy_field(c.index, out.$append.i) copy_field(c.value, out.$last.v) end remove_field(xs)",
+            { xs: ["a", "b"] }
+        )).toEqual({ out: [{ i: 0, v: "a" }, { i: 1, v: "b" }] });
+        // var is removed after the loop (not left on the record)
+        expect(run("do each(path:xs, var:c) add_field(n, x) end", { xs: [1, 2] }).c).toBeUndefined();
+        // without var: block runs once per entry (here: append a marker each time)
+        expect(run("do each(path:xs) add_field(hits.$append, x) end", { xs: [1, 2, 3] }).hits)
+            .toEqual(["x", "x", "x"]);
+    });
+
     test("conditions: comparisons / type checks / in (all-values semantics)", () => {
         // a condition is true iff there is >=1 value and ALL values pass
         const t = (cond: string, data: any) => "m" in compileFix(`if ${cond} add_field(m, Y) end`)(structuredClone(data));
@@ -301,6 +368,30 @@ describe("Fix conformance — ported from Catmandu t/", () => {
             .toEqual({ date: "2001-09-11", year: "2001", month: 9, day: 11 });
         expect(run("expand_date(datestamp)", { datestamp: "2001:09" }))
             .toEqual({ datestamp: "2001:09", year: "2001", month: 9 });
+    });
+
+    test("datetime_format (Catmandu::Fix::Date)", () => {
+        const run = (src: string, data: any) => compileFix(src)(structuredClone(data));
+        // pull the year out of a packed date (the bl_ugent_memorialis idiom)
+        expect(run("datetime_format(d, source_pattern: '%Y%m%d', destination_pattern: '%Y')", { d: "19501231" }))
+            .toEqual({ d: "1950" });
+        // ISO datetime -> dd/mm/yyyy
+        expect(run("datetime_format(d, source_pattern: '%Y-%m-%dT%H:%M:%S', destination_pattern: '%d/%m/%Y')", { d: "2015-03-07T00:00:00" }))
+            .toEqual({ d: "07/03/2015" });
+        // operates on the addressed element only ($first)
+        expect(run("datetime_format(d.$first, source_pattern: '%Y%m%d', destination_pattern: '%Y')", { d: ["19501231", "keep"] }))
+            .toEqual({ d: ["1950", "keep"] });
+        // month name parsing + composite %F destination
+        expect(run("datetime_format(d, source_pattern: '%d %B %Y', destination_pattern: '%F')", { d: "07 March 2015" }))
+            .toEqual({ d: "2015-03-07" });
+        // destination_pattern defaults to source_pattern (round-trip / normalise)
+        expect(run("datetime_format(d, source_pattern: '%Y-%m-%d')", { d: "2015-03-07" }))
+            .toEqual({ d: "2015-03-07" });
+        // unparseable value: left untouched by default, dropped with delete:1
+        expect(run("datetime_format(d, source_pattern: '%Y%m%d', destination_pattern: '%Y')", { d: "unknown" }))
+            .toEqual({ d: "unknown" });
+        expect(run("datetime_format(d, source_pattern: '%Y%m%d', destination_pattern: '%Y', delete: 1)", { d: "unknown" }))
+            .toEqual({});
     });
 
     test("paste", () => {

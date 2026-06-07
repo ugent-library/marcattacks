@@ -142,6 +142,7 @@ These act only on existing string values.
 | `string(path)` | stringify value / join array / join hash values (sorted keys) |
 | `uri_encode(path)` / `uri_decode(path)` | percent-encoding |
 | `expand_date([field=date])` | split a date into `year`/`month`/`day` at root |
+| `datetime_format(path, source_pattern:..., destination_pattern:..., delete:0\|1)` | reparse each value with the strptime `source_pattern` and re-emit with the strftime `destination_pattern` (defaults to `source_pattern`); unparseable values are kept, or dropped with `delete:1`. Handled in UTC. (Catmandu::Fix::Date) |
 
 ### Lookup / retention
 
@@ -157,6 +158,7 @@ These act only on existing string values.
 | --- | --- |
 | `marc_map(marc_path, json_path, [split:1], [join:str], [value:str])` | extract MARC fields into a JSON path; default `join` is empty; supports a substring suffix such as `008/35-37` |
 | `marc_remove(tag)` | drop all MARC fields with the given tag |
+| `marc_xml([path=record])` | serialize the MARC `record` array to a MARCXML `<record>` string (unprefixed MARC21 slim namespace) and store it at `path` (default: replace `record` in place) |
 
 ### Control / misc
 
@@ -210,6 +212,8 @@ compiled (see `src/fix/index.ts`).
 | Bind | Notes |
 | --- | --- |
 | `list(path:p, var:name)` | iterate an array (or run once over a hash); both options optional |
+| `with(path:p)` | descend into `path`, running the block with each array element (or the hash itself) as the record root; `path` may also be the first positional arg (`with(p)`) |
+| `each(path:p, var:name)` | loop over the entries at `path`, exposing each via `var` as `{index, value}` (arrays) or `{key, value}` (hashes); the block runs on the root record |
 | `marc_each(var:name)` | iterate each MARC field; `reject()` drops a field; optional `var` exposes a `{tag, ind1, ind2, subfields}` hash |
 | `identity` | run the block as-is (also the fallback for any unknown bind name) |
 
@@ -237,18 +241,19 @@ tables above is unsupported.
 - `marc_add` — adding MARC fields
 - `marc_set` — setting MARC subfield values in place
 - `marc_copy` / `marc_cut` / `marc_paste`
-- `marc_xml`, `marc_in_json`, `marc_decode_dollar_subfields`
+- `marc_in_json`, `marc_decode_dollar_subfields`
 - `marc_spec`-based addressing (only the simple `TAG+subcodes` and `TAG/from-to`
   forms are supported)
 
 > marcattacks can **read** MARC (via `marc_map`, `marc_each`, the `marc_*`
-> conditions) and **remove** fields (`marc_remove`), but it has **no builtin for
-> writing/mutating MARC fields in place**. Build the JSON record you want with
-> the generic fixes instead, or remove `record` and emit the mapped structure.
+> conditions), **remove** fields (`marc_remove`), and **serialize** the record
+> to MARCXML (`marc_xml`), but it has **no builtin for writing/mutating MARC
+> fields in place**. Build the JSON record you want with the generic fixes
+> instead, or remove `record` and emit the mapped structure.
 
 ### Binds not implemented
 
-- `maybe`, `visitor`, `with`, `hashmap`, `each`, `timing`
+- `maybe`, `visitor`, `hashmap`, `timing`
   (all unknown binds silently degrade to `identity`)
 
 ### Conditions not implemented

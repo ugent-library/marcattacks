@@ -4,10 +4,12 @@
 // (see the conformance tests, which are ported from Catmandu's own t/).
 
 import { Path, isArray, isHash, KEEP, DROP } from './path.js';
-import { marcmap } from '../marcmap.js';
+import { marcmap, marcmapList, marcsubfields, marcForEachSub } from '../marcmap.js';
+import { escapeXML } from '../util/xml_escape.js';
 import { randomUUID } from 'node:crypto';
 import { REJECT } from './signal.js';
 import { sprintf, collapseHash, expandHash } from './util.js';
+import { strptime, strftime } from './date.js';
 import fs from 'node:fs';
 
 type Data = any;
@@ -25,7 +27,17 @@ function isValue(v: Data): boolean {
 
 // Perl s/search/replace/g with $1 / ${1} interpolation -> JS replace.
 function substituter(search: string, replace: string): (v: Data) => Data {
-    const re = new RegExp(search, 'g');
+    let pattern = search;
+    let flags = 'g';
+    // Perl's \w/\W (and the data Catmandu feeds them) are Unicode-aware, so
+    // accented letters like é/ö count as word characters; JS's \w/\W are
+    // ASCII-only. When the pattern uses them, translate to Unicode property
+    // classes and add the /u flag so e.g. replace_all(x, '\W+', '') keeps é/ö.
+    if (/\\[wW]/.test(search)) {
+        pattern = pattern.replace(/\\w/g, '[\\p{L}\\p{N}_]').replace(/\\W/g, '[^\\p{L}\\p{N}_]');
+        flags = 'gu';
+    }
+    const re = new RegExp(pattern, flags);
     const js = replace.replace(/\$\{(\d+)\}/g, '$$$1'); // ${1} -> $1
     return (v: Data) => String(v).replace(re, js);
 }
@@ -140,10 +152,13 @@ export const FIXES: Record<string, FixBuilder> = {
         return (data: Data) => {
             const rec = data?.record;
             if (!isArray(rec)) return data;
-            // marcmap() yields one entry per tag-matched field; an empty string
-            // means the field matched the tag but had no matching subfield.
-            // Catmandu drops those, so filter them out.
-            let vals = marcmap(rec, marcPath, { join_char: joinChar }).filter((v) => v !== '');
+            // split:1 keeps each matching subfield value as its own element;
+            // otherwise marcmap() yields one entry per tag-matched field (an
+            // empty string means the tag matched but no subfield did — Catmandu
+            // drops those, so filter them out).
+            let vals = split
+                ? marcmapList(rec, marcPath)
+                : marcmap(rec, marcPath, { join_char: joinChar }).filter((v) => v !== '');
             if (from !== undefined) {
                 vals = vals.map((v) => (v.length > from! ? v.substr(from!, len) : undefined))
                     .filter((v): v is string => v !== undefined);
@@ -407,9 +422,71 @@ export const FIXES: Record<string, FixBuilder> = {
         };
     },
 
+    // datetime_format(PATH, source_pattern:..., destination_pattern:..., delete:0|1):
+    // reparse each value at PATH with the strptime source_pattern and re-emit it
+    // with the strftime destination_pattern (defaults to source_pattern). Values
+    // that don't match the source pattern are left untouched, or dropped when
+    // delete:1. Dates are handled in UTC (Catmandu::Fix::Date's default).
+    datetime_format: (args) => {
+        const path = args[0]!;
+        const opts: Record<string, string | undefined> = {};
+        for (let i = 1; i < args.length; i += 2) opts[args[i]!] = args[i + 1];
+        const src = opts.source_pattern;
+        const dst = opts.destination_pattern ?? src;
+        const del = opts.delete === '1' || opts.delete === 'true';
+        return new Path(path).rewrite((v) => {
+            if (!isValue(v) || src === undefined || dst === undefined) return del ? DROP : KEEP;
+            const dt = strptime(src, String(v));
+            if (dt === null) return del ? DROP : KEEP;
+            return strftime(dst, dt);
+        });
+    },
+
+    // marc_xml([PATH=record]): serialize the MARC record (the `record` array)
+    // to a MARCXML `<marc:record>` string and store it at PATH (default
+    // `record`, i.e. replace the array in place). Compact (no whitespace
+    // between elements), using the `marc:` prefix and MARC21 slim namespace —
+    // the same convention as the MARCXML exporter (src/output/xml.ts). Records
+    // without a `record` array are left unchanged.
+    marc_xml: ([path]) => {
+        const target = new Path(path ?? 'record').creator(undefined);
+        return (data: Data) => {
+            const rec = data?.record;
+            if (!isArray(rec)) return data;
+            return target(data, recordToMarcXML(rec));
+        };
+    },
+
     // --- misc ---
     nothing: () => (data: Data) => data,
 };
+
+// Serialize a MARC record (rows of [tag, ind1, ind2, code, val, ...]) to a
+// compact MARCXML <marc:record> element. The leader and control fields (00x)
+// carry a bare value (subfield "_"); data fields carry coded subfields.
+function recordToMarcXML(rec: string[][]): string {
+    let out = '<marc:record xmlns:marc="http://www.loc.gov/MARC21/slim">';
+    for (const row of rec) {
+        const tag = row[0] ?? '';
+        if (tag === 'FMT') continue;
+        // Escape < > " ' & in element text too (forAttribute:true), matching
+        // the MARC::File::XML output Catmandu produces.
+        if (tag === 'LDR') {
+            out += `<marc:leader>${escapeXML(marcsubfields(row, /.*/)[0], { forAttribute: true })}</marc:leader>`;
+        } else if (/^00/.test(tag)) {
+            out += `<marc:controlfield tag="${escapeXML(tag, { forAttribute: true })}">${escapeXML(marcsubfields(row, /.*/)[0], { forAttribute: true })}</marc:controlfield>`;
+        } else {
+            const ind1 = row[1] ?? ' ', ind2 = row[2] ?? ' ';
+            out += `<marc:datafield tag="${escapeXML(tag, { forAttribute: true })}" ind1="${escapeXML(ind1, { forAttribute: true })}" ind2="${escapeXML(ind2, { forAttribute: true })}">`;
+            marcForEachSub(row, (code, value) => {
+                out += `<marc:subfield code="${escapeXML(code, { forAttribute: true })}">${escapeXML(value, { forAttribute: true })}</marc:subfield>`;
+            });
+            out += '</marc:datafield>';
+        }
+    }
+    out += '</marc:record>';
+    return out;
+}
 
 // parse a Catmandu-style "-sep => x" / "sep: x" option out of an arg list
 function parseDashOpt(args: string[], name: string): string | undefined {

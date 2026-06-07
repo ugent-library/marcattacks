@@ -94,6 +94,20 @@ export function marcmap(record: string[][], find: string, opts: MARCMapOpts = {}
 }
 
 /**
+ * Like marcmap, but returns the individual subfield values (NOT joined per
+ * field), flattened across all matching fields. This is what marc_map's
+ * `split:1` needs: one array element per subfield value.
+ */
+export function marcmapList(record: string[][], find: string) : string[] {
+    const { tagName, subRegex } = parseFind(find);
+    const results : string[] = [];
+    for (const row of record) {
+        if (row[0] === tagName) results.push(...marcsubfields(row, subRegex));
+    }
+    return results;
+}
+
+/**
  * Given a marc row and a subfield regex, return all matching values
  */
 export function marcsubfields(row: string[], re: RegExp) : string[] {

@@ -1,6 +1,7 @@
 // Catmandu Fix binds: the `do BIND(...) ... end` construct that wraps a block
-// of fixes and controls how they are applied. A subset — `list` (the common
-// one, for iterating an array) and `identity`.
+// of fixes and controls how they are applied. A subset — `list` and `with`
+// (descend into a path), `each` (loop over array/hash entries), `marc_each`
+// (loop over MARC fields), and `identity`.
 //
 // Bind contract (see Catmandu::Fix::Bind): unit(data) seeds the bound value,
 // then the wrapped block is applied to it. `do` returns the original record;
@@ -52,6 +53,58 @@ export function buildBind(name: string, args: string[], body: Runner, doset: boo
                 result = []; // zero
             }
             return doset ? result : root;
+        };
+    }
+
+    // with: descend into `path` and run the block with the matched value as
+    // the record root — each element of an array, or the hash itself. Scalars
+    // (or a missing path) leave the record untouched. The idiomatic way to
+    // operate on a sub-structure in place. `path` may be named (`path:p`) or
+    // given as the first positional argument (`with(p)`).
+    if (name === 'with') {
+        const pathStr = opts.path !== undefined ? opts.path : args[0];
+        const pathGet = pathStr !== undefined ? new Path(pathStr).getter() : undefined;
+        return (data: Data) => {
+            const root = data;
+            const mvar = pathGet ? pathGet(data)[0] : data;
+            if (isArray(mvar)) {
+                for (let i = 0; i < mvar.length; i++) mvar[i] = body(mvar[i]);
+            } else if (isHash(mvar)) {
+                body(mvar);
+            }
+            return doset ? mvar : root;
+        };
+    }
+
+    // each: loop over the entries of the array or hash at `path`, exposing each
+    // entry to the block via `var` as { index, value } (arrays) or
+    // { key, value } (hashes). The block runs on the root record, so it can
+    // read var.key/var.value and build new fields elsewhere. Without `var` the
+    // block simply runs once per entry.
+    if (name === 'each') {
+        const pathStr = opts.path !== undefined ? opts.path : args[0];
+        const pathGet = pathStr !== undefined ? new Path(pathStr).getter() : undefined;
+        const varName = opts.var;
+        return (data: Data) => {
+            const root = data;
+            const matches = pathGet ? pathGet(data) : [data];
+            const run = (pair: Data) => {
+                if (varName !== undefined) {
+                    root[varName] = pair;
+                    body(root);
+                    delete root[varName];
+                } else {
+                    body(root);
+                }
+            };
+            for (const value of matches) {
+                if (isArray(value)) {
+                    for (let idx = 0; idx < value.length; idx++) run({ index: idx, value: value[idx] });
+                } else if (isHash(value)) {
+                    for (const key of Object.keys(value)) run({ key, value: value[key] });
+                }
+            }
+            return doset ? matches : root;
         };
     }
 
