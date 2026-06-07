@@ -70,7 +70,10 @@ export async function transform(_opts:any) : Promise<Transform> {
                     }
 
                     if (isControl(tag!)) {
-                        sf += `${esc(val)}`;
+                        // Leader and fixed control fields (00x) encode blanks as
+                        // '^' in Aleph sequential, so convert spaces back to
+                        // carets (the inverse of what the alephseq reader does).
+                        sf += `${esc(val).replaceAll(' ', '^')}`;
                     }
                     else {
                         sf += `\$\$${code}${esc(val)}`;

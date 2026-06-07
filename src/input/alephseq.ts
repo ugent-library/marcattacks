@@ -33,19 +33,23 @@ export async function transform(_opts: any): Promise<Transform> {
         const lineData = line.slice(sp + 1);
 
         if (previd && previd !== id) {
-            stream.push({ record: rec });
+            stream.push({ _id: previd, record: rec });
             rec = [];
             recordNum++;
         }
 
+        // Aleph sequential uses '^' as the blank fill character in the leader
+        // and fixed control fields (and indicators). Translate it back to a
+        // space so the in-memory MARC matches the real record (Catmandu does
+        // the same on import). Subfield values are left as-is.
         const tag  = lineData.substring(0, 3);
-        const ind1 = lineData.substring(3, 4);
-        const ind2 = lineData.substring(4, 5);
+        const ind1 = lineData.substring(3, 4).replace("^", " ");
+        const ind2 = lineData.substring(4, 5).replace("^", " ");
         const sf   = lineData.substring(8);
         const parts = sf.split(SUBFIELD);
 
         if (tag === 'FMT' || tag === 'LDR' || tag.startsWith("00")) {
-            rec.push([tag, ind1, ind2, "_", ...parts]);
+            rec.push([tag, ind1, ind2, "_", ...parts.map((p) => p.replace(/\^/g, " "))]);
         } else {
             rec.push([tag, ind1, ind2, ...parts.slice(1)]);
         }
@@ -78,7 +82,7 @@ export async function transform(_opts: any): Promise<Transform> {
             }
 
             if (rec.length > 0) {
-                this.push({ record: rec });
+                this.push({ _id: previd, record: rec });
             }
             callback();
         }
