@@ -1,5 +1,6 @@
 import jsonld from "jsonld";
-import type { Record, Quad } from "../types/quad.js";
+import { v4 as uuidv4 } from 'uuid';
+import type { Record, QVal, Quad } from "../types/quad.js";
 import type * as RDF from '@rdfjs/types';
 import log4js from 'log4js';
 
@@ -66,6 +67,27 @@ export function toInternalQuad(quad: RDF.Quad): Quad {
     return part;
 }
 
+// Rewrite a blank-node term so its label is unique across records. jsonld.toRDF
+// restarts its blank-node counter (_:b0, _:b1, ...) on every call, so labels
+// from independently-converted records collide once their N-Triples are
+// concatenated and re-parsed — distinct nodes get merged. `salt` is one value
+// per toRDF() call: constant within the record (intra-record references stay
+// consistent) and unique across records (no clash), with no shared state.
+//
+//   default      : keep it a blank node, prefixed     _:b0 -> _:<salt>b0
+//   skolem given : turn it into a stable IRI          _:b0 -> <skolem><salt>b0
+//
+// Mutates the QVal in place (it is freshly built by toInternalQuad).
+function relabelBnode(term: QVal, salt: string, skolem?: string): void {
+    if (term.type !== 'BlankNode') return;
+    if (skolem !== undefined) {
+        term.type = 'NamedNode';
+        term.value = `${skolem}${salt}${term.value}`;
+    } else {
+        term.value = `${salt}${term.value}`;
+    }
+}
+
 // Convert a JSON-LD object straight into our internal Record using jsonld.toRDF.
 // This bypasses the rdf-parse universal wrapper (content negotiation + a fresh
 // streaming parser per call), which is ~17x slower than calling jsonld directly.
@@ -78,7 +100,13 @@ export function toInternalQuad(quad: RDF.Quad): Quad {
 //
 // Named-graph filtering mirrors parseStream: drop non-default graphs and any
 // triple that mentions a graph name as its subject or object.
-export async function toRDF(data: any, opts: { documentLoader?: DocumentLoader } = {}): Promise<Record> {
+//
+// Blank-node labels are always made unique per record (see relabelBnode); pass
+// `skolem` to instead replace blank nodes with stable IRIs under that prefix.
+export async function toRDF(
+    data: any,
+    opts: { documentLoader?: DocumentLoader; skolem?: string } = {},
+): Promise<Record> {
     const dataset = await jsonld.toRDF(data, { documentLoader: opts.documentLoader ?? documentLoader }) as RDF.Quad[];
 
     let record: Record = { prefixes: {}, quads: [] };
@@ -90,6 +118,9 @@ export async function toRDF(data: any, opts: { documentLoader?: DocumentLoader }
         }
     }
 
+    // One salt per call: unique across records, constant within this one.
+    const salt = uuidv4().replace(/-/g, '');
+
     for (const quad of dataset) {
         if (quad.graph.termType !== 'DefaultGraph') {
             continue;
@@ -99,7 +130,11 @@ export async function toRDF(data: any, opts: { documentLoader?: DocumentLoader }
             continue;
         }
 
-        record.quads.push(toInternalQuad(quad));
+        const part = toInternalQuad(quad);
+        // Predicates are always IRIs; only subject/object can be blank nodes.
+        relabelBnode(part.subject, salt, opts.skolem);
+        relabelBnode(part.object, salt, opts.skolem);
+        record.quads.push(part);
     }
 
     return record;

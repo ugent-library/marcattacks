@@ -62,7 +62,11 @@ export async function createMapper(opts: { fix: string, lookup: string }) : Prom
     // awaits the returned promise. Ending a fix with $toRDF(...) moves the
     // JSON-LD -> RDF conversion onto the worker threads (where this mapper
     // runs), so the single-threaded RDF output stage only has to serialize.
-    expression.registerFunction('toRDF', (data: any) => toRDF(data));
+    // $toRDF(data [, skolem]): convert JSON-LD to a quads-Record. With a skolem
+    // prefix, blank nodes become stable IRIs under it; without, they stay blank
+    // but are relabelled unique per record.
+    expression.registerFunction('toRDF', (data: any, skolem?: string) =>
+        toRDF(data, skolem !== undefined ? { skolem } : {}));
 
     return async (data: any) => { current = data; return expression.evaluate(data); };
 }

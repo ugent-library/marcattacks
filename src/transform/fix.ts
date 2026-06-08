@@ -16,18 +16,26 @@ const RDF_MARKER = '@@toRDF';
 // run against the marker), and not inside a `do ... end` bind. Registered on
 // the shared FIXES table; guarded so importing this module twice is harmless.
 if (!FIXES['to_rdf']) {
-    FIXES['to_rdf'] = () => (data: any) => {
-        if (data && typeof data === 'object') data[RDF_MARKER] = true;
-        return data;
+    // to_rdf()                  -> blank nodes relabelled unique per record
+    // to_rdf('<skolem prefix>') -> blank nodes skolemized to IRIs under prefix
+    FIXES['to_rdf'] = (args: any[]) => {
+        const skolem = args && args[0];
+        // Stamp the prefix when given, else `true`; both are truthy markers.
+        const mark = typeof skolem === 'string' ? skolem : true;
+        return (data: any) => {
+            if (data && typeof data === 'object') data[RDF_MARKER] = mark;
+            return data;
+        };
     };
 }
 
 // If a fix tagged the record with `to_rdf`, convert it to a quads-Record now
-// (jsonld.toRDF runs here, on the worker thread). Otherwise pass through.
+// (jsonld.toRDF runs here, on the worker thread). Otherwise pass through. A
+// string marker is the skolem prefix; `true` means relabel-as-blank-node.
 async function finishRDF(out: any): Promise<any> {
     if (out !== REJECT && out && typeof out === 'object' && out[RDF_MARKER]) {
-        const { [RDF_MARKER]: _flag, ...jsonld } = out;
-        return await toRDF(jsonld);
+        const { [RDF_MARKER]: mark, ...jsonld } = out;
+        return await toRDF(jsonld, typeof mark === 'string' ? { skolem: mark } : {});
     }
     return out;
 }
