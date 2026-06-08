@@ -2,6 +2,7 @@ import Stream, { Transform } from "stream";
 import jsonata from "jsonata";
 import fs from "fs";
 import { marcmap, marctag, marcind, marcsubfields } from '../marcmap.js';
+import { toRDF } from '../util/jsonld.js';
 import { parseStream } from '../util/tsv_parse.js';
 import { v4 as uuidv4 } from 'uuid';
 import log4js from 'log4js';
@@ -57,6 +58,11 @@ export async function createMapper(opts: { fix: string, lookup: string }) : Prom
     expression.registerFunction('asmarc', (data: string[][]) => ({ "record": data }));
     expression.registerFunction('genid', () => genid());
     expression.registerFunction('lookup', (key) => lookup[key]);
+    // Convert a JSON-LD object to an internal quads-Record. Async: JSONata
+    // awaits the returned promise. Ending a fix with $toRDF(...) moves the
+    // JSON-LD -> RDF conversion onto the worker threads (where this mapper
+    // runs), so the single-threaded RDF output stage only has to serialize.
+    expression.registerFunction('toRDF', (data: any) => toRDF(data));
 
     return async (data: any) => { current = data; return expression.evaluate(data); };
 }

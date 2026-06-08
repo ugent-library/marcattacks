@@ -66,4 +66,29 @@ describe("transform/fix", () => {
 
         expect(mapper({ a: 1 })).toEqual({ a: 1 });
     });
+
+    test("a terminal to_rdf() converts the built JSON-LD into a quads-Record", async () => {
+        const fix = [
+            "add_field('@context.@vocab', 'http://example.org/')",
+            "add_field('@id', 'http://example.org/a')",
+            "add_field('name', 'hello')",
+            "to_rdf()",
+        ].join("\n");
+
+        const plugin = await loadPlugin("fix", "transform");
+        const mapper = await plugin.createMapper({ fix });
+
+        const out = await mapper({});
+
+        // No leftover marker, and a real quads-Record came back.
+        expect(out["@@toRDF"]).toBeUndefined();
+        expect(Array.isArray(out.quads)).toBe(true);
+        expect(out.quads).toContainEqual(
+            expect.objectContaining({
+                subject: { type: "NamedNode", value: "http://example.org/a" },
+                predicate: { type: "NamedNode", value: "http://example.org/name" },
+                object: expect.objectContaining({ type: "Literal", value: "hello" }),
+            }),
+        );
+    });
 });
