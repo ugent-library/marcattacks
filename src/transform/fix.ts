@@ -16,12 +16,16 @@ const RDF_MARKER = '@@toRDF';
 // run against the marker), and not inside a `do ... end` bind. Registered on
 // the shared FIXES table; guarded so importing this module twice is harmless.
 if (!FIXES['to_rdf']) {
-    // to_rdf()                  -> blank nodes relabelled unique per record
-    // to_rdf('<skolem prefix>') -> blank nodes skolemized to IRIs under prefix
+    // to_rdf() / to_rdf(.)        -> blank nodes relabelled unique per record
+    // to_rdf('<skolem prefix>')   -> blank nodes skolemized to IRIs under prefix
+    //
+    // `.` is the conventional Catmandu root-path argument (to_rdf(.) means "the
+    // whole record"), NOT a skolem prefix — so it is ignored here. The skolem
+    // prefix, when wanted, is the first argument that isn't `.`.
     FIXES['to_rdf'] = (args: any[]) => {
-        const skolem = args && args[0];
+        const skolem = (args || []).find((a) => typeof a === 'string' && a !== '.');
         // Stamp the prefix when given, else `true`; both are truthy markers.
-        const mark = typeof skolem === 'string' ? skolem : true;
+        const mark = skolem !== undefined ? skolem : true;
         return (data: any) => {
             if (data && typeof data === 'object') data[RDF_MARKER] = mark;
             return data;
