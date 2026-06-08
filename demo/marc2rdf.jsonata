@@ -1,3 +1,4 @@
+$toRDF(
 (
     /******start helper functions****/
     $strip := function ($str) {
@@ -64,4 +65,5 @@
             }
         })
     }
+)
 )

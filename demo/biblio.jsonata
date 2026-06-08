@@ -1,13 +1,10 @@
+$toRDF(
 (
     /*** start helper functions ***/
-
-    /* If no _id exists for an object create a 'genid' (an RDF blank node that looks like an IRI) */
-    /* genid() is a built-in we defined somewhere in the Javascript code base */
     $fixObjectId := function($obj) {
         $obj ? ($exists($obj._id) ? $obj : $merge([$obj, {"_id": $genid()}])) : undefined
     };
 
-    /* The same as fixObjectId, but now for an array of objects */
     $fixObjectArrayId := function($arr) {
         $arr ?
             $arr[].(
@@ -16,7 +13,6 @@
             : undefined
     };
 
-    /* In the biblio dataset, some objects use the 'url' field as identifier, also here the genid trick */
     $fixObjectArrayUrl := function($arr) {
         $arr ?
             $arr[].(
@@ -24,9 +20,6 @@
             )
             : undefined
     };
-
-    /* In general, we try to avoid regular blank nodes in massive RDF dumps */
-
     /*** end helper functions ***/
 
     $merge([
@@ -36,7 +29,7 @@
         { 
             "@type": "https://biblio.ugent.be/ns#" & classification,
             "affiliation": $fixObjectArrayId(affiliation),
-            /* Fix authors and nested affiliations getting rid of blank nodes */
+            /* Fix authors and nested affiliations using an object constructor */
             "author": author[].(
                 $authorFixed := $fixObjectId($);
                 $merge([
@@ -49,7 +42,6 @@
             "date_created": (date_created ~> $replace(" ", "T")) & "Z",
             "date_updated": (date_created ~> $replace(" ", "T")) & "Z",
             "conference": $fixObjectId(conference),
-            /* Fix editors of blank nodes */
             "editor": editor[].(
                 $editorFixed := $fixObjectId($);
                 $merge([
@@ -60,7 +52,6 @@
                 ])
             ),
             "file": $fixObjectArrayUrl(file),
-            /* Fix promoters of blank nodes */
             "promoter": promoter[].(
                 $promoterFixed := $fixObjectId($);
                 $merge([
@@ -167,25 +158,25 @@
                     "name" : "foaf:name",
                     "first_name" : "foaf:givenName",
                     "orcid_id" : {
-                        "@type" : "@id",
-                        "@context" : {
-                            "@base" : "http://orcid.org/"
-                        },
-                        "@id" : "schema:identifier"
+                    "@type" : "@id",
+                    "@context" : {
+                        "@base" : "http://orcid.org/"
+                    },
+                    "@id" : "schema:identifier"
                     },
                     "biblio_id" : {
-                        "@context" : {
-                            "@base" : "http://biblio.ugent.be/person/"
-                        },
-                        "@id" : "schema:identifier",
-                        "@type" : "@id"
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "schema:identifier",
+                    "@type" : "@id"
                     },
                     "ugent_id" : {
-                        "@context" : {
-                            "@base" : "http://biblio.ugent.be/person/"
-                        },
-                        "@id" : "foaf:publications",
-                        "@type" : "@id"
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "foaf:publications",
+                    "@type" : "@id"
                     },
                     "last_name" : "foaf:familyName"
                 }
@@ -242,25 +233,25 @@
                     "name" : "foaf:name",
                     "first_name" : "foaf:givenName",
                     "orcid_id" : {
-                        "@type" : "@id",
-                        "@context" : {
-                            "@base" : "http://orcid.org/"
-                        },
-                        "@id" : "schema:identifier"
+                    "@type" : "@id",
+                    "@context" : {
+                        "@base" : "http://orcid.org/"
+                    },
+                    "@id" : "schema:identifier"
                     },
                     "biblio_id" : {
-                        "@context" : {
-                            "@base" : "http://biblio.ugent.be/person/"
-                        },
-                        "@id" : "schema:identifier",
-                        "@type" : "@id"
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "schema:identifier",
+                    "@type" : "@id"
                     },
                     "ugent_id" : {
-                        "@context" : {
-                            "@base" : "http://biblio.ugent.be/person/"
-                        },
-                        "@id" : "foaf:publications",
-                        "@type" : "@id"
+                    "@context" : {
+                        "@base" : "http://biblio.ugent.be/person/"
+                    },
+                    "@id" : "foaf:publications",
+                    "@type" : "@id"
                     },
                     "last_name" : "foaf:familyName"
                 }
@@ -282,4 +273,5 @@
         }
         }
     ])
+)
 )
