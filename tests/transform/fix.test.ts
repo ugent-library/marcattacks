@@ -112,13 +112,13 @@ describe("transform/fix", () => {
         expect(knows.object.value.startsWith(".")).toBe(false);
     });
 
-    test("to_rdf('<prefix>') skolemizes blank nodes to IRIs", async () => {
+    test("to_rdf(., skolem:'<prefix>') skolemizes blank nodes to IRIs", async () => {
         const prefix = "https://example.org/.well-known/genid/";
         const fix = [
             "add_field('@context.@vocab', 'http://example.org/')",
             "add_field('@id', 'http://example.org/a')",
             "add_field('knows.name', 'bob')",   // nested anonymous node -> blank node
-            `to_rdf('${prefix}')`,
+            `to_rdf(., skolem:'${prefix}')`,
         ].join("\n");
 
         const plugin = await loadPlugin("fix", "transform");
