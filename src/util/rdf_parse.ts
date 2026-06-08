@@ -1,4 +1,5 @@
 import { rdfParser } from "rdf-parse";
+import jsonld from "jsonld";
 import type { Record, Quad } from "../types/quad.js";
 import type { Readable, Writable } from "stream";
 import { PassThrough } from "stream";
@@ -8,6 +9,68 @@ import type * as RDF from '@rdfjs/types';
 import log4js from 'log4js';
 
 const logger = log4js.getLogger();
+
+// Convert a parsed RDF.Quad into our internal Quad representation.
+function toInternalQuad(quad: RDF.Quad): Quad {
+    const part: Quad = {
+        "subject": {
+            "type": quad.subject.termType,
+            "value": quad.subject.value
+        },
+        "predicate": {
+            "type": quad.predicate.termType,
+            "value": quad.predicate.value
+        },
+        "object": {
+            "type": quad.object.termType,
+            "value": quad.object.value
+        }
+    };
+
+    if (quad.object.termType === "Literal") {
+        if (quad.object.datatype) {
+            part.object.as = quad.object.datatype.value;
+        }
+
+        if (quad.object.language) {
+            part.object.language = quad.object.language;
+        }
+    }
+
+    return part;
+}
+
+// Parse a JSON-LD object straight into our internal Record using jsonld.toRDF.
+// This bypasses the rdf-parse universal wrapper (content negotiation + a fresh
+// streaming parser per call), which is ~17x slower than calling jsonld directly.
+// Named-graph filtering mirrors parseStream: drop non-default graphs and any
+// triple that mentions a graph name as its subject or object.
+export async function parseJsonLd(data: any): Promise<Record> {
+    const dataset = await jsonld.toRDF(data) as RDF.Quad[];
+
+    let record: Record = { prefixes: {}, quads: [] };
+    let graphSet = new Set<string>();
+
+    for (const quad of dataset) {
+        if (quad.graph.termType !== 'DefaultGraph') {
+            graphSet.add(quad.graph.value);
+        }
+    }
+
+    for (const quad of dataset) {
+        if (quad.graph.termType !== 'DefaultGraph') {
+            continue;
+        }
+
+        if (graphSet.has(quad.subject.value) || graphSet.has(quad.object.value)) {
+            continue;
+        }
+
+        record.quads.push(toInternalQuad(quad));
+    }
+
+    return record;
+}
 
 const { DataFactory } = N3;
 const { namedNode, literal, blankNode } = DataFactory;
