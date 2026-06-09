@@ -6,3 +6,4 @@ local/**
 .vscode/**
 .nvmrc
 .env
+data/*.parquet

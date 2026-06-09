@@ -1,0 +1,15 @@
+{
+  "record_id": { "type": "UTF8" },
+  "field_seq": { "type": "INT32" },
+  "tag":       { "type": "UTF8" },
+  "ind1":      { "type": "UTF8", "optional": "true" },
+  "ind2":      { "type": "UTF8", "optional": "true" },
+  "value":     { "type": "UTF8", "optional": "true" },
+  "subfields": {
+    "repeated": "true",
+    "fields": {
+      "code":  { "type": "UTF8" },
+      "value": { "type": "UTF8" }
+    }
+  }
+}
