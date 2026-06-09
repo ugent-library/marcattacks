@@ -4,11 +4,13 @@ import { parseString } from "../util/rdf_parse.js";
 import { marcmap } from "../marcmap.js";
 
 export interface MarcInRDFOptions {
-    parse?: "jsonld" | "turtle" | "field" | "full";
+    parse?: "jsonld" | "quads" | "text:field" | "text:full" | "text:flat";
 }
 
 // An experimental processor that does a literal translation of
-// alephseq into something JSON-LD-ish
+// alephseq into something RDF-ish. No full data model. A quick
+// and dirty literal translation of sequential. Other tools in
+// the chain could map this proto-RDF into a full model.
 export async function transform(opts: MarcInRDFOptions = {}) : Promise<Transform> {
     return new Transform({
         objectMode: true,
@@ -21,12 +23,6 @@ export async function transform(opts: MarcInRDFOptions = {}) : Promise<Transform
 
 async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Record> {
     const parse = opts.parse ? opts.parse : "jsonld";
-
-    // First take a guess if we already have a Record 
-    // Stupid guess but sufficient for now
-    if (isRecord(data)) {
-        return data;
-    }
 
     const id = marcmap(data['record'],"001",{})[0];
 
@@ -45,24 +41,35 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
     clone['@id'] = `http://example.org/record/${id}` ;
     clone['@type'] = 'ex:Record';
 
-    if (parse === "turtle") {
+    if (parse === "quads") {
         return await parseString(JSON.stringify(clone), "data.jsonld");
     }
-    else if (parse === "field") {
+    else if (parse === "text:field") {
         const record : any = { 
             "text" : serializeFieldRecord(clone)
         };
         return record;
     }
-    else if (parse === "full") {
+    else if (parse === "text:full") {
         const record : any = { 
             "text" : serializeFullRecord(clone)
+        };
+        return record;
+    }
+    else if (parse === "text:flat") {
+        const record : any = {
+            "text" : await serializeFlatRecord(clone)
         };
         return record;
     }
     else {
         return clone;
     }
+}
+
+async function serializeFlatRecord(clone : any) : Promise<any> {
+
+    return await parseString(JSON.stringify(clone), "data.jsonld");
 }
 
 function serializeFieldRecord(record: any) : string {
