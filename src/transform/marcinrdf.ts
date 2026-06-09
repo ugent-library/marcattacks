@@ -1,7 +1,6 @@
 import { Transform } from "stream";
 import { type Record, isRecord } from "../types/quad.js";
-import { parseString , writeString } from "../util/rdf_parse.js";
-import { toRDF } from "../util/jsonld.js";
+import { parseString } from "../util/rdf_parse.js";
 import { marcmap } from "../marcmap.js";
 
 export interface MarcInRDFOptions {
@@ -59,7 +58,7 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
     }
     else if (parse === "text:flat") {
         const record : any = {
-            "text" : await serializeFlatRecord(clone)
+            "text" : serializeFlatRecord(clone)
         };
         return record;
     }
@@ -68,33 +67,50 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
     }
 }
 
-async function serializeFlatRecord(clone : any) : Promise<any> {
-    clone['ex:field'] = [];
+// Hand-serialize the "flat" proto-RDF directly to Turtle/N3, bypassing the
+// jsonld.toRDF + N3.Writer round-trip (see serializeFieldRecord/FullRecord).
+// The emitted graph is isomorphic to what the jsonld path produced:
+//
+//   <record/ID> a ex:Record ; ex:field [ ... ], [ ... ] .
+//   [ ex:tag "T" ; ex:ind1 "I" ; ex:ind2 "J" ;
+//     ex:sub ( [ ex:code "C" ; ex:value "V" ] ... ) ]
+//
+// Each field/subfield is an anonymous blank node ([ ]) and ex:sub is a Turtle
+// collection ( ), so no blank-node labels (or per-record salt) are needed.
+function serializeFlatRecord(record: any) : string {
+    const id = record['@id'];
+    const ex = "http://example.org/ns#";
+    const fields = record['record'];
 
-    for (let i = 0 ; i < clone['record'].length ; i++) {
-        const field = clone['record'][i];
-        const tag   = field[0];
-        const ind1  = field[1];
-        const ind2  = field[2];
-        const subf  = field.splice(3);
-        const codes = [];
-        for (let j = 0 ; j < subf.length ; j+=2) {
-            const code  = subf[j];
-            const value = subf[j+1];
-            codes.push({code,value});
+    const fieldNodes : string[] = [];
+
+    for (let i = 0 ; i < fields.length ; i++) {
+        const field = fields[i];
+        const props : string[] = [];
+
+        if (field[0] !== undefined) props.push(`<${ex}tag> ${serializeValue(field[0])}`);
+        if (field[1] !== undefined) props.push(`<${ex}ind1> ${serializeValue(field[1])}`);
+        if (field[2] !== undefined) props.push(`<${ex}ind2> ${serializeValue(field[2])}`);
+
+        const subNodes : string[] = [];
+        for (let j = 3 ; j < field.length ; j += 2) {
+            const code  = field[j];
+            const value = field[j+1];
+            if (code === undefined || value === undefined) continue;
+            subNodes.push(`[ <${ex}code> ${serializeValue(code)}; <${ex}value> ${serializeValue(value)} ]`);
         }
-        clone['ex:field'].push({
-            "ex:tag": tag,
-            "ex:ind1": ind1,
-            "ex:ind2": ind2,
-            "ex:sub": {
-                "@list": codes
-            }
-        });
+        props.push(`<${ex}sub> ( ${subNodes.join(" ")} )`);
+
+        fieldNodes.push(`[ ${props.join("; ")} ]`);
     }
-    delete clone['record'];
-    const data = await toRDF(clone);
-    return await writeString(data, "Notation3");
+
+    let result = `<${id}> a <${ex}Record>`;
+    if (fieldNodes.length > 0) {
+        result += `;\n    <${ex}field> ${fieldNodes.join(",\n    ")}`;
+    }
+    result += ".";
+
+    return result;
 }
 
 function serializeFieldRecord(record: any) : string {
@@ -136,8 +152,9 @@ function serializeArray(array: any[]) {
 }
 
 function serializeValue(value: any) {
-    const result = "\"" + 
-        value.replaceAll(/\\/g,"\\\\").replaceAll(/"/g,"\\\"") + 
+    const result = "\"" +
+        value.replaceAll(/\\/g,"\\\\").replaceAll(/"/g,"\\\"")
+             .replaceAll(/\n/g,"\\n").replaceAll(/\r/g,"\\r").replaceAll(/\t/g,"\\t") +
         "\"";
     return result;
 }
