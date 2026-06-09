@@ -1,6 +1,6 @@
 #!/bin/bash
 
-duckdb -csv -noheader <<EOF
+duckdb -csv <<EOF
 -- Some macros to make querying subfields easier
 CREATE MACRO sf(subfields, c) AS
   list_transform(list_filter(subfields, lambda x : x.code = c), lambda x : x.value);
