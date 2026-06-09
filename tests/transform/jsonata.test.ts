@@ -69,6 +69,30 @@ describe("transform/jsonata", () => {
         }
     });
 
+    test("$toRDF turns a JSON-LD result into a quads-Record", async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "marcattacks-jsonata-"));
+        try {
+            const file = tmpFile(dir, "map.jsonata", "$toRDF($)");
+            const plugin = await loadPlugin("jsonata", "transform");
+            const mapper = await plugin.createMapper({ fix: file });
+
+            const out = await mapper({
+                "@context": { "ex": "http://example.org/" },
+                "@id": "ex:a",
+                "ex:b": { "@id": "ex:c" },
+            });
+
+            expect(Array.isArray(out.quads)).toBe(true);
+            expect(out.quads).toContainEqual({
+                subject: { type: "NamedNode", value: "http://example.org/a" },
+                predicate: { type: "NamedNode", value: "http://example.org/b" },
+                object: { type: "NamedNode", value: "http://example.org/c" },
+            });
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
     test("transform() evaluates the expression as it streams records", async () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), "marcattacks-jsonata-"));
         try {

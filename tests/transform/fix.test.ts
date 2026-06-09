@@ -66,4 +66,69 @@ describe("transform/fix", () => {
 
         expect(mapper({ a: 1 })).toEqual({ a: 1 });
     });
+
+    test("a terminal to_rdf() converts the built JSON-LD into a quads-Record", async () => {
+        const fix = [
+            "add_field('@context.@vocab', 'http://example.org/')",
+            "add_field('@id', 'http://example.org/a')",
+            "add_field('name', 'hello')",
+            "to_rdf()",
+        ].join("\n");
+
+        const plugin = await loadPlugin("fix", "transform");
+        const mapper = await plugin.createMapper({ fix });
+
+        const out = await mapper({});
+
+        // No leftover marker, and a real quads-Record came back.
+        expect(out["@@toRDF"]).toBeUndefined();
+        expect(Array.isArray(out.quads)).toBe(true);
+        expect(out.quads).toContainEqual(
+            expect.objectContaining({
+                subject: { type: "NamedNode", value: "http://example.org/a" },
+                predicate: { type: "NamedNode", value: "http://example.org/name" },
+                object: expect.objectContaining({ type: "Literal", value: "hello" }),
+            }),
+        );
+    });
+
+    test("to_rdf(.) treats `.` as the root path, not a skolem prefix", async () => {
+        // `.` is the conventional whole-record argument; it must NOT skolemize.
+        const fix = [
+            "add_field('@context.@vocab', 'http://example.org/')",
+            "add_field('@id', 'http://example.org/a')",
+            "add_field('knows.name', 'bob')",   // nested anonymous node -> blank node
+            "to_rdf(.)",
+        ].join("\n");
+
+        const plugin = await loadPlugin("fix", "transform");
+        const mapper = await plugin.createMapper({ fix });
+
+        const out = await mapper({});
+
+        const knows = out.quads.find((q: any) => q.predicate.value === "http://example.org/knows");
+        // Still a blank node (default mode), not a "." -prefixed IRI.
+        expect(knows.object.type).toBe("BlankNode");
+        expect(knows.object.value.startsWith(".")).toBe(false);
+    });
+
+    test("to_rdf(., skolem:'<prefix>') skolemizes blank nodes to IRIs", async () => {
+        const prefix = "https://example.org/.well-known/genid/";
+        const fix = [
+            "add_field('@context.@vocab', 'http://example.org/')",
+            "add_field('@id', 'http://example.org/a')",
+            "add_field('knows.name', 'bob')",   // nested anonymous node -> blank node
+            `to_rdf(., skolem:'${prefix}')`,
+        ].join("\n");
+
+        const plugin = await loadPlugin("fix", "transform");
+        const mapper = await plugin.createMapper({ fix });
+
+        const out = await mapper({});
+
+        const knows = out.quads.find((q: any) => q.predicate.value === "http://example.org/knows");
+        expect(knows.object.type).toBe("NamedNode");
+        expect(knows.object.value.startsWith(prefix)).toBe(true);
+        expect(out.quads.some((q: any) => q.object.type === "BlankNode")).toBe(false);
+    });
 });

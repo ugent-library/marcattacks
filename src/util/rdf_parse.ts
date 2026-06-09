@@ -9,6 +9,13 @@ import log4js from 'log4js';
 
 const logger = log4js.getLogger();
 
+// JSON-LD -> internal Record conversion now lives in ./jsonld.ts so it can be
+// reused inside the transform layer (worker threads) via the JSONata $toRDF()
+// function or a direct import. Re-exported here under the original name so the
+// RDF output stage's JSON-LD fallback keeps working (now through the custom,
+// no-network document loader).
+export { toRDF as parseJsonLd } from "./jsonld.js";
+
 const { DataFactory } = N3;
 const { namedNode, literal, blankNode } = DataFactory;
 

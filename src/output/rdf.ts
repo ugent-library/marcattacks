@@ -1,5 +1,5 @@
 import { Transform } from 'stream';
-import { writeString, parseString } from '../util/rdf_parse.js';
+import { writeString, parseJsonLd } from '../util/rdf_parse.js';
 import { isRecord } from '../types/quad.js';
 import N3 from 'n3';
 
@@ -29,7 +29,7 @@ export async function transform(_opts:any): Promise<Transform> {
             } 
             else if (Object.hasOwn(data, "@context")) {
                 logger.trace(`[${counter}] is a JSON-LD`);
-                const dataNew = await parseString(JSON.stringify(data), "data.jsonld");
+                const dataNew = await parseJsonLd(data);
 
                 if (!writer) {
                     writer = new N3.Writer({ 

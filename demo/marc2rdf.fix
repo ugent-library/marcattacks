@@ -45,3 +45,8 @@ do list(path:'_subjects', var:'s')
   genid('dc:subject.$last.@id')
 end
 remove_field('_subjects')
+
+remove_field(record)
+
+# Our marcattacks custom fix
+to_rdf(.,skolem:'http://lib.ugent.be/.well-known/genid/')
