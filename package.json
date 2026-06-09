@@ -36,7 +36,7 @@
     "demo:json": "npx marcattacks --to json data/sample.xml",
     "demo:jsonl": "npx marcattacks --to jsonl data/sample.xml",
     "demo:rdf": "npx marcattacks --to rdf --map marc2rdf data/sample.xml",
-    "demo:rdf:messages": "npx marcattacks --to multipart --map marcinrdf --param header=\"@version \\\"1.1-messages\\\".\" --param delimiter=\"@message.\" --param noEndDelimiter=true --param parse=text:full ./data/sample.xml",
+    "demo:rdf:messages": "npx marcattacks --info --to multipart --map marcinrdf --param header=\"@version \\\"1.1-messages\\\".\" --param delimiter=\"@message.\" --param noEndDelimiter=true --param parse=text:flat ./data/sample.xml",
     "demo:jsonld": "npx marcattacks --to jsonl --param fix=./demo/marc2rdf.jsonata data/sample.xml",
     "demo:fix": "npx marcattacks --to jsonl --map fix --param fix=./demo/example.fix data/sample.xml",
     "demo:fix:rdf": "npx marcattacks --to jsonl --to rdf --map fix --param fix=./demo/marc2rdf.fix data/sample.xml",

@@ -1,6 +1,7 @@
 import { Transform } from "stream";
 import { type Record, isRecord } from "../types/quad.js";
-import { parseString } from "../util/rdf_parse.js";
+import { parseString , writeString } from "../util/rdf_parse.js";
+import { toRDF } from "../util/jsonld.js";
 import { marcmap } from "../marcmap.js";
 
 export interface MarcInRDFOptions {
@@ -68,8 +69,32 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
 }
 
 async function serializeFlatRecord(clone : any) : Promise<any> {
+    clone['ex:field'] = [];
 
-    return await parseString(JSON.stringify(clone), "data.jsonld");
+    for (let i = 0 ; i < clone['record'].length ; i++) {
+        const field = clone['record'][i];
+        const tag   = field[0];
+        const ind1  = field[1];
+        const ind2  = field[2];
+        const subf  = field.splice(3);
+        const codes = [];
+        for (let j = 0 ; j < subf.length ; j+=2) {
+            const code  = subf[j];
+            const value = subf[j+1];
+            codes.push({code,value});
+        }
+        clone['ex:field'].push({
+            "ex:tag": tag,
+            "ex:ind1": ind1,
+            "ex:ind2": ind2,
+            "ex:sub": {
+                "@list": codes
+            }
+        });
+    }
+    delete clone['record'];
+    const data = await toRDF(clone);
+    return await writeString(data, "Notation3");
 }
 
 function serializeFieldRecord(record: any) : string {
