@@ -67,16 +67,6 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
     }
 }
 
-// Hand-serialize the "flat" proto-RDF directly to Turtle/N3, bypassing the
-// jsonld.toRDF + N3.Writer round-trip (see serializeFieldRecord/FullRecord).
-// The emitted graph is isomorphic to what the jsonld path produced:
-//
-//   <record/ID> a ex:Record ; ex:field [ ... ], [ ... ] .
-//   [ ex:tag "T" ; ex:ind1 "I" ; ex:ind2 "J" ;
-//     ex:sub ( [ ex:code "C" ; ex:value "V" ] ... ) ]
-//
-// Each field/subfield is an anonymous blank node ([ ]) and ex:sub is a Turtle
-// collection ( ), so no blank-node labels (or per-record salt) are needed.
 function serializeFlatRecord(record: any) : string {
     const id = record['@id'];
     const ex = "http://example.org/ns#";
