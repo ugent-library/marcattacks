@@ -33,6 +33,7 @@
     "build:ts": "npx tsc",
     "build:watch": "npx tsc -w",
     "demo:alephseq": "npx marcattacks --to alephseq data/sample.xml",
+    "demo:xml": "npx marcattacks --info --from fastxml --to xml data/sample.xml",
     "demo:json": "npx marcattacks --to json data/sample.xml",
     "demo:jsonl": "npx marcattacks --to jsonl data/sample.xml",
     "demo:rdf": "npx marcattacks --to rdf --map marc2rdf data/sample.xml",

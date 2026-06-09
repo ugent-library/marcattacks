@@ -149,6 +149,15 @@ export function shouldParallelize(
 export async function createMapTransformStage(opts: any): Promise<Transform | null> {
     if (opts.map) {
         const mod = await loadPlugin(opts.map, 'transform');
+        // A map plugin can declare that, for the given params, it would pass
+        // records through unchanged (e.g. the default `jsonata` map with no
+        // --param fix=). Skip the stage entirely so we neither insert a no-op
+        // transform nor spin up a worker pool to shuttle records through an
+        // identity function. `--map` defaults to `jsonata`, so without this a
+        // plain `--from xml --to json` would needlessly start a full worker pool.
+        if (typeof mod.isPassthrough === 'function' && mod.isPassthrough(opts.param)) {
+            return null;
+        }
         const parallelizable = typeof mod.createMapper === 'function';
         const autoParallel = mod.autoParallel === true;
         const workers = resolveWorkerCount(opts.workers);

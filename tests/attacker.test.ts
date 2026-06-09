@@ -93,6 +93,17 @@ describe("attacker — stage builders", () => {
         expect(await createMapTransformStage({})).toBeNull();
     });
 
+    test("createMapTransformStage skips a passthrough map (default jsonata, no fix) — no stage, no worker pool", async () => {
+        // --map defaults to 'jsonata', so opts.map is truthy even when the user
+        // never asked for a mapper. With no fix the mapper is identity, so the
+        // stage must be skipped — otherwise auto-parallel jsonata spins up a
+        // full worker pool just to pass records through unchanged.
+        expect(await createMapTransformStage({ map: "jsonata", workers: "auto", param: {} })).toBeNull();
+        // ...but a real jsonata fix still builds a stage.
+        const stage = await createMapTransformStage({ map: "jsonata", workers: "1", param: { fix: "./demo/marc2rdf.jsonata" } });
+        expect(typeof (stage as any).pipe).toBe("function");
+    });
+
     test("createOutputTransformStage loads the named output plugin, or null", async () => {
         const stage = await createOutputTransformStage({ to: "jsonl" });
         expect(typeof (stage as any).pipe).toBe("function");

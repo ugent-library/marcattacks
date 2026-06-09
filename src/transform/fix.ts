@@ -46,6 +46,11 @@ async function finishRDF(out: any): Promise<any> {
     return out;
 }
 
+// Ignore this mapper when there is nothing to fix
+export function isPassthrough(opts?: { fix?: string }): boolean {
+    return !opts?.fix;
+}
+
 /**
  * Apply a Catmandu Fix script to each record.
  *
