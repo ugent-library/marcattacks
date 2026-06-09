@@ -42,7 +42,7 @@ export class PipelineError extends Error {
 }
 
 export async function createInputReadStream(url: URL, opts: any): Promise<{ stream: Readable; resolvedUrl: URL }> {
-    logger.info(`using: ${getCleanURL(url)}`);
+    logger.info(`input from: ${getCleanURL(url)}`);
 
     let readableStream: Readable;
 
@@ -89,6 +89,7 @@ export async function createInputReadStream(url: URL, opts: any): Promise<{ stre
 
 export async function createDecompressionStage(url: URL, opts: { z?: boolean }): Promise<Transform | null> {
     if (opts.z || url.pathname.endsWith(".gz")) {
+        logger.info(`unzipping input`);
         return createUncompressedStream();
     }
     return null;
@@ -96,6 +97,7 @@ export async function createDecompressionStage(url: URL, opts: { z?: boolean }):
 
 export async function createUntarStage(url: URL, opts: { tar?: boolean }): Promise<Transform | null> {
     if (opts.tar || url.pathname.match(/.tar(.\w+$)?$/) || url.pathname.endsWith(".tgz")) {
+        logger.info(`untarring input`);
         return await createUntarredStream();
     }
     return null;
@@ -107,12 +109,19 @@ export async function createInputTransformStage(url: URL, opts: {from: string, p
         process.exit(1);
     }
 
+    logger.info(`activating from: ${opts.from}`);
     const mod = await loadPlugin(opts.from, 'input');
     return await mod.transform(Object.assign({ path: url }, opts.param), { utils: marcUtils });
 }
 
 export async function createCountSkipStage(opts: {count?: number, skip?: number}): Promise<Transform | null> {
     if (opts.count || opts.skip) {
+        if (opts.count) {
+            logger.info(`counting: ${opts.count}`);
+        }
+        if (opts.skip) {
+            logger.info(`skipping: ${opts.skip}`);
+        }
         return createCountableSkippedStream(opts.count, opts.skip);
     }
     return null;
@@ -158,6 +167,9 @@ export async function createMapTransformStage(opts: any): Promise<Transform | nu
         if (typeof mod.isPassthrough === 'function' && mod.isPassthrough(opts.param)) {
             return null;
         }
+
+        logger.info(`activating mapper: ${opts.map}`);
+
         const parallelizable = typeof mod.createMapper === 'function';
         const autoParallel = mod.autoParallel === true;
         const workers = resolveWorkerCount(opts.workers);
@@ -179,7 +191,13 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
     if (isWritableStream(opts.out)) {
         return opts.out;
     }
-    
+    else if (opts.out) {
+        logger.info(`output to: ${opts.out}`);
+    }
+    else {
+        logger.info(`output to: stdout`);
+    }
+
     if (opts.out === '@slow') {
         return new SlowWritable({ delayMs: 100 });
     }
@@ -232,6 +250,7 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
 
 export async function createOutputTransformStage(opts: any): Promise<Transform | null> {
     if (opts.to) {
+        logger.info(`activating to: ${opts.to}`);
         const mod = await loadPlugin(opts.to, 'output');
         return await mod.transform(opts.param, { utils: marcUtils });
     }
