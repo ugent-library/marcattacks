@@ -77,7 +77,12 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
     (stream as any)._read = (size: number) => { pump(); origRead(size); };
 
     function canAccept(): boolean {
-        return inflight < CAP && outQueue.length < OUT_CAP;
+        // CAP bounds total batches in flight = queued (awaiting a free worker)
+        // PLUS dispatched (inflight). inflight alone can never exceed N (one
+        // batch per worker), so gating on `inflight < CAP` (CAP = 2N) was
+        // always true and let `queue` grow unbounded when the producer
+        // outpaced the workers -> memory leak.
+        return (inflight + queue.length) < CAP && outQueue.length < OUT_CAP;
     }
     function done(): boolean {
         return nextEmit === nextDispatch && queue.length === 0 && outQueue.length === 0;
