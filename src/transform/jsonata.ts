@@ -16,11 +16,7 @@ const logger = log4js.getLogger();
 export const autoParallel = true;
 
 // With no `fix` the query is `$` (identity), so the mapper is a pure
-// pass-through — there is nothing to map. This lets the pipeline skip the map
-// stage entirely instead of inserting an identity transform (and, since jsonata
-// is auto-parallel, spinning up a worker pool just to shuttle records through
-// it). Matters because `--map` defaults to `jsonata`, so this stage is present
-// even when the user never asked for a mapper (e.g. `--from xml --to json`).
+// pass-through — there is nothing to map. 
 export function isPassthrough(opts?: { fix?: string }): boolean {
     return !opts?.fix;
 }
