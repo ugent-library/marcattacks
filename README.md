@@ -155,6 +155,8 @@ use `s3s://...` for using an SSL layer.
 - parquet
   - opts:
     - schema: string (path)
+    - rowGroupSize: number
+    - pageIndex: true | false (default: false)
 - rdf
 - csv
 - tsv
