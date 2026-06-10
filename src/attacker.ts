@@ -172,9 +172,10 @@ export async function createMapTransformStage(opts: any): Promise<Transform | nu
 
         const parallelizable = typeof mod.createMapper === 'function';
         const autoParallel = mod.autoParallel === true;
+        const fanOut = mod.fanOut === true;
         const workers = resolveWorkerCount(opts.workers);
         if (shouldParallelize(opts.workers, { parallelizable, autoParallel })) {
-            return createWorkerPool({ map: opts.map, param: opts.param, workers });
+            return createWorkerPool({ map: opts.map, param: opts.param, workers, fanOut });
         }
         // Only nag when the user EXPLICITLY asked for threads on a map that
         // can't use them; auto stays quiet (and cheap parallelizable maps just

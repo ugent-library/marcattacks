@@ -27,9 +27,15 @@ export interface WorkerPoolOpts {
     workers: number;
     batchSize?: number;
     timeoutMs?: number;
+    // Fan-out maps (1 record -> many): the mapper returns an ARRAY of records
+    // per input record, which we flatten into the output stream. Only enabled
+    // for maps that opt in (mod.fanOut), so 1->1 maps that legitimately return
+    // an array-valued record are left untouched.
+    fanOut?: boolean;
 }
 
 export function createWorkerPool(opts: WorkerPoolOpts): Transform {
+    const fanOut = opts.fanOut === true;
     const maxN = Math.max(1, availableParallelism());
     const N = Math.min(Math.max(1, Math.floor(opts.workers) || 1), maxN);
     if (N < opts.workers) logger.warn(`--workers ${opts.workers} clamped to ${N} (available parallelism)`);
@@ -143,7 +149,14 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
             const mapped = reorder.get(nextEmit)!;
             reorder.delete(nextEmit);
             nextEmit++;
-            for (const m of mapped) if (m !== null) outQueue.push(m);
+            for (const m of mapped) {
+                if (m === null) continue;                       // rejected/dropped
+                // A fan-out batch can briefly push outQueue past OUT_CAP (one
+                // record explodes into many); dispatch() stops feeding new
+                // batches until pump() drains it, so this self-corrects.
+                if (fanOut && Array.isArray(m)) outQueue.push(...m);
+                else outQueue.push(m);
+            }
         }
         pump();
     }

@@ -9,6 +9,7 @@
 //                    { seq, error: string }
 import { parentPort, workerData } from 'node:worker_threads';
 import { loadPlugin } from './plugin-loader.js';
+import * as marcUtils from './marcmap.js';
 import { REJECT } from 'catmandu-fix-js';
 
 const { map, param } = workerData as { map: string; param: any };
@@ -17,7 +18,9 @@ const mod = await loadPlugin(map, 'transform');
 if (typeof mod.createMapper !== 'function') {
     throw new Error(`map '${map}' is not parallelizable (no createMapper)`);
 }
-const mapper: (data: any) => any = await mod.createMapper(param ?? {});
+// createMapper gets the same { utils } context as transform(), so a plugin can
+// reach marcmap & friends on a worker thread without importing internals.
+const mapper: (data: any) => any = await mod.createMapper(param ?? {}, { utils: marcUtils });
 
 parentPort!.postMessage({ ready: true });
 

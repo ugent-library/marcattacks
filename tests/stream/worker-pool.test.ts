@@ -46,4 +46,35 @@ describe("worker pool", () => {
         },
         30_000,
     );
+
+    test(
+        "fan-out map (z00r): explodes each record into one row per field, in order",
+        async () => {
+            // Two MARC records: 2 fields and 3 fields -> 5 rows total.
+            const input = [
+                { record: [["001", " ", " ", "_", "rec1"], ["245", "1", "0", "a", "A"]] },
+                { record: [["001", " ", " ", "_", "rec2"], ["100", "1", " ", "a", "X"], ["650", " ", "0", "a", "Y"]] },
+            ];
+            const pool = createWorkerPool({
+                map: "./plugin/z00r.js",   // resolved via path.resolve from cwd (repo root)
+                param: {},
+                workers: 2,
+                fanOut: true,
+            });
+            const sink = new BackpressuringCollector();
+
+            await pipeline(Readable.from(input), pool, sink);
+
+            // One row per field across both records, original order preserved.
+            expect(sink.received).toHaveLength(5);
+            expect(sink.received.map((r) => [r.record_id, r.field_seq, r.tag])).toEqual([
+                ["rec1", 0, "001"],
+                ["rec1", 1, "245"],
+                ["rec2", 0, "001"],
+                ["rec2", 1, "100"],
+                ["rec2", 2, "650"],
+            ]);
+        },
+        30_000,
+    );
 });
