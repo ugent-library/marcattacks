@@ -42,6 +42,7 @@
     "demo:fix": "npx marcattacks --to jsonl --map fix --param fix=./demo/example.fix data/sample.xml",
     "demo:fix:rdf": "npx marcattacks --to jsonl --to rdf --map fix --param fix=./demo/marc2rdf.fix data/sample.xml",
     "demo:workers": "npx marcattacks --to jsonl --to rdf --param fix=./demo/marc2rdf.jsonata --workers 4 --info data/sample.xml",
+    "demo:slowmap": "npx marcattacks --map ./plugin/slowmap.js --param spin_ms=10 --workers auto --to jsonl --info data/sample.xml",
     "demo:biblio:one": "npx marcattacks --from json --to rdf --param fix=./demo/biblio.jsonata --count 1 ./data/biblio.json",
     "demo:biblio:all": "npx marcattacks --from json --to rdf --param fix=./demo/biblio.jsonata ./data/biblio.json",
     "demo:parquet:avram": " npx marcattacks ./data/sample.xml --to parquet --map avram --param schema=./demo/avram.schema --info --out ./local/avram.parquet",
