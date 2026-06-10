@@ -234,7 +234,7 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
             }
 
             logger.info(`put ${getCleanURL(url)}`);
-            return await s3WriteStream(url, {});
+            return await s3WriteStream(url, { acl: opts.acl });
         }
         else if (/^file:/.test(opts.out)) {
             const url = new URL(opts.out);

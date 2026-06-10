@@ -129,7 +129,7 @@ export async function s3ReadStream(url: URL, options: { range?: string }): Promi
     throw new Error("Unsupported S3 GetObject body type");
 }
 
-export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promise<Writable> {
+export function s3WriteStream(url: URL, options: { partSize?: number; acl?: string;}) : Promise<Writable> {
     return new Promise<Writable>( (resolve) => {
         const config = parseURL(url);
 
@@ -139,6 +139,7 @@ export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promis
         const key = config.key;
         const s3 = makeClient(config);
         const partSize = options.partSize ?? 5 * 1024 * 1024;
+        const acl = options.acl;
 
         let uploadId: string | null = null;
         let parts: Array<{ ETag: string | undefined; PartNumber: number }> = [];
@@ -178,7 +179,8 @@ export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promis
             if (!uploadId) {
                 const res = await s3.send(new CreateMultipartUploadCommand({
                     Bucket: bucket,
-                    Key: key
+                    Key: key,
+                    ACL: acl as any
                 }));
                 uploadId = res.UploadId!;
             }
@@ -210,7 +212,8 @@ export function s3WriteStream(url: URL, options: { partSize?: number;}) : Promis
                 await s3.send(new PutObjectCommand({
                     Bucket: bucket,
                     Key: key,
-                    Body: Buffer.alloc(0)
+                    Body: Buffer.alloc(0),
+                    ACL: acl as any
                 }));
                 return;
             }

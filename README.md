@@ -227,7 +227,17 @@ single-threaded, so no `--workers` flag is needed).
 - _file path_
 - sftp://username@host:port/path
 - s3://accessKey:secretKey@host:port/bucket/key (or s3s://)
- 
+
+#### S3 object ACL (--acl)
+
+When writing to an `s3://` (or `s3s://`) destination you can set a canned ACL on the uploaded object with the `--acl` option. E.g. to make the output publicly readable:
+
+```
+marcattacks input.xml -o s3://accessKey:secretKey@host:port/bucket/key.json --acl public-read
+```
+
+The ACL is left unset by default. Note that `public-read` only takes effect on buckets where ACLs are enabled (Object Ownership "Bucket owner preferred"); on buckets with ACLs disabled the request is rejected and you should use a bucket policy instead.
+
 ### Logging (--info,--debug,--trace,--log)
 
 Logging messages can be provided with the `--info`, `--debug` and `--trace` options.
