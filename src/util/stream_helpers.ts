@@ -152,7 +152,9 @@ export function createVerboseStream(logEvery: number = 1000) : VerboseStream {
 
             if (recordNum % logEvery === 0) {
                 const end = performance.now();
-                const duration = (end - start)/logEvery;
+                // elapsed is milliseconds; divide by 1000 for rec/sec. Dividing
+                // by logEvery only happened to be correct at the default 1000.
+                const duration = (end - start)/1000;
                 const speed = recordNum/duration;
                 logger.debug(`highwater mark: ${this.readableHighWaterMark} (read) , ${this.writableHighWaterMark} (write)`);
                 logger.info(`record: ${recordNum} (${speed.toFixed(0)} rec/sec)`);
