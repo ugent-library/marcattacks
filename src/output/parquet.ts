@@ -20,10 +20,29 @@ import fs from 'fs';
  *   optional `rowGroupSize`, and optional `pageIndex` to re-enable the index.
  */
 export async function transform(opts: { schema: string; rowGroupSize?: string | number; pageIndex?: string | boolean }): Promise<Transform> {
+    if (opts.schema == null) {
+        throw new Error(
+            "parquet output requires a `schema` param (e.g. --param schema=/path/to/schema.json)"
+        );
+    }
+
     const schema : ParquetSchema =
         typeof opts.schema === "string" ?
             new ParquetSchema(JSON.parse(fs.readFileSync(opts.schema, { encoding: "utf-8"})))
             : new ParquetSchema(opts.schema);
+
+    // @dsnp/parquetjs builds a schema with zero fields silently and only throws
+    // ("cannot write parquet file with zero fieldList") at footer-write time —
+    // i.e. after the whole input has streamed through and been dropped. Catch an
+    // empty field set here so we fail fast with an actionable message instead of
+    // churning through millions of records first.
+    if (schema.fieldList.length === 0) {
+        const where = typeof opts.schema === "string" ? ` (from ${opts.schema})` : "";
+        throw new Error(
+            `parquet schema${where} defines no fields; check that the schema is a non-empty ` +
+            "map of column definitions, e.g. {\"id\":{\"type\":\"UTF8\"}}"
+        );
+    }
 
   const writerOpts: { pageIndex: boolean; rowGroupSize?: number } = {
     pageIndex: parseBool(opts.pageIndex, false),
