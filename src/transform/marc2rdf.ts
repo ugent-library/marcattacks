@@ -33,9 +33,12 @@ export async function transform(_opts: any) : Promise<Transform> {
 function rec2quads(rec: string[][]) {
     let quads : any[] = [];
 
-    let id = marcmap(rec,"001",{});
+    // marcmap returns an array; take the first 001 and skip records without one
+    // (an empty array is truthy, so the old `if (!id)` guard never fired and a
+    // missing 001 minted a bogus subject IRI).
+    let id = marcmap(rec,"001",{})[0];
 
-    if (!id) return;
+    if (!id) return [];
 
     marcForEachTag(rec, (tag,row) => {
         if (false) {}
@@ -62,7 +65,7 @@ function rec2quads(rec: string[][]) {
         else if (tag === '100') {
             let name = marcsubfields(row,/a/);
 
-            if (!name) {
+            if (name.length === 0) {
                 return undefined;
             }
 
@@ -275,7 +278,7 @@ function rec2quads(rec: string[][]) {
 
                 quads.push({
                     subject: { value: bn },
-                    predicate: { value: `${prefixes.rdf}contentUrl` },
+                    predicate: { value: `${prefixes.schema}contentUrl` },
                     object: { value }
                 });
             }
@@ -328,7 +331,7 @@ function rec2quads(rec: string[][]) {
                     quads.push({
                         subject: { value: `${prefixes.this}${id}` },
                         predicate: { value: `${prefixes.rdf}type` },
-                        object: { value: `${prefixes.bibo}Document  `}
+                        object: { value: `${prefixes.bibo}Document`}
                     });
                     break;
                 case 'image':

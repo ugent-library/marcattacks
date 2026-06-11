@@ -22,13 +22,13 @@ export async function transform(_opts: any) : Promise<Transform> {
                 const ind1  = field?.[1]!;
                 const ind2  = field?.[2]!;
                 const data  = field?.[4]!;
-                const subfields = field?.splice(3);
+                const subfields = field?.slice(3);
 
                 if (tag === 'LDR') {
                     avram.fields.push({ tag: 'LDR' , value: data });
                 }
                 else if (tag.startsWith('00')) {
-                    avram.fields.push({ tag: 'LDR' , value: data });
+                    avram.fields.push({ tag , value: data });
                 }
                 else {
                     avram.fields.push({ tag, indicator1: ind1 , indicator2: ind2 , subfields });

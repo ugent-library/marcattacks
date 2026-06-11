@@ -258,7 +258,8 @@ Gzip and tar compression of input files can be automatically detected by file na
 ### Environment Variables
 
 SFTP and S3 credentials can be set using environment variables or a local `.env` file.
-Available variables:
+Credentials embedded in the URL take precedence; these variables are only used as
+a fallback when the URL omits them. Available variables:
 
 - SFTP_USERNAME
 - SFTP_PASSWORD

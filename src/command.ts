@@ -24,8 +24,8 @@ program.version(pkg.version)
     .option('--acl <acl>','S3 canned ACL for output objects, e.g. public-read')
     .option('--z','uncompress input')
     .option('--tar','untar input')
-    .option('--count <num>', 'output only <num> records')
-    .option('--skip <num>', 'skip first <num> records')
+    .option('--count <num>', 'output only <num> records', (value) => parseInt(value,10))
+    .option('--skip <num>', 'skip first <num> records', (value) => parseInt(value,10))
     .option('--workers <num>', 'run the map on <num> worker threads; default "auto" = CPU cores - 1 (leaves a core for parsing/I/O). Use 1 to disable. Auto only threads heavy maps (jsonata); cheap maps like fix stay single-threaded unless you pass an explicit number', 'auto')
     .option('--key <keyfile>', 'private key file')
     .option('--key-env <env>','private key environment variable')
@@ -222,9 +222,12 @@ async function main() : Promise<void> {
 }
 
 function collect(value:string, previous: any) {
-    const keyval = value.split("=",2);
-    if (keyval.length == 2 && keyval[0]) {
-        previous[keyval[0]] = keyval[1];
+    // Split on the FIRST '=' only: param values routinely contain '=' (jsonata
+    // expressions, fix snippets, query strings), and value.split("=", 2) would
+    // discard everything after the second '='.
+    const eq = value.indexOf("=");
+    if (eq > 0) {
+        previous[value.slice(0, eq)] = value.slice(eq + 1);
         return previous;
     }
     else {

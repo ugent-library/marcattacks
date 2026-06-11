@@ -1,7 +1,7 @@
 import { rdfParser } from "rdf-parse";
 import type { Record, Quad } from "../types/quad.js";
 import type { Readable, Writable } from "stream";
-import { PassThrough } from "stream";
+import { Transform } from "stream";
 import streamify from "streamify-string";
 import N3 from 'n3';
 import type * as RDF from '@rdfjs/types';
@@ -87,23 +87,23 @@ export async function parseStream(readable: Readable, path: string) : Promise<Re
 }
 
 export function parseStreamAsParts(readable: Readable, path: string): Readable {
-    const output = new PassThrough({ objectMode: true });
     let graphSet = new Set<string>();
 
-    rdfParser.parse(readable, { path })
-        .on('data', (quad: RDF.Quad) => {
+    // A Transform fed by pipe() (rather than manual push) so backpressure from
+    // a slow downstream propagates back to the parser instead of buffering the
+    // whole parse output in memory.
+    const output = new Transform({
+        objectMode: true,
+        transform(quad: RDF.Quad, _encoding, callback) {
             // Ignore named graphs
-            if (quad.graph.termType === 'DefaultGraph') {
-                // We are ok
-            }
-            else {
+            if (quad.graph.termType !== 'DefaultGraph') {
                 graphSet.add(quad.graph.value);
-                return;
+                return callback();
             }
 
             // Also ignore triples mentioning the graphSet
             if (graphSet.has(quad.subject.value) || graphSet.has(quad.object.value)) {
-                return;
+                return callback();
             }
 
             const part: Quad = {
@@ -131,15 +131,17 @@ export function parseStreamAsParts(readable: Readable, path: string): Readable {
                 }
             }
 
-            output.push(part);
-        })
-        .on('error', (error) => {
-            logger.error(error);
-            output.destroy(error);
-        })
-        .on('end', () => {
-            output.end();
-        });
+            callback(null, part);
+        }
+    });
+
+    const parseStream = rdfParser.parse(readable, { path });
+    parseStream.on('error', (error: any) => {
+        logger.error(error);
+        output.destroy(error);
+    });
+    // pipe() handles backpressure and ends `output` when parsing finishes.
+    parseStream.pipe(output);
 
     return output;
 }
@@ -160,9 +162,9 @@ export async function writeString(data: Record, format?:string, writer?: N3.Writ
     return new Promise<string>( (resolve, reject) => {
         let quads : Quad[] = data['quads'];
 
-        logger.trace(`received ${quads.length} quads`);
+        if (!quads) { resolve(""); return; }
 
-        if (!quads) resolve("");
+        logger.trace(`received ${quads.length} quads`);
 
         for (let i = 0 ; i < quads.length ; i++) {
             if (quads[i]?.subject && quads[i]?.predicate && quads[i]?.object) {

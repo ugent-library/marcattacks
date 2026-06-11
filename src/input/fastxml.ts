@@ -100,11 +100,18 @@ export async function transform(_opts: any): Promise<Transform> {
             stream.push({ record: recordToFields(buf.slice(o.index, end)), [CLEAN]: true });
             pos = end;
         }
-        // keep a pending partial record, else drop consumed text but retain a
-        // small tail so an open tag spanning the next chunk is not lost
-        buf = keepFrom >= 0 ? buf.slice(keepFrom)
-            : pos > 0 ? buf.slice(pos)
-            : buf.length > 64 ? buf.slice(-64) : buf;
+        // keep a pending partial record, else drop consumed text but retain any
+        // trailing partial tag (from the last '<') so an open tag spanning the
+        // next chunk is not lost — even one longer than 64 chars (e.g. a
+        // <record> with xmlns/xsi:schemaLocation attributes).
+        if (keepFrom >= 0) {
+            buf = buf.slice(keepFrom);
+        } else if (pos > 0) {
+            buf = buf.slice(pos);
+        } else {
+            const lt = buf.lastIndexOf('<');
+            buf = lt >= 0 ? buf.slice(lt) : buf;
+        }
     }
 
     const transformStream = new Transform({

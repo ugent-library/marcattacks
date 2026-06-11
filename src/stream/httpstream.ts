@@ -10,11 +10,15 @@ const logger = log4js.getLogger();
 const LDP = 'http://www.w3.org/ns/ldp#';
 const DCTERMS = 'http://purl.org/dc/terms/';
 
-export function httpReadStream(url: URL): Promise<Readable> {
-    const httpAgent = new http.Agent({ keepAlive: true, timeout: 60000 });
-    const httpsAgent = new https.Agent({ keepAlive: true, timeout: 60000 });
+// Shared keep-alive agents at module scope so sockets are actually reused
+// across calls and redirect hops (a per-call agent defeats keep-alive).
+const httpAgent = new http.Agent({ keepAlive: true, timeout: 60000 });
+const httpsAgent = new https.Agent({ keepAlive: true, timeout: 60000 });
 
-    return new Promise(async (resolve, reject) => {
+const MAX_REDIRECTS = 10;
+
+export function httpReadStream(url: URL, redirectsLeft: number = MAX_REDIRECTS): Promise<Readable> {
+    return new Promise((resolve, reject) => {
         try {
             const client = url.protocol === 'http:' ? http : https;
             const agent = url.protocol  === 'http:' ? httpAgent : httpsAgent;
@@ -28,14 +32,22 @@ export function httpReadStream(url: URL): Promise<Readable> {
 
                 if (statusCode >= 400) {
                     logger.error(`http error:`,res.statusMessage);
+                    res.resume(); // drain the body so the socket can be reused/freed
                     reject(new Error('HTTP ' + res.statusCode));
                     return;
                 }
 
-                // Follow redirects (without any sanity checks..i know)
+                // Follow redirects. Resolve the Location relative to the current
+                // URL (it may be relative) and cap the hops to avoid loops.
                 if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
+                    res.resume(); // drain the redirect body
+                    if (redirectsLeft <= 0) {
+                        reject(new Error(`too many redirects (> ${MAX_REDIRECTS})`));
+                        return;
+                    }
                     logger.info(`Redirect to ${res.headers.location}...`);
-                    httpReadStream(new URL(res.headers.location)).then(resolve).catch(reject);
+                    httpReadStream(new URL(res.headers.location, url), redirectsLeft - 1)
+                        .then(resolve).catch(reject);
                     return;
                 }
 

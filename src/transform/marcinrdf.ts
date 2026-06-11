@@ -15,8 +15,15 @@ export async function transform(opts: MarcInRDFOptions = {}) : Promise<Transform
     return new Transform({
         objectMode: true,
         async transform(data: any, _encoding, callback) {
-            const rdfData = await makeRdfData(data, opts);
-            callback(null, rdfData);
+            // Guard the async work: a rejection here (e.g. a record-less object
+            // reaching marcmap) would otherwise be an unhandled rejection rather
+            // than a pipeline error.
+            try {
+                const rdfData = await makeRdfData(data, opts);
+                callback(null, rdfData);
+            } catch (err) {
+                callback(err instanceof Error ? err : new Error(String(err)));
+            }
         }
     });
 }
@@ -26,7 +33,10 @@ async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Re
 
     const id = marcmap(data['record'],"001",{})[0];
 
-    const clone = structuredClone(data);
+    // Shallow copy: we only add top-level keys (@context/@id/@type) below, and
+    // the serialize* helpers read the rows without mutating them (slice, not
+    // splice), so a per-record deep structuredClone is unnecessary.
+    const clone = { ...data };
 
     // Parse the input data as RDF
     clone['@context'] = {
@@ -111,7 +121,7 @@ function serializeFieldRecord(record: any) : string {
 
     for (let i = 0 ; i < fields.length ; i++) {
         const tag  = fields[i][0];
-        const rest = fields[i].splice(1);
+        const rest = fields[i].slice(1);
         result += `<${id}> <${ex}f${tag}> ${serializeArray(rest)}.\n`;
     }
 

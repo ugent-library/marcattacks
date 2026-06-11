@@ -24,6 +24,7 @@ export async function sftpReadStream(url: URL, opts: any): Promise<Readable> {
     
     return new Promise((resolve, reject) => {
         const conn = new Client();
+        let stream: Readable | undefined;
 
         conn.on("ready", () => {
             conn.sftp((err, sftp) => {
@@ -32,7 +33,7 @@ export async function sftpReadStream(url: URL, opts: any): Promise<Readable> {
                     return reject(err);
                 }
 
-                const stream = sftp.createReadStream(remotePath);
+                stream = sftp.createReadStream(remotePath);
 
                 // Close SSH connection when stream ends or errors
                 stream.on("close", () => conn.end());
@@ -45,7 +46,13 @@ export async function sftpReadStream(url: URL, opts: any): Promise<Readable> {
             });
         });
 
-        conn.on("error", (err) => reject(err));
+        // Before handoff, reject the promise; after handoff, the promise is
+        // already settled so forward the connection error to the live stream
+        // (otherwise a dropped connection mid-transfer hangs the consumer).
+        conn.on("error", (err) => {
+            if (stream) { stream.destroy(err); }
+            else { reject(err); }
+        });
         conn.connect(config);
     });
 }
@@ -59,6 +66,7 @@ export async function sftpWriteStream(url: URL, opts: any): Promise<Writable> {
 
     return new Promise((resolve, reject) => {
         const conn = new Client();
+        let stream: Writable | undefined;
 
         conn.on("ready", () => {
             conn.sftp((err, sftp) => {
@@ -67,7 +75,7 @@ export async function sftpWriteStream(url: URL, opts: any): Promise<Writable> {
                     return reject(err);
                 }
 
-                const stream = sftp.createWriteStream(remotePath, { encoding: "utf-8" });
+                stream = sftp.createWriteStream(remotePath, { encoding: "utf-8" });
 
                 // Close SSH connection when stream ends or errors
                 stream.on("close", () => conn.end());
@@ -80,7 +88,13 @@ export async function sftpWriteStream(url: URL, opts: any): Promise<Writable> {
             });
         });
 
-        conn.on("error", (err) => reject(err));
+        // Before handoff, reject the promise; after handoff, the promise is
+        // already settled so forward the connection error to the live stream
+        // (otherwise a dropped connection mid-transfer hangs the consumer).
+        conn.on("error", (err) => {
+            if (stream) { stream.destroy(err); }
+            else { reject(err); }
+        });
         conn.connect(config);
     });
 }
@@ -266,11 +280,13 @@ function makeSftpConfig(inputFile: URL, opts: any) : SftpConfig {
 
     let config: SftpConfig = {
         host: inputFile.hostname,
-        port: Number(inputFile.port) ?? 22,
-        username: inputFile.username
+        port: inputFile.port ? Number(inputFile.port) : 22,
+        // URL.username/password are percent-encoded; decode so credentials with
+        // reserved characters (@ : # %) work after being %-escaped in the URL.
+        username: decodeURIComponent(inputFile.username)
     };
 
-    if (inputFile.password) { config.password = inputFile.password }
+    if (inputFile.password) { config.password = decodeURIComponent(inputFile.password) }
     if (privateKey) { config.privateKey = privateKey}
 
     return config;

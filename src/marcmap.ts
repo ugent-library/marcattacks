@@ -113,7 +113,7 @@ export function marcmapList(record: string[][], find: string) : string[] {
 export function marcsubfields(row: string[], re: RegExp) : string[] {
     const result : string[] = [];
     for (let i = 3 ; i < row.length ; i += 2) {
-        if (row[i] !== undefined && row[i]?.match(re) && row[i+1] !== undefined) {
+        if (row[i] !== undefined && re.test(row[i] as string) && row[i+1] !== undefined) {
             result.push(row[i+1] as string);
         }
 

@@ -1,4 +1,5 @@
 import fs from "fs";
+import { pathToFileURL } from "node:url";
 import type { Readable } from "stream";
 import log4js from 'log4js';
 
@@ -9,7 +10,7 @@ export async function fileReadStream(url: URL) : Promise<Readable> {
 }
 
 export async function fileLatestFile(url: URL) : Promise<URL> {
-    return new Promise<URL>( (resolve) => {
+    return new Promise<URL>( (resolve, reject) => {
         logger.info(`trying to resolve ${url.href}`);
 
         if (!url.href.includes("@latest:")) {
@@ -28,12 +29,15 @@ export async function fileLatestFile(url: URL) : Promise<URL> {
 
         fs.readdir(directory, (err,files) => {
            if (err) {
-                throw new Error("Error finding latest file:", err);
-           } 
+                // A throw here would be an uncaughtException (the callback runs
+                // outside the promise executor) and leave the promise unsettled.
+                return reject(new Error("Error finding latest file", { cause: err }));
+           }
 
            for (let i = 0 ; i < files.length ; i++) {
             if (files[i]?.toLowerCase().endsWith(extension)) {
-                const testFile = "file://" + directory + files[i];
+                // pathToFileURL percent-encodes names with #, %, spaces, etc.
+                const testFile = pathToFileURL(directory + files[i]).href;
                 const stats = fs.statSync(directory + files[i]);
                 if (candidate) {
                     if (stats.mtime > candidateStats.mtime ) {
@@ -54,7 +58,7 @@ export async function fileLatestFile(url: URL) : Promise<URL> {
            }
 
            if (!candidate) {
-            throw new Error("No latest file found!");
+            return reject(new Error("No latest file found!"));
            }
            else {
             logger.info(`resolved as ${candidate}`);
@@ -94,8 +98,8 @@ export async function fileGlobFiles(url: URL): Promise<URL[]> {
             // Filter all files in the directory that match the extension
             for (const file of files) {
                 if (file.toLowerCase().endsWith(targetExt) || targetExt === '*') {
-                    // Reconstruct the file URL
-                    matchedUrls.push(new URL("file://" + directory + file));
+                    // pathToFileURL percent-encodes names with #, %, spaces, etc.
+                    matchedUrls.push(pathToFileURL(directory + file));
                 }
             }
 

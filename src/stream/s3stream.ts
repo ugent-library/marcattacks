@@ -2,9 +2,10 @@ import {
     S3Client, 
     GetObjectCommand,
     PutObjectCommand, 
-    UploadPartCommand, 
-    CreateMultipartUploadCommand, 
-    CompleteMultipartUploadCommand, 
+    UploadPartCommand,
+    CreateMultipartUploadCommand,
+    CompleteMultipartUploadCommand,
+    AbortMultipartUploadCommand,
     paginateListObjectsV2,
     type _Object,
     type S3ClientConfig,
@@ -142,21 +143,27 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
         const acl = options.acl;
 
         let uploadId: string | null = null;
+        let completed = false;
         let parts: Array<{ ETag: string | undefined; PartNumber: number }> = [];
-        let buffer = Buffer.alloc(0);
+        // Accumulate incoming chunks and concat once per part, instead of
+        // re-copying the whole growing buffer on every write (which is O(n²)).
+        let chunks: Buffer[] = [];
+        let bufferLength = 0;
         let partNumber = 1;
 
         const writer = new Writable({
             async write(chunk, _encoding, callback) {
                 logger.debug("write chunk...");
                 try {
-                    buffer = Buffer.concat([buffer, chunk]);
+                    chunks.push(chunk);
+                    bufferLength += chunk.length;
 
-                    if (buffer.length >= partSize) {
+                    if (bufferLength >= partSize) {
                         await flushPart();
                     }
                     callback();
                 } catch (err) {
+                    await abortUpload();
                     callback(err as Error);
                 }
             },
@@ -165,15 +172,40 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
                 logger.debug("final...");
                 try {
                     logger.debug("flushPart...");
-                    await flushPart(true);
+                    await flushPart();
                     logger.debug("finishUpload...");
                     await finishUpload();
                     callback();
                 } catch (err) {
+                    await abortUpload();
                     callback(err as Error);
                 }
+            },
+
+            // Abort any in-flight multipart upload if the pipeline is torn down
+            // before final() completes (e.g. an upstream error), so we don't
+            // leave an orphaned upload accruing storage on the server.
+            async destroy(err, callback) {
+                await abortUpload();
+                callback(err);
             }
         });
+
+        async function abortUpload() {
+            if (uploadId && !completed) {
+                const aborting = uploadId;
+                uploadId = null;
+                try {
+                    await s3.send(new AbortMultipartUploadCommand({
+                        Bucket: bucket,
+                        Key: key,
+                        UploadId: aborting
+                    }));
+                } catch (e) {
+                    logger.warn(`failed to abort multipart upload ${aborting}:`, e);
+                }
+            }
+        }
 
         async function ensureUpload() {
             if (!uploadId) {
@@ -186,8 +218,15 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
             }
         }
 
-        async function flushPart(isLast = false) {
-            if (buffer.length === 0 && !isLast) return;
+        async function flushPart() {
+            // Nothing buffered: never upload an empty part. This also leaves the
+            // empty-stream case (no parts at all) to finishUpload's PutObject
+            // path, instead of forcing a multipart upload with a 0-byte part.
+            if (bufferLength === 0) return;
+
+            const body = Buffer.concat(chunks, bufferLength);
+            chunks = [];
+            bufferLength = 0;
 
             logger.debug("ensureUpload...");
             await ensureUpload();
@@ -198,11 +237,10 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
                 Key: key,
                 PartNumber: partNumber,
                 UploadId: uploadId!,
-                Body: buffer
+                Body: body
             }));
 
             parts.push({ ETag: res.ETag, PartNumber: partNumber });
-            buffer = Buffer.alloc(0);
             partNumber++;
         }
 
@@ -224,6 +262,7 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
                 UploadId: uploadId!,
                 MultipartUpload: { Parts: parts }
             }));
+            completed = true;
         }
 
         resolve(writer);
@@ -471,12 +510,15 @@ function parseURL(url: URL) : S3Config {
     config.bucket = url.pathname.split("/")[1] ?? "";
     config.key = url.pathname.split("/").splice(2).join("/");
 
+    // URL.username/password are percent-encoded; decode so secret keys
+    // containing '/', '+', etc. (which must be %-escaped in the URL) reach the
+    // SDK verbatim and the request signs correctly.
     if (url.username) {
-        config.accessKeyId = url.username;
+        config.accessKeyId = decodeURIComponent(url.username);
     }
-    
+
     if (url.password) {
-        config.secretAccessKey = url.password;
+        config.secretAccessKey = decodeURIComponent(url.password);
     }
 
     return config;

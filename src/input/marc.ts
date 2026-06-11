@@ -14,8 +14,12 @@ export async function transform(_opts: any): Promise<Transform> {
             callback();
         },
         flush(callback: TransformCallback) {
-            parser.end(); //
-            callback();
+            // The marcjs Iso2709 parser drains its internal record queue
+            // asynchronously (one record per setImmediate tick), so we must
+            // wait for it to emit 'end' before completing the flush, otherwise
+            // records still queued when this Transform ends are lost.
+            parser.on('end', () => callback());
+            parser.end();
         }
     });
 

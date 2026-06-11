@@ -35,14 +35,18 @@ export async function transform(opts: OutputMultipartOptions = {}) : Promise<Tra
             let sortedKeys = Object.keys(data).sort();
 
             sortedKeys.forEach( key => {
-                if (Array.isArray(data[key])) {
-                    fields.push(`ARRAY[${data[key].length}]`);
+                const val = data[key];
+                if (val === null || val === undefined) {
+                    fields.push("");
                 }
-                else if (typeof data[key] === 'object') {
-                    fields.push(`HASH[${Object.keys(data[key]).length}]`);
+                else if (Array.isArray(val)) {
+                    fields.push(`ARRAY[${val.length}]`);
+                }
+                else if (typeof val === 'object') {
+                    fields.push(`HASH[${Object.keys(val).length}]`);
                 }
                 else {
-                    fields.push(data[key]);
+                    fields.push(val);
                 }
             });
 

@@ -80,7 +80,7 @@ function configureDefaultLogger(output: string) {
             }
         },
         categories: {
-            default: { appenders: ["err"], level: "off" , enableCallStack: true }
+            default: { appenders: ["err"], level: "error" , enableCallStack: true }
         }
     });
 }
@@ -109,7 +109,7 @@ function configureJSONLogger(output: string) {
             }
         },
         categories: {
-            default: { appenders: ["err"], level: "off" , enableCallStack: true }
+            default: { appenders: ["err"], level: "error" , enableCallStack: true }
         }
     });
 }
@@ -126,11 +126,12 @@ async function main() : Promise<void> {
         else if (url?.startsWith("s3")) {
             const s3url = new URL(url);
 
-            if (process.env.S3_ACCESS_KEY) {
+            // Credentials in the URL take precedence; env vars are only a fallback.
+            if (!s3url.username && process.env.S3_ACCESS_KEY) {
                 s3url.username = process.env.S3_ACCESS_KEY;
             }
 
-            if (process.env.S3_SECRET_KEY) {
+            if (!s3url.password && process.env.S3_SECRET_KEY) {
                 s3url.password = process.env.S3_SECRET_KEY;
             }
 
@@ -143,7 +144,9 @@ async function main() : Promise<void> {
             globs = await httpGlobFiles(new URL(url));
         }
         else {
-            console.error(`${url} not supported`);
+            logger.error(`${url} not supported`);
+            process.exitCode = 4;
+            return;
         }
 
         globs.forEach( g => {

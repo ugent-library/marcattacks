@@ -18,11 +18,15 @@ export async function loadPlugin(
       const resolved = new URL(`./${type}/${spec}.js`, import.meta.url).href;
       return await import(resolved);
     } catch (e2) {
-      const error = new Error(
-        `Cannot load plugin: ${spec}. Tried direct import and local plugin directory.`
-      );
-      error.cause = [e1, e2];
-      throw error;
+      try {
+        // Bare specifier: an npm-package plugin ("pkg" or "pkg/submodule").
+        return await import(spec);
+      } catch (e3) {
+        throw new Error(
+          `Cannot load plugin: ${spec}. Tried direct path, local ${type} directory, and bare package import.`,
+          { cause: [e1, e2, e3] }
+        );
+      }
     }
   }
 }

@@ -11,8 +11,10 @@ export async function transform(_opts: any): Promise<Transform> {
             callback();
         },
         flush(callback) {
+            // Wait for the JSON parser to drain before completing the flush,
+            // otherwise records emitted asynchronously after end() are lost.
+            jsonParser.on('end', () => callback());
             jsonParser.end();
-            callback();
         }
     });
 

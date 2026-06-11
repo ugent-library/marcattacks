@@ -15,7 +15,7 @@ async function run(transformer: any, records: any[]): Promise<any[]> {
 }
 
 describe("transform/avram", () => {
-    test("control fields (LDR + 00x) become LDR entries, datafields keep indicators+subfields", async () => {
+    test("leader becomes LDR, control fields keep their own tag, datafields keep indicators+subfields", async () => {
         const plugin = await loadPlugin("avram", "transform");
         const transformer = await plugin.transform({});
 
@@ -32,10 +32,26 @@ describe("transform/avram", () => {
         expect(out).toEqual({
             fields: [
                 { tag: 'LDR', value: '00000cam' },
-                { tag: 'LDR', value: '990036760400409161' },
+                { tag: '001', value: '990036760400409161' },
                 { tag: '245', indicator1: '1', indicator2: '0', subfields: ['a', 'A title', 'b', 'a subtitle'] },
             ]
         });
+    });
+
+    test("does not mutate the input record rows", async () => {
+        const plugin = await loadPlugin("avram", "transform");
+        const transformer = await plugin.transform({});
+
+        const record = {
+            record: [
+                ["245", "1", "0", "a", "A title", "b", "a subtitle"],
+            ]
+        };
+
+        await run(transformer, [record]);
+
+        // slice(3), not splice(3): the original row must still hold its subfields.
+        expect(record.record[0]).toEqual(["245", "1", "0", "a", "A title", "b", "a subtitle"]);
     });
 
     test("records without a 'record' key are dropped", async () => {

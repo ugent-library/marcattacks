@@ -53,11 +53,12 @@ export async function createInputReadStream(url: URL, opts: any): Promise<{ stre
         readableStream = await httpReadStream(resolvedUrl);
     } 
     else if (url.protocol.startsWith("s3")) {
-        if (process.env.S3_ACCESS_KEY) {
+        // Credentials in the URL take precedence; env vars are only a fallback.
+        if (!url.username && process.env.S3_ACCESS_KEY) {
             url.username = process.env.S3_ACCESS_KEY;
         }
 
-        if (process.env.S3_SECRET_KEY) {
+        if (!url.password && process.env.S3_SECRET_KEY) {
             url.password = process.env.S3_SECRET_KEY;
         }
 
@@ -65,11 +66,12 @@ export async function createInputReadStream(url: URL, opts: any): Promise<{ stre
         readableStream = await s3ReadStream(resolvedUrl, opts);
     } 
     else if (url.protocol === 'sftp:') {
-        if (process.env.SFTP_USERNAME) {
+        // Credentials in the URL take precedence; env vars are only a fallback.
+        if (!url.username && process.env.SFTP_USERNAME) {
             url.username = process.env.SFTP_USERNAME;
         }
 
-        if (process.env.SFTP_PASSWORD) {
+        if (!url.password && process.env.SFTP_PASSWORD) {
             url.password = process.env.SFTP_PASSWORD;
         }
 
@@ -88,7 +90,8 @@ export async function createInputReadStream(url: URL, opts: any): Promise<{ stre
 }
 
 export async function createDecompressionStage(url: URL, opts: { z?: boolean }): Promise<Transform | null> {
-    if (opts.z || url.pathname.endsWith(".gz")) {
+    // .tgz is a gzipped tar: it needs gunzip here AND untar in the next stage.
+    if (opts.z || url.pathname.endsWith(".gz") || url.pathname.endsWith(".tgz")) {
         logger.info(`unzipping input`);
         return createUncompressedStream();
     }
@@ -96,7 +99,9 @@ export async function createDecompressionStage(url: URL, opts: { z?: boolean }):
 }
 
 export async function createUntarStage(url: URL, opts: { tar?: boolean }): Promise<Transform | null> {
-    if (opts.tar || url.pathname.match(/.tar(.\w+$)?$/) || url.pathname.endsWith(".tgz")) {
+    // Escape the dots so this matches real .tar/.tar.* suffixes, not e.g.
+    // "guitar.xml" or "nectar.json".
+    if (opts.tar || url.pathname.match(/\.tar(\.\w+)?$/) || url.pathname.endsWith(".tgz")) {
         logger.info(`untarring input`);
         return await createUntarredStream();
     }
@@ -211,11 +216,12 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
         if (/^sftp:/.test(opts.out)) {
             const url = new URL(opts.out);
             
-            if (process.env.SFTP_USERNAME) {
+            // Credentials in the URL take precedence; env vars are only a fallback.
+            if (!url.username && process.env.SFTP_USERNAME) {
                 url.username = process.env.SFTP_USERNAME;
             }
 
-            if (process.env.SFTP_PASSWORD) {
+            if (!url.password && process.env.SFTP_PASSWORD) {
                 url.password = process.env.SFTP_PASSWORD;
             }
 
@@ -225,11 +231,12 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
         else if (/^s3s?:/.test(opts.out)) {
             const url = new URL(opts.out);
 
-            if (process.env.S3_ACCESS_KEY) {
+            // Credentials in the URL take precedence; env vars are only a fallback.
+            if (!url.username && process.env.S3_ACCESS_KEY) {
                 url.username = process.env.S3_ACCESS_KEY;
             }
 
-            if (process.env.S3_SECRET_KEY) {
+            if (!url.password && process.env.S3_SECRET_KEY) {
                 url.password = process.env.S3_SECRET_KEY;
             }
 
@@ -332,6 +339,17 @@ export async function attack(url: URL, opts: any): Promise<number> {
                 }
             }
         }
+        else {
+            // No output sink (opts.to falsy): the input read stream, any
+            // decompression/untar stages and — crucially — a spawned worker
+            // pool were already created. Without a pipeline() they would never
+            // run nor be torn down, leaking file handles and keeping the event
+            // loop alive on the worker threads. Destroy them.
+            logger.warn("no output transform configured; tearing down unused stages");
+            for (const stage of stages) {
+                try { (stage as any).destroy?.(); } catch { /* best effort */ }
+            }
+        }
     } catch (e) {
         if (e instanceof PipelineError) {
             throw e;
@@ -347,8 +365,8 @@ export async function attack(url: URL, opts: any): Promise<number> {
 // errors can nest the original.
 function isReaderClosedPipe(err: any): boolean {
     for (let e = err; e; e = e.cause) {
-        if (e.code === 'EPIPE' || e.code === 'ERR_STREAM_DESTROYED') return true;
-        if (typeof e.message === 'string' && /\bEPIPE\b/.test(e.message)) return true;
+        if (e.code === 'EPIPE' || e.code === 'ECONNRESET' || e.code === 'ERR_STREAM_DESTROYED') return true;
+        if (typeof e.message === 'string' && /\b(EPIPE|ECONNRESET)\b/.test(e.message)) return true;
     }
     return false;
 }

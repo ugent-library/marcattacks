@@ -74,8 +74,10 @@ export async function transform(_opts: any): Promise<Transform> {
         hasError = true;
         logger.debug(err);
         logger.error("parser error", err.message);
+        // destroy() propagates the error to the pipeline. Re-throwing here would
+        // escape synchronously out of parser.write(chunk) in transform() (which
+        // has no try/catch) and become an uncaught exception.
         transformStream.destroy(err);
-        throw err;
     });
 
     return transformStream;

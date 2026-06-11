@@ -216,18 +216,18 @@ export async function createUntarredStream(): Promise<Transform> {
 
     extract.on('entry', (header, stream, next) => {
         logger.info(`extracting ${header.name} from tar stream`);
-        
-        const chunks: Buffer[] = [];
 
+        // Push each chunk straight through as raw bytes: don't buffer the whole
+        // entry in memory, and don't toString('utf-8') it (that would corrupt
+        // binary/MARC-8 entries and split multi-byte chars — downstream readers
+        // decode bytes themselves).
         stream.on('data', (chunk) => {
             logger.debug(`received chunk of size ${chunk.length}`);
-            chunks.push(chunk);
+            transformStream.push(chunk);
         });
-        
+
         stream.on('end', () => {
-            const buffer = Buffer.concat(chunks);
-            logger.debug(`end of entry ${header.name}, total size: ${buffer.length}`);
-            transformStream.push(buffer.toString('utf-8'));
+            logger.debug(`end of entry ${header.name}`);
             next();
         });
 
@@ -236,7 +236,7 @@ export async function createUntarredStream(): Promise<Transform> {
             next(err);
         });
 
-        stream.resume(); 
+        stream.resume();
     });
 
     extract.on('finish', () => {

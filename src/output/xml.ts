@@ -42,9 +42,9 @@ export async function transform(_opts:any) : Promise<Transform> {
                     output += `  <marc:controlfield tag="${escapeXML(tag,{forAttribute:true})}">${escapeXML(value)}</marc:controlfield>\n`;
                 }
                 else {
-                    output += `  <marc:datafield tag="${escapeXML(tag)}" ind1="${escapeXML(ind[0],{forAttribute:true})}" ind2="${escapeXML(ind[1],{forAttribute:true})}">\n`;
+                    output += `  <marc:datafield tag="${escapeXML(tag,{forAttribute:true})}" ind1="${escapeXML(ind[0],{forAttribute:true})}" ind2="${escapeXML(ind[1],{forAttribute:true})}">\n`;
                     marcForEachSub(rec[i], (code,value) => {
-                        output += `    <marc:subfield code="${escapeXML(code)}">${escapeXML(value)}</marc:subfield>\n`;
+                        output += `    <marc:subfield code="${escapeXML(code,{forAttribute:true})}">${escapeXML(value)}</marc:subfield>\n`;
                     });
                     output += `  </marc:datafield>\n`;
                 }

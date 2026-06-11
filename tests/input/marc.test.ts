@@ -20,7 +20,12 @@ describe("input/marc (ISO2709)", () => {
             fs.createReadStream(fixture).pipe(transformer);
         });
 
-        expect(results.length).toBeGreaterThan(0);
+        // The fixture holds 135 records (one per 0x1D record separator). The
+        // parser drains its queue asynchronously, so every record must survive
+        // the flush — a weaker "> 0" check would miss trailing-record loss.
+        const separators = fs.readFileSync(fixture).filter((b) => b === 0x1d).length;
+        expect(separators).toBe(135);
+        expect(results.length).toBe(separators);
 
         const first = results[0];
         expect(Array.isArray(first.record)).toBe(true);

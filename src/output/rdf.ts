@@ -16,36 +16,43 @@ export async function transform(_opts:any): Promise<Transform> {
         async transform(data: any, _encoding, callback) {
             counter++;
 
-            if (isRecord(data)) {
-                logger.trace(`[${counter}] is a Record`);
-                if (!writer) {
-                    writer = new N3.Writer({ 
-                        end: false, 
-                        prefixes: data['prefixes'] || {},
-                        write: (chunk: string) => this.push(chunk)
-                    });
+            // Node streams ignore the promise returned by an async transform(),
+            // so a rejected await would become an unhandled rejection (crash)
+            // and never invoke callback(). Route any error to the callback.
+            try {
+                if (isRecord(data)) {
+                    logger.trace(`[${counter}] is a Record`);
+                    if (!writer) {
+                        writer = new N3.Writer({
+                            end: false,
+                            prefixes: data['prefixes'] || {},
+                            write: (chunk: string) => this.push(chunk)
+                        });
+                    }
+                    await writeString(data, undefined, writer);
                 }
-                await writeString(data, undefined, writer);
-            } 
-            else if (Object.hasOwn(data, "@context")) {
-                logger.trace(`[${counter}] is a JSON-LD`);
-                const dataNew = await parseJsonLd(data);
+                else if (Object.hasOwn(data, "@context")) {
+                    logger.trace(`[${counter}] is a JSON-LD`);
+                    const dataNew = await parseJsonLd(data);
 
-                if (!writer) {
-                    writer = new N3.Writer({ 
-                        end: false, 
-                        prefixes: data['prefixes'] || {},
-                        write: (chunk: string) => this.push(chunk)
-                    });
+                    if (!writer) {
+                        writer = new N3.Writer({
+                            end: false,
+                            prefixes: data['prefixes'] || {},
+                            write: (chunk: string) => this.push(chunk)
+                        });
+                    }
+
+                    await writeString(dataNew, undefined, writer);
+                }
+                else {
+                    logger.warn(`[${counter}] is not a Record or a JSON-LD`);
                 }
 
-                await writeString(dataNew, undefined, writer);
-            } 
-            else {
-                logger.warn(`[${counter}] is not a Record or a JSON-LD`);
+                callback();
+            } catch (err) {
+                callback(err instanceof Error ? err : new Error(String(err)));
             }
-
-            callback();
         },
         flush(callback) {
             logger.debug('flush reached');

@@ -46,7 +46,8 @@ container creates a bucket `bbl`.
 - Username/password: `minioadmin`/`minioadmin`
 
 Credentials are read from the URL, or from the `S3_ACCESS_KEY` / `S3_SECRET_KEY`
-environment variables (note: the env vars override any user/password in the URL).
+environment variables (note: credentials in the URL take precedence; the env
+vars are only used as a fallback when the URL omits them).
 
 ```
 # write a local file to S3 as JSONL
@@ -70,8 +71,9 @@ An `atmoz/sftp` server listens on port `2222` as user `marc` (password
 and a writable volume is mounted at `/upload` for write-back tests.
 
 Credentials are read from the URL, or from the `SFTP_USERNAME` /
-`SFTP_PASSWORD` environment variables; private-key auth is available via
-`--key <file>` or `--keyEnv <ENVVAR>`.
+`SFTP_PASSWORD` environment variables (credentials in the URL take precedence;
+the env vars are only a fallback when the URL omits them); private-key auth is
+available via `--key <file>` or `--keyEnv <ENVVAR>`.
 
 ```
 # read a seeded file

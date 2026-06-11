@@ -75,6 +75,15 @@ describe("command (CLI)", () => {
         expect(JSON.parse(stdout.trim().split("\n")[0]!).flag).toBe("yes");
     });
 
+    test("--param value may contain '=' (split on the first '=' only)", async () => {
+        const { code, stdout } = await runCli([
+            input, "--from", "json", "--to", "jsonl",
+            "--map", "fix", "--param", 'fix=add_field("flag","a=b=c")',
+        ]);
+        expect(code).toBe(0);
+        expect(JSON.parse(stdout.trim().split("\n")[0]!).flag).toBe("a=b=c");
+    });
+
     test("--log json runs with the JSON logger configured", async () => {
         const { code, stdout, stderr } = await runCli([
             input, "--from", "json", "--to", "jsonl", "--log", "json", "--info",

@@ -37,14 +37,20 @@ export async function transform(opts: OutputTSVOptions = {}) : Promise<Transform
             }
 
             sortedKeys.forEach( key => {
-                if (Array.isArray(data[key])) {
-                    fields.push(`ARRAY[${data[key].length}]`);
+                const val = data[key];
+                if (val === null || val === undefined) {
+                    fields.push("");
                 }
-                else if (typeof data[key] === 'object') {
-                    fields.push(`HASH[${Object.keys(data[key]).length}]`);
+                else if (Array.isArray(val)) {
+                    fields.push(`ARRAY[${val.length}]`);
+                }
+                else if (typeof val === 'object') {
+                    fields.push(`HASH[${Object.keys(val).length}]`);
                 }
                 else {
-                    fields.push(data[key]);
+                    // Neutralise the delimiter and line breaks so a value can't
+                    // corrupt the row/column structure (TSV has no quoting).
+                    fields.push(String(val).replace(/[\t\r\n]/g, " "));
                 }
             });
 

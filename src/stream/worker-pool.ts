@@ -194,6 +194,12 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
             stdout: true,
             stderr: true,
         });
+        // stdout/stderr are kept off the parent (above) but their readables
+        // still buffer whatever a plugin writes to console; drain them so a
+        // chatty plugin can't grow them without bound. (Workers report results
+        // and errors over postMessage, so this output is not needed.)
+        w.stdout.resume();
+        w.stderr.resume();
         workers.push(w);
         w.on('message', (msg: any) => {
             if (msg && msg.ready) { idle.push(w); dispatch(); if (dbg()) logger.debug(`worker ${idle.length}/${N} ready`); }

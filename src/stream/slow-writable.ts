@@ -41,6 +41,13 @@ export class SlowWritable extends Writable {
   }> = [];
   private seqCounter = 0;
   private destroyedFlag = false;
+  // In-flight delayed writes, so _destroy can cancel their timers, settle their
+  // promises, and error their callbacks exactly once.
+  private active = new Set<{
+    timer: ReturnType<typeof setTimeout>;
+    resolve: () => void;
+    callback: (err?: Error | null) => void;
+  }>();
 
   constructor(opts: SlowWritableOptions = {}) {
     // Keep objectMode/encoding behavior from user but default to object mode false
@@ -69,19 +76,13 @@ export class SlowWritable extends Writable {
     while (this.inFlight < this.maxConcurrency && this.queue.length > 0 && !this.destroyedFlag) {
       const item = this.queue.shift()!;
       this.inFlight++;
+      // performAsyncWrite always invokes item.callback itself (once) and never
+      // rejects, so there is no second callback and no manual emit('error') —
+      // calling the write callback with an error is what makes the stream emit.
       this.performAsyncWrite(item)
         .then(() => {
           this.inFlight--;
-          // After finishing one, try to process more
-          // Use nextTick to avoid deep recursion
-          process.nextTick(() => this.processQueue());
-        })
-        .catch((err) => {
-          this.inFlight--;
-          // propagate error via callback; stream will emit 'error' as well
-          item.callback(err);
-          this.emit("error", err);
-          // continue processing queue
+          // nextTick to avoid deep recursion
           process.nextTick(() => this.processQueue());
         });
     }
@@ -94,42 +95,25 @@ export class SlowWritable extends Writable {
     callback: (err?: Error | null) => void;
     seq: number;
   }): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve) => {
       const maybeError =
         this.simulateErrorEveryN > 0 && item.seq % this.simulateErrorEveryN === 0;
 
-      const timer = setTimeout(() => {
-        // simulate processing chunk here. For demonstration we just log.
-        // In real use, replace with actual async I/O.
-        // eslint-disable-next-line no-console
-        logger.info(`SlowWritable processed seq=${item.seq}`);
+      const op = { timer: undefined as unknown as ReturnType<typeof setTimeout>, resolve, callback: item.callback };
 
+      op.timer = setTimeout(() => {
+        this.active.delete(op);
         if (maybeError) {
-          const err = new Error(`Simulated error at seq ${item.seq}`);
-          item.callback(err);
-          reject(err);
+          logger.info(`SlowWritable simulated error at seq=${item.seq}`);
+          item.callback(new Error(`Simulated error at seq ${item.seq}`));
         } else {
+          logger.info(`SlowWritable processed seq=${item.seq}`);
           item.callback();
-          resolve();
         }
+        resolve();
       }, this.delayMs);
 
-      // If stream was destroyed meantime, cancel timer and callback with error
-      const onDestroy = () => {
-        clearTimeout(timer);
-        const err = new Error("Stream destroyed while writing");
-        try {
-          item.callback(err);
-        } catch (_) {
-          // ignore
-        }
-        reject(err);
-      };
-
-      // Ensure we don't leak listeners. If destroyedFlag becomes true quickly, call onDestroy.
-      if (this.destroyedFlag) {
-        onDestroy();
-      }
+      this.active.add(op);
     });
   }
 
@@ -151,14 +135,19 @@ export class SlowWritable extends Writable {
 
   _destroy(err: Error | null, callback: (error?: Error | null) => void): void {
     this.destroyedFlag = true;
-    // flush callbacks in queue with error
+    const destroyErr = err ?? new Error("Stream destroyed");
+    // Cancel in-flight delayed writes: clear the timer (so it can't fire and
+    // call back a second time), error the callback once, and settle the promise.
+    for (const op of this.active) {
+      clearTimeout(op.timer);
+      try { op.callback(destroyErr); } catch (_) { /* ignore */ }
+      op.resolve();
+    }
+    this.active.clear();
+    // Error any not-yet-started queued writes.
     while (this.queue.length > 0) {
       const item = this.queue.shift()!;
-      try {
-        item.callback(err ?? new Error("Stream destroyed"));
-      } catch (_) {
-        // ignore
-      }
+      try { item.callback(destroyErr); } catch (_) { /* ignore */ }
     }
     callback(err);
   }
