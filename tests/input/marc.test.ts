@@ -40,6 +40,15 @@ describe("input/marc (ISO2709)", () => {
             expect(typeof row[0]).toBe("string");
         }
 
+        // Control fields (00x) carry their value at index 4 behind the '_'
+        // code placeholder, same as LDR — not at index 3 (which would put the
+        // value in the subfield-code slot and lose it downstream).
+        const control = first.record.find((r: string[]) => /^00/.test(r[0]!));
+        expect(control).toBeDefined();
+        expect(control[3]).toBe("_");
+        expect(typeof control[4]).toBe("string");
+        expect(control[4]!.length).toBeGreaterThan(0);
+
         // There is at least one datafield (tag, ind1, ind2, code, value, ...).
         const datafield = first.record.find((r: string[]) => r.length > 4 && r[0] !== "LDR");
         expect(datafield).toBeDefined();

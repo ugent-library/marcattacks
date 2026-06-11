@@ -15,10 +15,10 @@ const logger = log4js.getLogger();
 // threads any parallelizable map.)
 export const autoParallel = true;
 
-// With no `fix` the query is `$` (identity), so the mapper is a pure
-// pass-through — there is nothing to map. 
+// With no `fix` — or an explicit `$` — the query is the identity, so the mapper
+// is a pure pass-through and the map stage can be skipped entirely.
 export function isPassthrough(opts?: { fix?: string }): boolean {
-    return !opts?.fix;
+    return !opts?.fix || opts.fix.trim() === '$';
 }
 
 // Build a pure record -> record(Promise) mapper. Shared by the in-process
@@ -31,9 +31,11 @@ export async function createMapper(opts: { fix: string, lookup: string }) : Prom
         lookup = await loadLookup(opts.lookup);
     }
 
-    // Resolve the query once, up front, instead of on every record.
+    // Resolve the query once, up front, instead of on every record. `fix` is a
+    // path to a jsonata file; an explicit `$` (or no fix at all) is the identity
+    // pass-through and must NOT be read as a file.
     let query : string;
-    if (opts.fix) {
+    if (opts.fix && opts.fix.trim() !== '$') {
         if (fs.existsSync(opts.fix)) {
             query = fs.readFileSync(opts.fix,{ encoding: 'utf-8'});
         }

@@ -48,7 +48,7 @@ describe("worker pool", () => {
     );
 
     test(
-        "fan-out map (z00r): explodes each record into one row per field, in order",
+        "fan-out map (explode): explodes each record into one row per field, in order",
         async () => {
             // Two MARC records: 2 fields and 3 fields -> 5 rows total.
             const input = [
@@ -56,7 +56,7 @@ describe("worker pool", () => {
                 { record: [["001", " ", " ", "_", "rec2"], ["100", "1", " ", "a", "X"], ["650", " ", "0", "a", "Y"]] },
             ];
             const pool = createWorkerPool({
-                map: "./plugin/z00r.js",   // resolved via path.resolve from cwd (repo root)
+                map: "./plugin/explode.js",   // resolved via path.resolve from cwd (repo root)
                 param: {},
                 workers: 2,
                 fanOut: true,

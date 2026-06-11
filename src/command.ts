@@ -18,7 +18,7 @@ program.version(pkg.version)
     .option('-f,--from <from>','input type','xml')
     .option('-t,--to <output>','output type','json')
     .option('-m,--map <map>','data mapper','jsonata')
-    .option('--fix <what>','jsonata')
+    .option('--fix <what>','jsonata or catmandu fix (depending on --map)')
     .option('-p,--param <key=value>','repeated params',collect,{})
     .option('-o,--out <file>','output file')
     .option('--acl <acl>','S3 canned ACL for output objects, e.g. public-read')
@@ -40,6 +40,13 @@ program.version(pkg.version)
 program.parse(process.argv);
 
 const opts   = program.opts();
+
+// `--fix <what>` is shorthand for `--param fix=<what>`. The map plugins read
+// the fix expression from opts.param.fix, so wire it through; an explicit
+// `-p fix=` takes precedence if both are given.
+if (opts.fix !== undefined && opts.param.fix === undefined) {
+    opts.param.fix = opts.fix;
+}
 
 if (opts.log) {
     let output = 'stderr';

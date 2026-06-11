@@ -144,6 +144,8 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
 
         let uploadId: string | null = null;
         let completed = false;
+        let aborted = false;      // teardown requested; stop creating/uploading parts
+        let completing = false;   // a CompleteMultipartUpload is in flight
         let parts: Array<{ ETag: string | undefined; PartNumber: number }> = [];
         // Accumulate incoming chunks and concat once per part, instead of
         // re-copying the whole growing buffer on every write (which is O(n²)).
@@ -192,7 +194,14 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
         });
 
         async function abortUpload() {
-            if (uploadId && !completed) {
+            // Mark teardown so ensureUpload()/flushPart() stop, even if no
+            // upload exists yet (a CreateMultipartUpload may be in flight — see
+            // ensureUpload, which aborts the upload it just created).
+            aborted = true;
+            // Don't abort while a CompleteMultipartUpload is in flight (let it
+            // win — otherwise Abort + Complete race on the same uploadId), nor
+            // after a successful complete.
+            if (uploadId && !completed && !completing) {
                 const aborting = uploadId;
                 uploadId = null;
                 try {
@@ -215,6 +224,13 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
                     ACL: acl as any
                 }));
                 uploadId = res.UploadId!;
+                // If teardown landed while this create was in flight,
+                // abortUpload() couldn't see the upload yet — abort the one we
+                // just created and stop, so it isn't orphaned.
+                if (aborted) {
+                    await abortUpload();
+                    throw new Error("multipart upload aborted during teardown");
+                }
             }
         }
 
@@ -223,6 +239,8 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
             // empty-stream case (no parts at all) to finishUpload's PutObject
             // path, instead of forcing a multipart upload with a 0-byte part.
             if (bufferLength === 0) return;
+            // Teardown in progress: don't start (or create) a new part.
+            if (aborted) return;
 
             const body = Buffer.concat(chunks, bufferLength);
             chunks = [];
@@ -256,13 +274,20 @@ export function s3WriteStream(url: URL, options: { partSize?: number; acl?: stri
                 return;
             }
 
-            await s3.send(new CompleteMultipartUploadCommand({
-                Bucket: bucket,
-                Key: key,
-                UploadId: uploadId!,
-                MultipartUpload: { Parts: parts }
-            }));
-            completed = true;
+            completing = true;
+            try {
+                await s3.send(new CompleteMultipartUploadCommand({
+                    Bucket: bucket,
+                    Key: key,
+                    UploadId: uploadId!,
+                    MultipartUpload: { Parts: parts }
+                }));
+                completed = true;
+            } finally {
+                // Cleared so that if Complete FAILED, the final()/destroy() catch
+                // can still abort the now-orphaned upload.
+                completing = false;
+            }
         }
 
         resolve(writer);

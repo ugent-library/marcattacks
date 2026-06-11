@@ -109,8 +109,13 @@ export async function transform(_opts: any): Promise<Transform> {
         } else if (pos > 0) {
             buf = buf.slice(pos);
         } else {
+            // No complete record and nothing consumed: keep only a trailing
+            // partial tag (from the last '<'). With no '<' at all, nothing in
+            // the buffer can start a record, so drop it — otherwise non-XML
+            // input (binary, JSONL, a gzip without --z) accumulates unbounded
+            // and `buf += decoder.write(chunk)` re-copies it on every chunk.
             const lt = buf.lastIndexOf('<');
-            buf = lt >= 0 ? buf.slice(lt) : buf;
+            buf = lt >= 0 ? buf.slice(lt) : '';
         }
     }
 

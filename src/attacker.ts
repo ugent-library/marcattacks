@@ -320,6 +320,15 @@ export async function attack(url: URL, opts: any): Promise<number> {
                 if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
                     logger.info("stream closed by limiter.");
                 }
+                else if (countSkipStage && (countSkipStage as any).limitReached) {
+                    // The count limiter deliberately tore the pipeline down after
+                    // reaching its limit. Destroying a network input (s3/http)
+                    // mid-read surfaces as ECONNRESET ("aborted") rather than
+                    // ERR_STREAM_PREMATURE_CLOSE; that is an expected stop, not a
+                    // failure. Exit quietly (same path as a reader disconnect).
+                    logger.info("stream closed by limiter (count reached)");
+                    throw new PipelineError(err.message, 0, true);
+                }
                 else if (isReaderClosedPipe(err)) {
                     // The downstream reader closed the output pipe before we were
                     // done writing — e.g. `| less` then `q`, or `| head`. This is
@@ -360,13 +369,19 @@ export async function attack(url: URL, opts: any): Promise<number> {
     return result;
 }
 
-// EPIPE/ECONNRESET surfaced anywhere in the error chain means the reader on the
-// other end of our output went away. Check the wrapped cause too, since pipeline
-// errors can nest the original.
+// EPIPE surfaced anywhere in the error chain means the reader on the other end
+// of our stdout went away (a pager quit, `| head`). Check the wrapped cause too,
+// since pipeline errors can nest the original.
+//
+// NOTE: ECONNRESET is deliberately NOT treated as a reader disconnect. A reset
+// during a *deliberate* count-limit teardown is handled earlier via the
+// limiter's `limitReached` flag; a reset at any other time is a genuine I/O
+// failure (e.g. an input server dropping mid-download) and must surface as an
+// error, not be silently swallowed.
 function isReaderClosedPipe(err: any): boolean {
     for (let e = err; e; e = e.cause) {
-        if (e.code === 'EPIPE' || e.code === 'ECONNRESET' || e.code === 'ERR_STREAM_DESTROYED') return true;
-        if (typeof e.message === 'string' && /\b(EPIPE|ECONNRESET)\b/.test(e.message)) return true;
+        if (e.code === 'EPIPE' || e.code === 'ERR_STREAM_DESTROYED') return true;
+        if (typeof e.message === 'string' && /\bEPIPE\b/.test(e.message)) return true;
     }
     return false;
 }

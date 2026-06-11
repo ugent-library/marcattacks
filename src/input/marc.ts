@@ -35,7 +35,12 @@ export async function transform(_opts: any): Promise<Transform> {
                 const ind1 = ' ';
                 const ind2 = ' ';
                 const data = field.slice(1);
-                rec.push([tag, ind1, ind2].concat(data)); //
+                // Control fields carry a single value with no subfield code.
+                // Emit the '_' placeholder code so the value sits at index 4,
+                // matching the LDR row above and every other reader; otherwise
+                // marcmap/marcsubfields (code@3, value@4) read the value as a
+                // code and the value is lost on every conversion.
+                rec.push([tag, ind1, ind2, '_'].concat(data));
             } else if (field.length > 3) {
                 const ind1 = field[1].charAt(0);
                 const ind2 = field[1].charAt(1);

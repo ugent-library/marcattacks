@@ -17,6 +17,13 @@ export interface CountableStream extends Transform {
      * guessing with a fixed timer. Safe to call with process.stdout.
      */
     setFlushTarget(target: Writable): void;
+    /**
+     * True once the record limit was hit and the limiter began tearing the
+     * pipeline down. Lets the caller recognise that a subsequent pipeline
+     * rejection (e.g. ECONNRESET from destroying a network input mid-read) is
+     * an expected, deliberate stop rather than a failure.
+     */
+    limitReached: boolean;
 }
 
 /**
@@ -37,7 +44,6 @@ export function createCountableSkippedStream(
 ): CountableStream {
     let skipped = 0;
     let pushed = 0;
-    let limitReached = false;
     let flushTarget: Writable | undefined;
 
     const stream = new Transform({
@@ -76,6 +82,7 @@ export function createCountableSkippedStream(
     }) as CountableStream;
 
     stream.setFlushTarget = (target: Writable) => { flushTarget = target; };
+    stream.limitReached = false;
 
     /**
      * Reached the record limit: end the downstream chain so the sink flushes,
@@ -84,8 +91,8 @@ export function createCountableSkippedStream(
      * CLOSE upstream, which the caller treats as a clean limiter stop.
      */
     function closeGracefully() {
-        if (limitReached) return;
-        limitReached = true;
+        if (stream.limitReached) return;
+        stream.limitReached = true;
 
         logger.debug("Limit reached, closing gracefully...");
         stream.push(null); // EOF -> downstream transforms flush -> sink finishes

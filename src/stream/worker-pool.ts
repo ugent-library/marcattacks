@@ -75,6 +75,22 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
             if (curBatch.length) { enqueue(curBatch); curBatch = []; }
             if (done()) finish(cb);
             else endCb = cb;
+        },
+        destroy(err, cb) {
+            // Terminate the worker threads on any teardown that does NOT go
+            // through flush()/fail() — an explicit stream.destroy(), an upstream
+            // pipeline error, or the no-output-transform teardown in attacker.ts.
+            // Without this the threads keep the event loop alive after the
+            // stream is destroyed. Set `closing` first so the workers' 'exit'
+            // handler doesn't mistake the termination for a crash and call
+            // fail(). terminate() is idempotent, so this is safe even when
+            // finish()/fail() already terminated.
+            closing = true;
+            for (const t of timers.values()) clearTimeout(t);
+            timers.clear();
+            Promise.all(workers.map((w) => w.terminate()))
+                .then(() => cb(err))
+                .catch(() => cb(err));
         }
     });
 
