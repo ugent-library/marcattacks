@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Record, QVal, Quad } from "../types/quad.js";
 import type * as RDF from '@rdfjs/types';
 import log4js from 'log4js';
+import { writeString } from "./rdf_parse.js";
 
 const logger = log4js.getLogger();
 
@@ -138,4 +139,31 @@ export async function toRDF(
     }
 
     return record;
+}
+
+// Like toRDF, but returns a Turtle serialization string instead of an internal
+// quads-Record. Convenience for transformers (or the JSONata $toTurtle()) that
+// want serialized RDF text directly rather than a Record handed to the RDF
+// output stage. Builds the Record with toRDF (same graph filtering and
+// blank-node relabelling) and serializes it with writeString.
+//
+// The Record carries no prefixes, so the output uses full IRIs unless `format`
+// selects a representation that needs none (e.g. N-Triples).
+export async function toTurtle(
+    data: any,
+    opts: { documentLoader?: DocumentLoader; skolem?: string; format?: string } = {},
+): Promise<string> {
+    const record = await toRDF(data, opts);
+    return writeString(record, opts.format ?? 'Turtle');
+}
+
+// Like toRDF, but returns an N-Triples serialization string. Same as toTurtle
+// with format 'N-Triples'; provided as a named convenience for transformers
+// (or the JSONata $toNTriples()) that want line-based, prefix-free RDF text.
+export async function toNTriples(
+    data: any,
+    opts: { documentLoader?: DocumentLoader; skolem?: string } = {},
+): Promise<string> {
+    const record = await toRDF(data, opts);
+    return writeString(record, 'N-Triples');
 }

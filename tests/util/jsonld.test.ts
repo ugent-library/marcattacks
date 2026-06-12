@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
-import { toRDF, documentLoader, registerContext } from "../../dist/util/jsonld.js";
+import { toRDF, toTurtle, toNTriples, documentLoader, registerContext } from "../../dist/util/jsonld.js";
 
 describe("util/jsonld", () => {
     test("toRDF converts an inline-@context JSON-LD object into quads", async () => {
@@ -90,6 +90,53 @@ describe("util/jsonld", () => {
                 }),
             }),
         );
+    });
+
+    const jsonldLiteral = {
+        "@context": { "ex": "http://example.org/" },
+        "@id": "ex:a",
+        "ex:name": "Alice",
+    };
+
+    test("toTurtle serializes JSON-LD to a Turtle string", async () => {
+        const ttl = await toTurtle(jsonldLiteral);
+        // No prefixes are carried, so full IRIs and a Turtle-style "." terminator.
+        expect(ttl).toContain('<http://example.org/a> <http://example.org/name> "Alice".');
+    });
+
+    test("toTurtle accepts a format override (N-Triples)", async () => {
+        const nt = await toTurtle(jsonldLiteral, { format: "N-Triples" });
+        // N-Triples puts a space before the terminating dot.
+        expect(nt).toContain('<http://example.org/a> <http://example.org/name> "Alice" .');
+    });
+
+    test("toTurtle skolemizes blank nodes to IRIs under the given prefix", async () => {
+        const prefix = "https://example.org/.well-known/genid/";
+        const ttl = await toTurtle(jsonldWithBnode, { skolem: prefix });
+        // Blank node became an IRI under the prefix; no "_:" blank-node syntax.
+        expect(ttl).toContain(`<${prefix}`);
+        expect(ttl).not.toContain("_:");
+    });
+
+    test("toNTriples serializes JSON-LD to an N-Triples string", async () => {
+        const nt = await toNTriples(jsonldLiteral);
+        expect(nt).toContain('<http://example.org/a> <http://example.org/name> "Alice" .');
+    });
+
+    test("toNTriples emits one full-IRI triple per line", async () => {
+        const nt = await toNTriples({
+            "@context": { "ex": "http://example.org/" },
+            "@id": "ex:a",
+            "ex:b": { "@id": "ex:c" },
+            "ex:name": "Alice",
+        });
+        const lines = nt.split("\n").filter((l: string) => l.trim() !== "");
+        expect(lines).toHaveLength(2);
+        // Every line is a complete N-Triple terminated with " ." and uses full IRIs.
+        for (const line of lines) {
+            expect(line.trimEnd().endsWith(" .")).toBe(true);
+            expect(line.startsWith("<http://example.org/a>")).toBe(true);
+        }
     });
 
     test("documentLoader refuses an unregistered URL (no network)", async () => {

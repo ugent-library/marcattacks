@@ -2,7 +2,7 @@ import Stream, { Transform } from "stream";
 import jsonata from "jsonata";
 import fs from "fs";
 import { marcmap, marctag, marcind, marcsubfields } from '../marcmap.js';
-import { toRDF } from '../util/jsonld.js';
+import { toRDF, toTurtle, toNTriples } from '../util/jsonld.js';
 import { parseStream } from '../util/tsv_parse.js';
 import { v4 as uuidv4 } from 'uuid';
 import log4js from 'log4js';
@@ -75,6 +75,13 @@ export async function createMapper(opts: { fix: string, lookup: string }) : Prom
     // but are relabelled unique per record.
     expression.registerFunction('toRDF', (data: any, skolem?: string) =>
         toRDF(data, skolem !== undefined ? { skolem } : {}));
+    // $toTurtle(data [, skolem]): like $toRDF but returns a Turtle string
+    // instead of a quads-Record — for fixes that want serialized RDF text.
+    expression.registerFunction('toTurtle', (data: any, skolem?: string) =>
+        toTurtle(data, skolem !== undefined ? { skolem } : {}));
+    // $toNTriples(data [, skolem]): like $toTurtle but returns N-Triples.
+    expression.registerFunction('toNTriples', (data: any, skolem?: string) =>
+        toNTriples(data, skolem !== undefined ? { skolem } : {}));
 
     return async (data: any) => { current = data; return expression.evaluate(data); };
 }
