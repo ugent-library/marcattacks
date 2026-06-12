@@ -48,7 +48,10 @@
 
             /* Normalised / minted fields */
             {
-                "@type": "https://biblio.ugent.be/ns#" & classification,
+                "@type": [ 
+                    "https://biblio.ugent.be/ns#Record",
+                    "https://biblio.ugent.be/ns#" & classification
+                ],
                 "affiliation": $fixObjectArrayId(affiliation),
                 "author": $fixPersons(author),
                 "date_created": $fixDate(date_created),
@@ -75,7 +78,7 @@
                     "foaf": "http://xmlns.com/foaf/0.1/",
                     "orcid": "http://orcid.org/",
                     "schema": "http://schema.org/",
-                    "ugent": "http://lib.ugent.be/biblio/",
+                    "ugent": "https://biblio.ugent.be/ns#",
                     "xsd": "http://www.w3.org/2001/XMLSchema#",
 
                     "_id": "@id",

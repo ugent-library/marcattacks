@@ -2,8 +2,8 @@
 #
 # This ontology documents the RDF data model produced by the JSON-LD mapping in
 # demo/biblio.jsonata. It is an *application profile*: it defines the few terms
-# that are genuinely local to Ghent University (the `biblio:` and `ugent:`
-# namespaces) and, for the many terms it reuses from external vocabularies
+# that are genuinely local to Ghent University (the `biblio:` 
+# namespace) and, for the many terms it reuses from external vocabularies
 # (schema.org, BIBO, FOAF, Dublin Core, the Event ontology), it records HOW they
 # are used in this dataset via rdfs:domain / rdfs:range and rdfs:isDefinedBy.
 #
@@ -11,7 +11,6 @@
 # profile, not as a redefinition of those external terms.
 
 @prefix biblio:  <https://biblio.ugent.be/ns#> .
-@prefix ugent:   <http://lib.ugent.be/biblio/> .
 @prefix bibo:    <http://purl.org/ontology/bibo/> .
 @prefix dc:      <http://purl.org/dc/elements/1.1/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
@@ -51,7 +50,7 @@ Bibliography. Each publication additionally carries a more specific rdf:type
 named after its classification code in the biblio: namespace (e.g.
 biblio:A1, biblio:journalArticle); those classification classes are modelled as
 rdfs:subClassOf biblio:Publication. The classification code is ALSO exposed as a
-SKOS-style value via ugent:classification."""@en ;
+SKOS-style value via biblio:classification."""@en ;
     rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
 
 biblio:Person a owl:Class ;
@@ -93,7 +92,7 @@ biblio:Pagination a owl:Class ;
 #    UGent-specific properties (newly defined here)
 #################################################################
 
-ugent:classification a owl:ObjectProperty ;
+biblio:classification a owl:ObjectProperty ;
     rdfs:label "classification"@en ;
     rdfs:comment """The Ghent University publication classification code (e.g. A1,
 A2, P1), as an IRI under http://biblio.ugent.be/classification/. The same code
@@ -101,7 +100,7 @@ also names the publication's specific rdf:type in the biblio: namespace."""@en ;
     rdfs:domain biblio:Publication ;
     rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
 
-ugent:promoter a owl:ObjectProperty ;
+biblio:promoter a owl:ObjectProperty ;
     rdfs:label "promoter"@en ;
     rdfs:comment "A doctoral promoter (supervisor) of the publication."@en ;
     rdfs:domain biblio:Publication ;
@@ -230,8 +229,8 @@ validate them."""@en ;
     rdfs:isDefinedBy dc: .
 
 # dc:type is reused on two classes: the publication type (an IRI under
-# http://biblio.ugent.be/type/) and the file kind (an IRI under
-# http://lib.ugent.be/biblio/). Its domain is therefore the union of the two.
+# http://biblio.ugent.be/type/) and the file kind. 
+# Its domain is therefore the union of the two.
 dc:type a owl:ObjectProperty ;
     rdfs:comment "The document type of a publication (source field: type) or the kind of a file (source field: kind); always an IRI."@en ;
     rdfs:domain [ a owl:Class ; owl:unionOf ( biblio:Publication biblio:File ) ] ;
@@ -314,7 +313,7 @@ dc:format a owl:DatatypeProperty ;
     rdfs:isDefinedBy dc: .
 
 dcterms:accessRight a owl:ObjectProperty ;
-    rdfs:comment "The access level of the file (source field: file.access); an IRI under http://lib.ugent.be/biblio/."@en ;
+    rdfs:comment "The access level of the file (source field: file.access); an IRI under biblio:."@en ;
     rdfs:domain biblio:File ;
     rdfs:isDefinedBy dcterms: .
 
