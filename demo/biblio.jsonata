@@ -264,7 +264,7 @@
                     "volume": "bibo:volume",
                     "year": {
                         "@id": "dc:date",
-                        "@type": "xsd:dateTime"
+                        "@type": "xsd:gYear"
                     }
                 }
             }
