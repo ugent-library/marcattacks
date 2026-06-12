@@ -1,0 +1,344 @@
+# Ghent University Academic Bibliography — RDF application profile
+#
+# This ontology documents the RDF data model produced by the JSON-LD mapping in
+# demo/biblio.jsonata. It is an *application profile*: it defines the few terms
+# that are genuinely local to Ghent University (the `biblio:` and `ugent:`
+# namespaces) and, for the many terms it reuses from external vocabularies
+# (schema.org, BIBO, FOAF, Dublin Core, the Event ontology), it records HOW they
+# are used in this dataset via rdfs:domain / rdfs:range and rdfs:isDefinedBy.
+#
+# Treat the domain/range axioms on reused terms as usage constraints within this
+# profile, not as a redefinition of those external terms.
+
+@prefix biblio:  <https://biblio.ugent.be/ns#> .
+@prefix ugent:   <http://lib.ugent.be/biblio/> .
+@prefix bibo:    <http://purl.org/ontology/bibo/> .
+@prefix dc:      <http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix event:   <http://purl.org/NET/c4dm/event.owl#> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix schema:  <http://schema.org/> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix vann:    <http://purl.org/vocab/vann/> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+
+#################################################################
+#    Ontology metadata
+#################################################################
+
+<https://biblio.ugent.be/ns> a owl:Ontology ;
+    dcterms:title "Ghent University Academic Bibliography — RDF application profile"@en ;
+    rdfs:comment """An OWL/RDFS application profile for the RDF emitted by the
+biblio JSON-LD mapping. Records of the Ghent University Academic Bibliography are
+described as biblio:Publication resources, reusing schema.org, BIBO, FOAF, Dublin
+Core and the Event ontology, and adding a small number of UGent-specific terms."""@en ;
+    dcterms:created "2026-06-12"^^xsd:date ;
+    dcterms:creator "Ghent University Library" ;
+    vann:preferredNamespacePrefix "biblio" ;
+    vann:preferredNamespaceUri "https://biblio.ugent.be/ns#" .
+
+#################################################################
+#    Classes
+#################################################################
+
+biblio:Publication a owl:Class ;
+    rdfs:label "Publication"@en ;
+    rdfs:comment """A bibliographic record in the Ghent University Academic
+Bibliography. Each publication additionally carries a more specific rdf:type
+named after its classification code in the biblio: namespace (e.g.
+biblio:A1, biblio:journalArticle); those classification classes are modelled as
+rdfs:subClassOf biblio:Publication. The classification code is ALSO exposed as a
+SKOS-style value via ugent:classification."""@en ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+biblio:Person a owl:Class ;
+    rdfs:label "Person"@en ;
+    rdfs:comment "An author, editor or promoter of a publication."@en ;
+    rdfs:subClassOf foaf:Person , schema:Person ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+biblio:Organization a owl:Class ;
+    rdfs:label "Organization"@en ;
+    rdfs:comment "An organisation a person is affiliated with (e.g. a UGent department)."@en ;
+    rdfs:subClassOf foaf:Organization , schema:Organization ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+biblio:Publisher a owl:Class ;
+    rdfs:label "Publisher"@en ;
+    rdfs:comment "The publisher of a publication."@en ;
+    rdfs:subClassOf schema:Organization ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+biblio:Conference a owl:Class ;
+    rdfs:label "Conference"@en ;
+    rdfs:comment "A conference or event at which a publication was presented."@en ;
+    rdfs:subClassOf bibo:Conference ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+biblio:File a owl:Class ;
+    rdfs:label "File"@en ;
+    rdfs:comment "A file (full text, supplement, ...) that is part of a publication."@en ;
+    rdfs:subClassOf foaf:Document ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+biblio:Pagination a owl:Class ;
+    rdfs:label "Pagination"@en ;
+    rdfs:comment "The page range of a publication, with a start and an end page."@en ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+#################################################################
+#    UGent-specific properties (newly defined here)
+#################################################################
+
+ugent:classification a owl:ObjectProperty ;
+    rdfs:label "classification"@en ;
+    rdfs:comment """The Ghent University publication classification code (e.g. A1,
+A2, P1), as an IRI under http://biblio.ugent.be/classification/. The same code
+also names the publication's specific rdf:type in the biblio: namespace."""@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+ugent:promoter a owl:ObjectProperty ;
+    rdfs:label "promoter"@en ;
+    rdfs:comment "A doctoral promoter (supervisor) of the publication."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range biblio:Person ;
+    rdfs:isDefinedBy <https://biblio.ugent.be/ns> .
+
+#################################################################
+#    Reused properties — Publication
+#
+#    External terms whose usage within this profile is recorded below.
+#    rdfs:isDefinedBy points back at the owning vocabulary.
+#################################################################
+
+schema:name a owl:DatatypeProperty ;
+    rdfs:comment "The title of the publication (source field: title)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy schema: .
+
+schema:abstract a owl:DatatypeProperty ;
+    rdfs:comment "The abstract of the publication (source field: abstract)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy schema: .
+
+schema:author a owl:ObjectProperty ;
+    rdfs:comment "An author of the publication (source field: author)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range biblio:Person ;
+    rdfs:isDefinedBy schema: .
+
+schema:editor a owl:ObjectProperty ;
+    rdfs:comment "An editor of the publication (source field: editor)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range biblio:Person ;
+    rdfs:isDefinedBy schema: .
+
+schema:sourceOrganization a owl:ObjectProperty ;
+    rdfs:comment "An organisation a person is affiliated with (source field: affiliation)."@en ;
+    rdfs:range biblio:Organization ;
+    rdfs:isDefinedBy schema: .
+
+schema:dateCreated a owl:DatatypeProperty ;
+    rdfs:comment "When the record was created (source field: date_created)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range xsd:dateTime ;
+    rdfs:isDefinedBy schema: .
+
+schema:dateModified a owl:DatatypeProperty ;
+    rdfs:comment "When the record was last updated (source field: date_updated)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range xsd:dateTime ;
+    rdfs:isDefinedBy schema: .
+
+schema:sameAs a owl:ObjectProperty ;
+    rdfs:comment "A handle / persistent URL identifying the publication (source field: handle)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy schema: .
+
+schema:pagination a owl:ObjectProperty ;
+    rdfs:comment "The page range of the publication (source field: page)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range biblio:Pagination ;
+    rdfs:isDefinedBy schema: .
+
+schema:publisher a owl:ObjectProperty ;
+    rdfs:comment "The publisher of the publication (source field: publisher)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range biblio:Publisher ;
+    rdfs:isDefinedBy schema: .
+
+bibo:presentedAt a owl:ObjectProperty ;
+    rdfs:comment "The conference at which the publication was presented (source field: conference)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range biblio:Conference ;
+    rdfs:isDefinedBy bibo: .
+
+bibo:doi a owl:DatatypeProperty ;
+    rdfs:comment "The DOI of the publication (source field: doi)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy bibo: .
+
+bibo:issn a owl:DatatypeProperty ;
+    rdfs:comment "The ISSN of the publication (source field: issn)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy bibo: .
+
+bibo:isbn a owl:DatatypeProperty ;
+    rdfs:comment "The ISBN of the publication (source field: isbn)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy bibo: .
+
+bibo:issue a owl:DatatypeProperty ;
+    rdfs:comment "The issue number (source field: issue)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy bibo: .
+
+bibo:volume a owl:DatatypeProperty ;
+    rdfs:comment "The volume number (source field: volume)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy bibo: .
+
+dcterms:hasPart a owl:ObjectProperty ;
+    rdfs:comment "A file that is part of the publication (source field: file)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range biblio:File ;
+    rdfs:isDefinedBy dcterms: .
+
+dcterms:subject a owl:DatatypeProperty ;
+    rdfs:comment "A subject keyword of the publication (source field: subject)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy dcterms: .
+
+dc:language a owl:DatatypeProperty ;
+    rdfs:comment "The language of the publication (source field: language)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:isDefinedBy dc: .
+
+dc:date a owl:DatatypeProperty ;
+    rdfs:comment "The publication year, as an xsd:dateTime (source field: year)."@en ;
+    rdfs:domain biblio:Publication ;
+    rdfs:range xsd:dateTime ;
+    rdfs:isDefinedBy dc: .
+
+# dc:type is reused on two classes: the publication type (an IRI under
+# http://biblio.ugent.be/type/) and the file kind (an IRI under
+# http://lib.ugent.be/biblio/). Its domain is therefore the union of the two.
+dc:type a owl:ObjectProperty ;
+    rdfs:comment "The document type of a publication (source field: type) or the kind of a file (source field: kind); always an IRI."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( biblio:Publication biblio:File ) ] ;
+    rdfs:isDefinedBy dc: .
+
+#################################################################
+#    Reused properties — Person
+#################################################################
+
+foaf:name a owl:DatatypeProperty ;
+    rdfs:comment "The full name of a person (source field: name)."@en ;
+    rdfs:domain biblio:Person ;
+    rdfs:isDefinedBy foaf: .
+
+foaf:givenName a owl:DatatypeProperty ;
+    rdfs:comment "The given (first) name of a person (source field: first_name)."@en ;
+    rdfs:domain biblio:Person ;
+    rdfs:isDefinedBy foaf: .
+
+foaf:familyName a owl:DatatypeProperty ;
+    rdfs:comment "The family (last) name of a person (source field: last_name)."@en ;
+    rdfs:domain biblio:Person ;
+    rdfs:isDefinedBy foaf: .
+
+foaf:publications a owl:ObjectProperty ;
+    rdfs:comment "Link to the person's UGent publications page (source field: ugent_id); an IRI under http://biblio.ugent.be/person/."@en ;
+    rdfs:domain biblio:Person ;
+    rdfs:isDefinedBy foaf: .
+
+schema:identifier a owl:ObjectProperty ;
+    rdfs:comment "An external identifier of a person — a UGent Biblio person IRI (source field: biblio_id) or an ORCID (source field: orcid_id); always an IRI."@en ;
+    rdfs:domain biblio:Person ;
+    rdfs:isDefinedBy schema: .
+
+#################################################################
+#    Reused properties — Organization
+#################################################################
+
+foaf:member a owl:ObjectProperty ;
+    rdfs:comment "Links an affiliation organisation to its UGent organisation IRI (source field: ugent_id under affiliation)."@en ;
+    rdfs:domain biblio:Organization ;
+    rdfs:isDefinedBy foaf: .
+
+#################################################################
+#    Reused properties — Conference
+#################################################################
+
+event:place a owl:ObjectProperty ;
+    rdfs:comment "The location of the conference (source field: conference.location)."@en ;
+    rdfs:domain biblio:Conference ;
+    rdfs:isDefinedBy event: .
+
+event:time a owl:ObjectProperty ;
+    rdfs:comment "The time of the conference (source field: conference.start_time)."@en ;
+    rdfs:domain biblio:Conference ;
+    rdfs:isDefinedBy event: .
+
+dc:title a owl:DatatypeProperty ;
+    rdfs:comment "The name of the conference (source field: conference.name)."@en ;
+    rdfs:domain biblio:Conference ;
+    rdfs:isDefinedBy dc: .
+
+bibo:organizer a owl:DatatypeProperty ;
+    rdfs:comment "The organizer of the conference (source field: conference.organizer)."@en ;
+    rdfs:domain biblio:Conference ;
+    rdfs:isDefinedBy bibo: .
+
+#################################################################
+#    Reused properties — File
+#################################################################
+
+dcterms:extent a owl:DatatypeProperty ;
+    rdfs:comment "The size of the file (source field: file.size)."@en ;
+    rdfs:domain biblio:File ;
+    rdfs:isDefinedBy dcterms: .
+
+dc:format a owl:DatatypeProperty ;
+    rdfs:comment "The content type / MIME type of the file (source field: file.content_type)."@en ;
+    rdfs:domain biblio:File ;
+    rdfs:isDefinedBy dc: .
+
+dcterms:accessRight a owl:ObjectProperty ;
+    rdfs:comment "The access level of the file (source field: file.access); an IRI under http://lib.ugent.be/biblio/."@en ;
+    rdfs:domain biblio:File ;
+    rdfs:isDefinedBy dcterms: .
+
+#################################################################
+#    Reused properties — Pagination
+#################################################################
+
+schema:pageStart a owl:DatatypeProperty ;
+    rdfs:comment "The first page (source field: page.first)."@en ;
+    rdfs:domain biblio:Pagination ;
+    rdfs:isDefinedBy schema: .
+
+schema:pageEnd a owl:DatatypeProperty ;
+    rdfs:comment "The last page (source field: page.last)."@en ;
+    rdfs:domain biblio:Pagination ;
+    rdfs:isDefinedBy schema: .
+
+#################################################################
+#    Reused properties — Publisher
+#################################################################
+
+dcterms:publisher a owl:DatatypeProperty ;
+    rdfs:comment "The publisher name (source field: publisher.name)."@en ;
+    rdfs:domain biblio:Publisher ;
+    rdfs:isDefinedBy dcterms: .
+
+bibo:based_near a owl:DatatypeProperty ;
+    rdfs:comment "The location of the publisher (source field: publisher.location)."@en ;
+    rdfs:domain biblio:Publisher ;
+    rdfs:isDefinedBy bibo: .
