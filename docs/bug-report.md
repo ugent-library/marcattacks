@@ -15,8 +15,7 @@ verified empirically against the built code.
 | --- | --- | --- |
 | Failing test | fan-out coverage | ✅ Fixed |
 | High | 1–3 | ✅ Fixed |
-| Medium | 5, 8, 9 | ✅ Fixed |
-| Medium | 4, 6, 7, 10 | ⬜ Open |
+| Medium | 4, 5, 6, 7, 8, 9, 10 | ✅ Fixed |
 | Low | 11–20 | ⬜ Open |
 
 ## Root cause of the failing `worker-pool.test.ts` — ✅ FIXED
@@ -155,7 +154,15 @@ Severity: high. Confidence: certain (interleaving reproduced).
 
 ## Medium
 
-### 4. `src/stream/httpstream.ts:49` — a malformed `Location` header is still an uncaughtException
+### 4. `src/stream/httpstream.ts:49` — a malformed `Location` header is still an uncaughtException — ✅ FIXED
+
+**Fix:** the entire `client.get` response callback is now wrapped in its own
+try/catch that drains the body (`res.resume()`) and `reject`s. `new URL(loc,
+url)` on an invalid `Location` (`http://`, `https://%`, spaces) — and any other
+throw in the callback — now rejects the promise instead of escaping as an
+uncaughtException. Verified end-to-end: a 302 with `Location: http://` now
+rejects cleanly with "Invalid URL" (no uncaughtException); redirects and
+normal responses are unchanged; full suite green.
 
 The first-pass fix #16 resolves *relative* locations, but `new URL(loc, url)`
 still throws for *invalid* ones (`Location: http://`, `https://%`, URLs with
@@ -213,7 +220,16 @@ rather than matching codes anywhere in the chain.
 
 Severity: medium. Confidence: likely.
 
-### 6. `src/attacker.ts` — the "output-stage creation throws" half of #19 is still open
+### 6. `src/attacker.ts` — the "output-stage creation throws" half of #19 is still open — ✅ FIXED
+
+**Fix:** the `stages` array is now declared *outside* the `try`, and the outer
+`catch` destroys every already-built stage (best-effort, idempotent) before
+rethrowing. A throw from `createOutputTransformStage`/`createOutputWriteStream`
+(bad `--to` plugin, invalid `--out` URL, S3/SFTP connect failure) — or anywhere
+in assembly — now tears down the input read stream, decompression stages, and a
+spawned worker pool instead of leaking live threads. This also replaces the dead
+`if (e instanceof PipelineError) { throw e } else { throw e }` catch (a low-tier
+finding). Verified: full suite green (146/146), threaded runs still complete.
 
 The new teardown is only an `else` branch on falsy `opts.to`. If
 `createOutputTransformStage` or `createOutputWriteStream` *throws* (bad `--to`
@@ -226,7 +242,20 @@ rethrowing. (Becomes fully effective only together with finding 2.)
 
 Severity: medium. Confidence: certain.
 
-### 7. `src/stream/filestream.ts` — statSync throw in callback; percent-encoded paths used as fs paths
+### 7. `src/stream/filestream.ts` — statSync throw in callback; percent-encoded paths used as fs paths — ✅ FIXED
+
+**Fix:**
+- The `fs.statSync` call is now wrapped in a try/catch that logs at debug and
+  `continue`s past the entry — a dangling symlink or a file deleted between
+  readdir and stat no longer throws an uncaughtException from inside the
+  callback; the scan proceeds over the remaining files.
+- `directory` for both `fileLatestFile` and `fileGlobFiles` is now derived via
+  `fileURLToPath(url.href.replace(/@(latest|glob):.*/, ""))` instead of the raw,
+  percent-encoded `url.pathname`. A directory with a space (`/tmp/ma test dir/`)
+  or a literal `%` is passed to `fs` decoded (no ENOENT, no double-encoding),
+  and Windows `/C:/…` pathnames resolve correctly. Verified: globbing
+  `file:///tmp/ma test dir/@glob:.xml` now returns
+  `file:///tmp/ma%20test%20dir/a.xml` (previously ENOENT); full suite green.
 
 - Line 41: `fs.statSync(directory + files[i])` sits inside the `fs.readdir`
   callback — the identical uncaughtException failure mode as the freshly
@@ -293,7 +322,18 @@ drop the option.
 
 Severity: medium. Confidence: certain.
 
-### 10. `src/plugin-loader.ts` — a broken local plugin file surfaces as a confusing 3-way failure
+### 10. `src/plugin-loader.ts` — a broken local plugin file surfaces as a confusing 3-way failure — ✅ FIXED
+
+**Fix:** each `import` attempt now rethrows immediately unless the error is a
+genuine "module not found" (`ERR_MODULE_NOT_FOUND` from Node's ESM loader, or
+`MODULE_NOT_FOUND` from Jest's resolver / CommonJS — both recognised by a shared
+`isModuleNotFound` helper). A `SyntaxError`, a throwing top-level, or a bad
+sub-import in a file that *was* found now surfaces as itself instead of being
+retried as a local transform / npm package and buried in `cause[0]`. Verified:
+a plugin with a syntax error now reports `SyntaxError: Unexpected end of input`
+directly; a genuinely-missing plugin still falls through to the 3-way message;
+the builtin `rdf` output plugin still resolves via the local-dir fallback; full
+suite green.
 
 Worsened by the first-pass #17 fix (which added the bare-import fallback): a
 syntax/runtime error in an *existing* plugin file falls through all three
@@ -327,6 +367,8 @@ Severity: medium. Confidence: certain (reproduced).
   with no detail. Should be `logger.error(e)` like command.ts.
 - **`src/attacker.ts:353-359`** — dead catch: both branches rethrow
   identically (`if (e instanceof PipelineError) { throw e; } else { throw e; }`).
+  ✅ FIXED as part of #6 — the catch now destroys all built stages before
+  rethrowing the original error.
 - **`src/output/json.ts:34-39`** — empty input produces a zero-byte file
   instead of `[]` (flush only pushes `"]"` when `!isFirst`) — invalid JSON
   for any consumer that parses it.
@@ -347,7 +389,12 @@ Severity: medium. Confidence: certain (reproduced).
   one item and concurrency can never exceed 1. Pre-existing, harmless.
 - **`src/output/multipart.ts:25-31`** — the first part is never preceded by a
   boundary delimiter, so a strict MIME parser treats it as preamble. Possibly
-  intentional for this homegrown format.
+  intentional for this homegrown format. ✅ FIXED — the first part is now
+  preceded by a boundary delimiter by default (valid MIME). A new
+  `noStartDelimiter='true'` option (symmetric to `noEndDelimiter`) restores the
+  pure between-records separator for the homegrown `@message.` message-stream
+  format; the `demo:rdf:messages` and `demo:biblio` scripts set it to preserve
+  their output.
 - **`src/stream/httpstream.ts`** (`httpLatestObject`/`httpGlobFiles`) — on a
   parser error the rejected promise leaves the response stream undestroyed,
   pinning a keep-alive socket until timeout.

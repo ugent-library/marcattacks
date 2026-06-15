@@ -1,5 +1,5 @@
 import fs from "fs";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 import type { Readable } from "stream";
 import log4js from 'log4js';
 
@@ -19,9 +19,13 @@ export async function fileLatestFile(url: URL) : Promise<URL> {
             return;
         }
 
-        const directory = url.pathname.replaceAll(/@latest:.*/g,"");
+        // url.pathname is percent-encoded, so a directory with a space or '%'
+        // would be passed to fs verbatim (ENOENT, or double-encoded by the
+        // pathToFileURL call below). Decode the stripped URL back to a real
+        // filesystem path via fileURLToPath (also handles Windows /C:/ paths).
+        const directory = fileURLToPath(url.href.replaceAll(/@latest:.*/g, ""));
         const extension = url.pathname.replaceAll(/.*@latest:/g,"");
-       
+
         logger.debug(`directory: ${directory} ; extension: ${extension}`);
 
         let candidate : string;
@@ -38,7 +42,16 @@ export async function fileLatestFile(url: URL) : Promise<URL> {
             if (files[i]?.toLowerCase().endsWith(extension)) {
                 // pathToFileURL percent-encodes names with #, %, spaces, etc.
                 const testFile = pathToFileURL(directory + files[i]).href;
-                const stats = fs.statSync(directory + files[i]);
+                let stats : fs.Stats;
+                try {
+                    stats = fs.statSync(directory + files[i]);
+                } catch (e) {
+                    // The file may have vanished between readdir and stat, or be
+                    // a dangling symlink. statSync throws here inside the readdir
+                    // callback (an uncaughtException); skip the entry instead.
+                    logger.debug(`skipping ${testFile}: ${(e as Error).message}`);
+                    continue;
+                }
                 if (candidate) {
                     if (stats.mtime > candidateStats.mtime ) {
                         logger.debug(`found a more recent ${testFile} than ${candidate}`);
@@ -79,8 +92,10 @@ export async function fileGlobFiles(url: URL): Promise<URL[]> {
             return;
         }
 
-        // Extract directory path and extension
-        const directory = url.pathname.replaceAll(/@glob:.*/g, "");
+        // Extract directory path and extension. Decode the percent-encoded URL
+        // back to a real filesystem path (spaces/'%'/Windows drive letters);
+        // url.pathname alone would be passed to fs verbatim.
+        const directory = fileURLToPath(url.href.replaceAll(/@glob:.*/g, ""));
         const extension = url.pathname.replaceAll(/.*@glob:/g, "");
 
         logger.debug(`directory:`,directory);

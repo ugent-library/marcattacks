@@ -36,6 +36,33 @@ describe("output/multipart", () => {
         expect(out).toContain("ARRAY[3] HASH[2]");
     });
 
+    test("by default the first part is preceded by a boundary delimiter", async () => {
+        const plugin = await loadPlugin("multipart", "output");
+        const transformer = await plugin.transform({});
+
+        const out = await run(transformer, [{ a: "1" }, { a: "2" }]);
+
+        // header, blank line, THEN a leading boundary before the first part —
+        // so a strict MIME parser does not treat record 1 as preamble.
+        expect(out).toBe(
+            'Content-Type: multipart/mixed; boundary="marcattacks"\n\n' +
+            "--marcattacks\n1\n--marcattacks\n2\n--marcattacks--\n"
+        );
+    });
+
+    test("noStartDelimiter='true' omits the leading delimiter", async () => {
+        const plugin = await loadPlugin("multipart", "output");
+        const transformer = await plugin.transform({ noStartDelimiter: "true" });
+
+        const out = await run(transformer, [{ a: "1" }, { a: "2" }]);
+
+        // The first part follows the header directly (no leading boundary).
+        expect(out).toBe(
+            'Content-Type: multipart/mixed; boundary="marcattacks"\n\n' +
+            "1\n--marcattacks\n2\n--marcattacks--\n"
+        );
+    });
+
     test("noEndDelimiter='true' omits the closing delimiter", async () => {
         const plugin = await loadPlugin("multipart", "output");
         const transformer = await plugin.transform({ noEndDelimiter: "true" });

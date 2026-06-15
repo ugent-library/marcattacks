@@ -267,9 +267,10 @@ export async function createOutputTransformStage(opts: any): Promise<Transform |
 
 export async function attack(url: URL, opts: any): Promise<number> {
     let result = 0;
+    const stages: (Readable | Transform | Writable)[] = [];
     try {
         const { stream: readableStream, resolvedUrl: inputFile } = await createInputReadStream(url, opts);
-        const stages: (Readable | Transform | Writable)[] = [readableStream];
+        stages.push(readableStream);
 
         // Add decompression stage if needed
         const decompressionStage = await createDecompressionStage(inputFile, opts);
@@ -360,11 +361,17 @@ export async function attack(url: URL, opts: any): Promise<number> {
             }
         }
     } catch (e) {
-        if (e instanceof PipelineError) {
-            throw e;
-        } else {
-            throw e;
+        // Output-stage assembly can throw *after* earlier stages (input read
+        // stream, decompression, and crucially a spawned worker pool) are
+        // already built — a bad `--to` plugin, an invalid `--out` URL, or an
+        // S3/SFTP connect failure. Without this, those stages — and their
+        // live worker threads — leak and pin the event loop. Tear them down
+        // before rethrowing. Best-effort and idempotent: a pipeline() failure
+        // has already destroyed its stages, so destroying again is harmless.
+        for (const stage of stages) {
+            try { (stage as any).destroy?.(); } catch { /* best effort */ }
         }
+        throw e;
     }
     return result;
 }

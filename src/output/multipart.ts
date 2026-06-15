@@ -7,6 +7,7 @@ export interface OutputMultipartOptions {
     header?: string;
     delimiter?: string;
     noEndDelimiter?: string;
+    noStartDelimiter?: string;
 }
 
 export async function transform(opts: OutputMultipartOptions = {}) : Promise<Transform> {
@@ -14,6 +15,11 @@ export async function transform(opts: OutputMultipartOptions = {}) : Promise<Tra
         "Content-Type: multipart/mixed; boundary=\"marcattacks\"";
     let delimiter : string = opts.delimiter ? opts.delimiter : "--marcattacks";
     let noEndDelimiter : boolean = opts.noEndDelimiter === 'true' ? true : false;
+    // By default the first part is also preceded by a boundary delimiter, so a
+    // strict MIME parser sees it as a body part rather than (discardable)
+    // preamble. Set noStartDelimiter='true' for a pure between-records
+    // separator (e.g. the homegrown "@message." message-stream format).
+    let noStartDelimiter : boolean = opts.noStartDelimiter === 'true' ? true : false;
 
     let isFirst = true;
 
@@ -25,6 +31,9 @@ export async function transform(opts: OutputMultipartOptions = {}) : Promise<Tra
             if (isFirst) {
                 output += header + "\n\n";
                 isFirst = false;
+                if (!noStartDelimiter) {
+                    output += delimiter + "\n";
+                }
             }
             else {
                 output += delimiter + "\n";

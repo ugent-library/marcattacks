@@ -26,32 +26,44 @@ export function httpReadStream(url: URL, redirectsLeft: number = MAX_REDIRECTS):
             logger.debug(`resolve ${url.href}`);
 
             const req = client.get(url, { agent }, res => {
-                const statusCode = res.statusCode || 0;
+                // This callback runs after the synchronous try/catch below has
+                // already returned, so anything that can throw here (notably
+                // `new URL(location, url)` on a malformed `Location` header)
+                // must be guarded explicitly or it becomes an uncaughtException.
+                try {
+                    const statusCode = res.statusCode || 0;
 
-                logger.debug(`statusCode = ${statusCode}`);
+                    logger.debug(`statusCode = ${statusCode}`);
 
-                if (statusCode >= 400) {
-                    logger.error(`http error:`,res.statusMessage);
-                    res.resume(); // drain the body so the socket can be reused/freed
-                    reject(new Error('HTTP ' + res.statusCode));
-                    return;
-                }
-
-                // Follow redirects. Resolve the Location relative to the current
-                // URL (it may be relative) and cap the hops to avoid loops.
-                if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
-                    res.resume(); // drain the redirect body
-                    if (redirectsLeft <= 0) {
-                        reject(new Error(`too many redirects (> ${MAX_REDIRECTS})`));
+                    if (statusCode >= 400) {
+                        logger.error(`http error:`,res.statusMessage);
+                        res.resume(); // drain the body so the socket can be reused/freed
+                        reject(new Error('HTTP ' + res.statusCode));
                         return;
                     }
-                    logger.info(`Redirect to ${res.headers.location}...`);
-                    httpReadStream(new URL(res.headers.location, url), redirectsLeft - 1)
-                        .then(resolve).catch(reject);
-                    return;
-                }
 
-                resolve(res);
+                    // Follow redirects. Resolve the Location relative to the current
+                    // URL (it may be relative) and cap the hops to avoid loops.
+                    if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
+                        res.resume(); // drain the redirect body
+                        if (redirectsLeft <= 0) {
+                            reject(new Error(`too many redirects (> ${MAX_REDIRECTS})`));
+                            return;
+                        }
+                        logger.info(`Redirect to ${res.headers.location}...`);
+                        httpReadStream(new URL(res.headers.location, url), redirectsLeft - 1)
+                            .then(resolve).catch(reject);
+                        return;
+                    }
+
+                    resolve(res);
+                }
+                catch (error) {
+                    // e.g. a malformed/invalid Location header on a redirect.
+                    logger.error("http response handling error: ", error);
+                    res.resume(); // drain so the socket can be freed
+                    reject(error);
+                }
             });
 
             req.on('error', (error) => {
