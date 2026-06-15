@@ -1,0 +1,351 @@
+.\" Manpage for marcattacks.
+.TH MARCATTACKS 1 "2026-06-15" "marcattacks 2.10.1" "User Commands"
+.SH NAME
+marcattacks \- streaming MARC21 converter and transformer
+.SH SYNOPSIS
+.B marcattacks
+.RI [ options ]
+.I file
+.SH DESCRIPTION
+.B marcattacks
+reads a MARC record source, optionally transforms each record with a mapper,
+and writes the result in another format. Input and output are fully streamed,
+so files larger than memory are processed a record at a time.
+.PP
+The
+.I file
+argument is a local path or a (pseudo\-)URL (see
+.B URL SCHEMES
+below). Output goes to standard output by default, or to the destination given
+with
+.BR \-\-out .
+.PP
+A run is a pipeline of stages: read \(-> (optional decompress / untar)
+\(-> parse
+.RB ( \-\-from )
+\(-> (optional
+.BR \-\-skip / \-\-count )
+\(-> (optional map,
+.BR \-\-map )
+\(-> serialize
+.RB ( \-\-to )
+\(-> write
+.RB ( \-\-out ).
+.SH ARGUMENTS
+.TP
+.I file
+Input source. An existing local path is read directly; otherwise it is parsed
+as a URL. Use
+.B stdin://
+to read standard input.
+.SH OPTIONS
+.TP
+.BR \-f ", " \-\-from " " \fI<format>\fR
+Input format. One of:
+.BR alephseq ", " json ", " jsonl ", " marc " (ISO2709), " rdf ", " csv ", " tsv ", " xml " (MARCXML), " fastxml " (optimized MARCXML parser)."
+Default:
+.BR xml .
+.TP
+.BR \-t ", " \-\-to " " \fI<format>\fR
+Output format. One of:
+.BR alephseq ", " csv ", " json ", " jsonl ", " multipart ", " null " (write nothing; for benchmarking), " parquet ", " rdf ", " tsv ", " xml .
+Default:
+.BR json .
+.TP
+.BR \-m ", " \-\-map " " \fI<mapper>\fR
+Record transform. Built\-in mappers:
+.BR avram ", " fix " (Catmandu Fix, see " \-\-param " " fix=<file> "), " jsonata " (default), " marc2rdf ", " marcids ", " marcinrdf .
+A path to a JavaScript plugin may also be given.
+Default:
+.BR jsonata .
+.TP
+.BI \-\-fix " <what>"
+Shorthand for
+.BI \-\-param " fix=<what>"
+(a JSONata or Catmandu Fix expression or file, depending on
+.BR \-\-map ).
+An explicit
+.BI \-\-param " fix="
+takes precedence if both are given.
+.TP
+.BR \-p ", " \-\-param " " \fI<key=value>\fR
+Pass a parameter to the input, map, or output stage. May be repeated. The value
+is everything after the first
+.BR = ,
+so JSONata/Fix expressions and query strings containing
+.B =
+are preserved.
+.TP
+.BR \-o ", " \-\-out " " \fI<dest>\fR
+Output destination: a local file path, or an
+.BR sftp:// ", " s3:// " or " s3s://
+URL. Default: standard output.
+.TP
+.BI \-\-acl " <acl>"
+Canned S3 ACL for uploaded objects when
+.B \-\-out
+is an S3 URL, e.g.
+.BR public\-read .
+Unset by default.
+.TP
+.B \-\-z
+Decompress gzip input. Auto\-detected for
+.BR .gz " and " .tgz
+names; use this flag to force it otherwise.
+.TP
+.B \-\-tar
+Untar input. Auto\-detected for
+.BR .tar ", " .tar.* " and " .tgz
+names; use this flag to force it otherwise.
+.TP
+.BI \-\-count " <num>"
+Output only the first
+.I num
+records, then stop and tear the pipeline down.
+.TP
+.BI \-\-skip " <num>"
+Skip the first
+.I num
+records.
+.TP
+.BI \-\-workers " <num>"
+Run the
+.B \-\-map
+stage on
+.I num
+worker threads; output order is preserved. Default
+.B auto
+uses CPU cores \(mi 1, and only threads heavy maps (jsonata); cheap maps such as
+.B fix
+stay single\-threaded unless a number is given. Use
+.B 1
+to disable threading.
+.TP
+.BI \-\-key " <keyfile>"
+Path to an SFTP private key file.
+.TP
+.BI \-\-key\-env " <env>"
+Name of an environment variable holding an SFTP private key.
+.TP
+.BR \-c ", " \-\-config " " \fI<config>\fR
+Path to a
+.B .env
+file with credentials. Default:
+.B .env
+in the current directory.
+.TP
+.BI \-\-log " <format>"
+Logging format/destination. Comma\-free tokens:
+.B json
+(JSON log lines),
+.B stdout
+(log to stdout instead of stderr), or
+.B json+stdout
+for both.
+.TP
+.BI \-\-log\-every " <num>"
+Emit an info progress line every
+.I num
+records. Default:
+.BR 1000 .
+.TP
+.B \-\-info
+Enable info\-level logging.
+.TP
+.B \-\-debug
+Enable debug\-level logging.
+.TP
+.B \-\-trace
+Enable trace\-level logging.
+.TP
+.BR \-V ", " \-\-version
+Print the version and exit.
+.TP
+.BR \-h ", " \-\-help
+Print a usage summary and exit.
+.SH URL SCHEMES
+The
+.I file
+argument and the
+.B \-\-out
+destination accept:
+.TP
+.I path
+A local filesystem path.
+.TP
+.B stdin://
+Read from standard input (input only).
+.TP
+.BI file:// path
+A local file URL.
+.TP
+.BR http:// ", " https://
+An HTTP(S) resource (input only).
+.TP
+.BI sftp:// user@host:port/path
+An SFTP resource. Provide a key with
+.B \-\-key
+or
+.BR \-\-key\-env ,
+or credentials in the URL / environment.
+.TP
+.BR s3:// ", " s3s://
+An S3 object,
+.IB accessKey : secretKey @ host : port /bucket/key\fR.
+.B s3s://
+uses TLS.
+.PP
+Container URLs support two modifiers appended to a directory/bucket path:
+.BI @latest: EXT
+resolves to the most recently modified member with extension
+.IR EXT ,
+and
+.BI @glob: EXT
+(with
+.BR globtrotr (1))
+lists all members with extension
+.IR EXT .
+.SH EXIT STATUS
+Exit codes follow the BSD
+.IR sysexits.h (3)
+conventions:
+.TP
+.B 0
+Success, or a benign stop (the downstream reader closed the pipe, e.g.
+.BR "| head" ,
+or
+.B \-\-count
+reached its limit).
+.TP
+.B 64
+.RB ( USAGE )
+Bad invocation: missing input file, missing
+.BR \-\-from ,
+an unknown
+.BR \-\-from / \-\-to / \-\-map
+plugin name, or an unsupported URL scheme.
+.TP
+.B 65
+.RB ( DATAERR )
+The input could not be parsed (malformed XML/JSON/MARC record).
+.TP
+.B 66
+.RB ( NOINPUT )
+The input file, object, or
+.B @latest
+target was not found.
+.TP
+.B 70
+.RB ( SOFTWARE )
+Internal error: a worker thread crashed, or a plugin file failed to load.
+.TP
+.B 73
+.RB ( CANTCREAT )
+The output could not be created (the
+.B \-\-out
+file or S3 object).
+.TP
+.B 74
+.RB ( IOERR )
+A read/write/connection failure mid\-stream (dropped connection, premature
+close).
+.TP
+.B 76
+.RB ( PROTOCOL )
+A remote protocol error (HTTP 4xx/5xx, too many redirects).
+.TP
+.B 77
+.RB ( NOPERM )
+Permission denied.
+.TP
+.B 78
+.RB ( CONFIG )
+A configuration or credential error.
+.PP
+When output is piped to a pager such as
+.BR less (1)
+and you quit mid\-stream,
+.B marcattacks
+restores the terminal and exits via
+.B SIGKILL
+(status 137) to keep the terminal usable; this is unavoidable for the
+interactive raw\-mode case. A plain
+.BR "| head" ,
+a file/pipe sink, or a cron run is detected as benign and exits 0.
+.SH ENVIRONMENT
+Credentials may be supplied in the resource URL, on the command line, or via the
+environment (the URL takes precedence; the environment is a fallback). Variables
+are read from the
+.B \-\-config
+.B .env
+file if present.
+.TP
+.B SFTP_USERNAME
+Fallback SFTP user name.
+.TP
+.B SFTP_PASSWORD
+Fallback SFTP password.
+.TP
+.B S3_ACCESS_KEY
+Fallback S3 access key.
+.TP
+.B S3_SECRET_KEY
+Fallback S3 secret key.
+.PP
+A private key may be read from an arbitrary variable named with
+.BR \-\-key\-env .
+.SH EXAMPLES
+Convert MARCXML to JSON:
+.PP
+.RS
+.EX
+marcattacks \-\-to json ./data/sample.xml
+.EE
+.RE
+.PP
+Use the fast MARCXML parser and emit JSON Lines:
+.PP
+.RS
+.EX
+marcattacks \-\-from fastxml \-\-to jsonl ./data/sample.xml
+.EE
+.RE
+.PP
+Map MARC to RDF:
+.PP
+.RS
+.EX
+marcattacks \-\-to rdf \-\-map marc2rdf ./data/sample.xml
+.EE
+.RE
+.PP
+Apply a Catmandu Fix script:
+.PP
+.RS
+.EX
+marcattacks \-\-to jsonl \-\-map fix \-\-param fix=./demo/marc2rdf.fix ./data/sample.xml
+.EE
+.RE
+.PP
+Read the latest XML from an SFTP directory, threaded:
+.PP
+.RS
+.EX
+marcattacks \-\-key ~/.ssh/key \-\-workers 4 \\
+    sftp://user@host:22/data/@latest:xml
+.EE
+.RE
+.PP
+Write Parquet to S3:
+.PP
+.RS
+.EX
+marcattacks input.xml \-\-to parquet \-o s3://key:secret@host:9000/bucket/out.parquet
+.EE
+.RE
+.SH SEE ALSO
+.BR globtrotr (1)
+.PP
+Project home: https://codeberg.org/phochste/marcattacks
+.SH AUTHOR
+Patrick Hochstenbach.

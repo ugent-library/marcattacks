@@ -1,0 +1,153 @@
+.\" Manpage for globtrotr.
+.TH GLOBTROTR 1 "2026-06-15" "marcattacks 2.10.1" "User Commands"
+.SH NAME
+globtrotr \- list files at a local or remote endpoint by extension
+.SH SYNOPSIS
+.B globtrotr
+.RI [ options ]
+.I url
+.SH DESCRIPTION
+.B globtrotr
+expands a container URL with a
+.BI @glob: EXT
+suffix into the list of member files whose names end in
+.IR EXT ,
+printing one resolved URL per line on standard output. It is the discovery
+companion to
+.BR marcattacks (1):
+feed its output to a loop to process each file in turn.
+.PP
+Supported endpoints are local directories
+.RB ( file:// ),
+HTTP(S) LDP\-style containers, SFTP directories, and S3 buckets. Use
+.B @glob:*
+to match every member regardless of extension.
+.PP
+Without a
+.BI @glob: EXT
+suffix the input URL is printed back unchanged.
+.SH ARGUMENTS
+.TP
+.I url
+A container URL ending in
+.BI @glob: EXT\fR.
+Schemes:
+.BR file:// ", " http:// ", " https:// ", " sftp:// ", " s3:// ", " s3s:// .
+.SH OPTIONS
+.TP
+.BR \-c ", " \-\-config " " \fI<config>\fR
+Path to a
+.B .env
+file with credentials. Default:
+.B .env
+in the current directory.
+.TP
+.BI \-\-key " <keyfile>"
+Path to an SFTP private key file.
+.TP
+.BI \-\-key\-env " <env>"
+Name of an environment variable holding an SFTP private key.
+.TP
+.BI \-\-log " <format>"
+Logging format/destination:
+.BR json ", " stdout ", or " json+stdout .
+.TP
+.B \-\-info
+Enable info\-level logging.
+.TP
+.B \-\-debug
+Enable debug\-level logging.
+.TP
+.B \-\-trace
+Enable trace\-level logging.
+.TP
+.BR \-V ", " \-\-version
+Print the version and exit.
+.TP
+.BR \-h ", " \-\-help
+Print a usage summary and exit.
+.SH EXIT STATUS
+.TP
+.B 0
+Success; the matching URLs were listed.
+.TP
+.B 64
+.RB ( USAGE )
+An unsupported URL scheme was given.
+.TP
+.B 66
+.RB ( NOINPUT )
+The container (directory/bucket) was not found.
+.TP
+.B 70
+.RB ( SOFTWARE )
+An unexpected internal error.
+.TP
+.B 74
+.RB ( IOERR )
+A read/connection failure while listing the container.
+.TP
+.B 76
+.RB ( PROTOCOL )
+A remote protocol error (HTTP 4xx/5xx).
+.TP
+.B 77
+.RB ( NOPERM )
+Permission denied.
+.PP
+See
+.BR marcattacks (1)
+for the full
+.IR sysexits.h (3)
+code list.
+.SH ENVIRONMENT
+.TP
+.B SFTP_USERNAME
+Fallback SFTP user name.
+.TP
+.B SFTP_PASSWORD
+Fallback SFTP password.
+.TP
+.B S3_ACCESS_KEY
+Fallback S3 access key.
+.TP
+.B S3_SECRET_KEY
+Fallback S3 secret key.
+.PP
+Credentials embedded in the URL take precedence over the environment.
+.SH EXAMPLES
+List every
+.B .xml
+file in an SFTP directory:
+.PP
+.RS
+.EX
+globtrotr \-\-key ~/.ssh/mykey \\
+    sftp://user@host:22/remote/path/@glob:xml
+.EE
+.RE
+.PP
+List every member of an S3 bucket over TLS:
+.PP
+.RS
+.EX
+globtrotr s3s://accessKey:secretKey@host:9000/bucket/@glob:*
+.EE
+.RE
+.PP
+Process each discovered file with
+.BR marcattacks (1):
+.PP
+.RS
+.EX
+globtrotr 'file:///data/marc/@glob:xml' | while read \-r url; do
+    marcattacks \-\-from fastxml \-\-to jsonl "$url"
+done
+.EE
+.RE
+.SH SEE ALSO
+.BR marcattacks (1)
+.PP
+Project home: https://codeberg.org/phochste/marcattacks
+.SH AUTHOR
+Patrick Hochstenbach.
