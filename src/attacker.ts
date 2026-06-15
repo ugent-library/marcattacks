@@ -19,6 +19,7 @@ import {
 import { fileLatestFile, fileReadStream } from './stream/filestream.js';
 import { createWorkerPool } from './stream/worker-pool.js';
 import { availableParallelism } from 'node:os';
+import { ExitCode, classifyError } from './exit-codes.js';
 
 const logger = log4js.getLogger();
 
@@ -111,7 +112,7 @@ export async function createUntarStage(url: URL, opts: { tar?: boolean }): Promi
 export async function createInputTransformStage(url: URL, opts: {from: string, param?: any}): Promise<Transform> {
     if (!opts.from) {
         console.error(`Need --from`);
-        process.exit(1);
+        process.exit(ExitCode.USAGE);
     }
 
     logger.info(`activating from: ${opts.from}`);
@@ -345,7 +346,10 @@ export async function attack(url: URL, opts: any): Promise<number> {
                 else {
                     logger.debug(err);
                     logger.error("pipeline closed prematurely");
-                    throw new PipelineError(err.message, 3);
+                    // Map the underlying failure to a semantic exit code
+                    // (ECONNRESET → I/O, ENOENT → no-input, HTTP → protocol, …)
+                    // instead of a single opaque status.
+                    throw new PipelineError(err.message, classifyError(err));
                 }
             }
         }

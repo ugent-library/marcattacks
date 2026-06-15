@@ -5,6 +5,7 @@ import { program } from 'commander';
 import path from "node:path";
 import dotenv from 'dotenv';
 import { attack, PipelineError } from './attacker.js';
+import { ExitCode, classifyError } from './exit-codes.js';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from "node:url";
 import { execSync } from 'node:child_process';
@@ -116,19 +117,43 @@ function installReaderDisconnectGuard() {
 //     exit then runs libuv's exit-time TTY reset which re-applies the raw termios
 //     libuv had captured — re-wedging the tty even if we'd fixed it.
 //
-// So we force the controlling terminal back to a sane mode with `stty sane`, then
-// terminate with a SIGNAL: SIGKILL skips libuv's TTY reset, so our sane state is the
-// last word. (`stty sane` + a normal exit does NOT work — the reset clobbers it.)
-// If there is no controlling terminal (piped/cron) `stty` fails harmlessly.
+// Only a reader that put the controlling tty into raw/non-canonical mode (a
+// pager: `| less`, `| more`, fzf) can wedge it. A plain `| head`, a file/pipe
+// sink, or a cron run never touches the tty — and forcing those down a SIGKILL
+// path made `set -o pipefail` scripts see exit 137 for a perfectly benign stop.
 //
-// NOTE: this fixes the direct/global-install case (`marcattacks … | less`). It can
-// NOT fully fix `npx marcattacks … | less`: the `npx` Node parent exits *after* us
-// and runs its own libuv TTY reset, which we have no way to suppress from a child.
+// So we first probe the tty: if it is NOT in raw mode (or there is no
+// controlling tty at all), this was a benign disconnect — exit 0 cleanly and
+// scripts stay happy. Only when a pager actually left the tty raw do we force
+// it back to a sane mode with `stty sane` and terminate with a SIGNAL: SIGKILL
+// skips libuv's exit-time TTY reset, so our sane state is the last word.
+// (`stty sane` + a normal exit does NOT work — the reset clobbers it.)
+//
+// NOTE: the raw-pager case fixes the direct/global-install path
+// (`marcattacks … | less`). It can NOT fully fix `npx marcattacks … | less`:
+// the `npx` Node parent exits *after* us and runs its own libuv TTY reset,
+// which we have no way to suppress from a child.
 function restoreTerminalAndDie(): never {
+    let modes = '';
+    try {
+        modes = execSync('stty -a < /dev/tty 2> /dev/null', { encoding: 'utf8', timeout: 2000 });
+    } catch {
+        // No controlling tty (piped/cron/script) — nothing was wedged.
+        process.exit(ExitCode.OK);
+    }
+
+    // `stty -a` prints `-icanon` when canonical mode is OFF (a pager's raw mode);
+    // a normal terminal shows `icanon`.
+    const ttyRaw = /(^|[\s;])-icanon\b/.test(modes);
+    if (!ttyRaw) {
+        // tty is in normal canonical mode (e.g. `| head`) — nothing to restore.
+        process.exit(ExitCode.OK);
+    }
+
     try {
         execSync('stty sane < /dev/tty 2> /dev/null', { stdio: 'ignore', timeout: 2000 });
     } catch {
-        // no controlling tty, or stty unavailable — nothing to restore
+        // stty unavailable — best effort
     }
     process.kill(process.pid, 'SIGKILL');
     // unreachable; satisfies the `never` return type
@@ -189,7 +214,7 @@ async function main() : Promise<void> {
 
         if (! url) {
             console.error(`need an input file`);
-            process.exit(2);
+            process.exit(ExitCode.USAGE);
         }
 
         let inputFile : URL;
@@ -198,7 +223,15 @@ async function main() : Promise<void> {
             const filePath = path.resolve(process.cwd(), url);
             inputFile = pathToFileURL(filePath);
         } else {
-            inputFile = new URL(url);
+            try {
+                inputFile = new URL(url);
+            } catch {
+                // Not an existing local path and not a parseable URL — a local
+                // file that isn't there. EX_NOINPUT (66), not a generic crash.
+                logger.error(`input not found: ${url}`);
+                process.exitCode = ExitCode.NOINPUT;
+                process.exit();
+            }
         }
 
         const result = await attack(inputFile,opts);
@@ -221,8 +254,9 @@ async function main() : Promise<void> {
             process.exit();
         }
         else {
-            logger.error("process stopped prematurely");   
-            process.exitCode = 8;
+            logger.error("process stopped prematurely");
+            // Map to a semantic sysexits code instead of a single opaque status.
+            process.exitCode = classifyError(e);
             process.exit();
         }
     }

@@ -4,6 +4,14 @@ import * as https from 'https';
 import * as N3 from 'n3';
 import { URL } from 'url';
 import log4js from 'log4js';
+import { ExitCode } from '../exit-codes.js';
+
+// A remote/protocol failure: tag it so the CLI exits EX_PROTOCOL (76).
+function protocolError(message: string): Error {
+    const e: any = new Error(message);
+    e.exitCode = ExitCode.PROTOCOL;
+    return e;
+}
 
 const logger = log4js.getLogger();
 
@@ -38,7 +46,7 @@ export function httpReadStream(url: URL, redirectsLeft: number = MAX_REDIRECTS):
                     if (statusCode >= 400) {
                         logger.error(`http error:`,res.statusMessage);
                         res.resume(); // drain the body so the socket can be reused/freed
-                        reject(new Error('HTTP ' + res.statusCode));
+                        reject(protocolError('HTTP ' + res.statusCode));
                         return;
                     }
 
@@ -47,7 +55,7 @@ export function httpReadStream(url: URL, redirectsLeft: number = MAX_REDIRECTS):
                     if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
                         res.resume(); // drain the redirect body
                         if (redirectsLeft <= 0) {
-                            reject(new Error(`too many redirects (> ${MAX_REDIRECTS})`));
+                            reject(protocolError(`too many redirects (> ${MAX_REDIRECTS})`));
                             return;
                         }
                         logger.info(`Redirect to ${res.headers.location}...`);

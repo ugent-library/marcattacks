@@ -382,7 +382,27 @@ Severity: medium. Confidence: certain (reproduced).
 - **`src/command.ts:120-129`** — `restoreTerminalAndDie` exits via SIGKILL
   (status 137), so `set -o pipefail` scripts see a benign
   `marcattacks … | head` as a failure. Deliberate for the tty fix, but the
-  exit-status side effect is undocumented.
+  exit-status side effect is undocumented. ✅ FIXED — `restoreTerminalAndDie`
+  now probes the controlling tty (`stty -a`): only a pager that left it in raw
+  mode (`-icanon`) takes the `stty sane` + SIGKILL path; a `| head`, a
+  pipe/file sink, or a run with no controlling tty is a benign disconnect and
+  exits `0`, so pipefail scripts stay green. Part of a broader move to semantic
+  sysexits-style exit codes (see below).
+
+### Semantic exit codes (sysexits.h) — ✅ ADDED
+
+The ad-hoc exit statuses (1/2/3/4/8/137) were replaced with a curated
+sysexits-style scheme in `src/exit-codes.ts` (`ExitCode` + `classifyError`),
+wired through `command.ts`, `attacker.ts`, `globber.ts`, `plugin-loader.ts` and
+`httpstream.ts`: 64 usage, 65 data-format, 66 no-input, 70 internal, 73
+can't-create, 74 I/O, 76 protocol, 77 permission, 78 config; benign stops
+(reader-disconnect, `--count` limit) exit 0. Throw sites that know their
+category tag the error with an explicit `exitCode` (e.g. a broken plugin → 70,
+an unknown plugin name → 64, an HTTP status → 76); everything else is inferred
+from the Node error `code`/message. This subsumes several findings whose root
+cause was an opaque or wrong exit status. Documented in README ("Exit codes");
+verified end-to-end (missing file → 66, unknown plugin → 64, binary→jsonl → 65,
+HTTP 404 → 76, `| head` under pipefail → 0); full suite green (156/156).
 - **`src/stream/slow-writable.ts`** — the `queue`/`maxConcurrency` machinery
   is dead code: `Writable` serializes `_write` calls (the next `_write` only
   arrives after the previous callback), so the queue never holds more than

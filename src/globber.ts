@@ -9,6 +9,7 @@ import { sftpGlobFiles } from './stream/sftpstream.js';
 import { s3GlobFiles } from './stream/s3stream.js';
 import { fileGlobFiles } from './stream/filestream.js';
 import { httpGlobFiles } from './stream/httpstream.js';
+import { ExitCode, classifyError } from './exit-codes.js';
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 
@@ -145,7 +146,7 @@ async function main() : Promise<void> {
         }
         else {
             logger.error(`${url} not supported`);
-            process.exitCode = 4;
+            process.exitCode = ExitCode.USAGE;
             return;
         }
 
@@ -156,7 +157,7 @@ async function main() : Promise<void> {
     catch (e) {
         logger.debug(e);
         logger.error("process crashed");
-        process.exitCode = 4;
+        process.exitCode = classifyError(e);
         process.exit();
     }
 }

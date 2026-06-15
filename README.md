@@ -255,6 +255,30 @@ Gzip and tar compression of input files can be automatically detected by file na
 - `--z` : the input file is gzipped
 - `--tar` : the input file is tarred
 
+### Exit codes
+
+`marcattacks` (and `globtrotr`) use semantic exit codes following the
+BSD `sysexits.h` conventions, so `set -o pipefail` scripts can react to *why* a
+run failed:
+
+| Code | Name | Meaning |
+| --- | --- | --- |
+| `0` | OK | Success — also a benign stop: the downstream reader closed the pipe (`\| head`, quitting `\| less`) or `--count` reached its limit |
+| `64` | USAGE | Bad invocation: missing input file, missing `--from`, an unknown `--from`/`--to`/`--map` plugin name, an unsupported URL scheme |
+| `65` | DATAERR | The input could not be parsed (malformed XML/JSON/MARC record) |
+| `66` | NOINPUT | The input file / object / `@latest` target was not found |
+| `70` | SOFTWARE | Internal error — a worker thread crashed, or a plugin file failed to load (syntax/runtime error) |
+| `73` | CANTCREAT | The output could not be created (`--out` file or S3 object) |
+| `74` | IOERR | A read/write/connection failure mid-stream (dropped connection, premature close) |
+| `76` | PROTOCOL | A remote protocol error (HTTP 4xx/5xx, too many redirects) |
+| `77` | NOPERM | Permission denied |
+| `78` | CONFIG | A configuration / credential error |
+
+Note: when output is piped to a pager (`| less`) and you quit mid-stream,
+`marcattacks` restores the terminal and exits via `SIGKILL` (status 137) to keep
+the terminal usable — this is unavoidable for the interactive raw-mode case. A
+plain `| head` or a piped/cron run is detected as benign and exits `0`.
+
 ### Environment Variables
 
 SFTP and S3 credentials can be set using environment variables or a local `.env` file.

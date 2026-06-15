@@ -99,9 +99,14 @@ describe("command (CLI)", () => {
         expect(code).toBe(0);
     });
 
-    test("an unresolvable input target exits with code 8", async () => {
+    test("a missing input file exits EX_NOINPUT (66)", async () => {
         const { code } = await runCli(["/no/such/path.json", "--from", "json", "--to", "jsonl"]);
-        expect(code).toBe(8);
+        expect(code).toBe(66);
+    });
+
+    test("an unknown plugin name exits EX_USAGE (64)", async () => {
+        const { code } = await runCli([input, "--from", "json", "--to", "no-such-output-plugin"]);
+        expect(code).toBe(64);
     });
 
     // Regression: when the reader on the other end of stdout goes away (a pager
