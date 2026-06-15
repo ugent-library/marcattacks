@@ -2,6 +2,7 @@ import { Client } from "ssh2";
 import { Readable , Writable } from "stream";
 import fs from 'fs';
 import log4js from 'log4js';
+import { getCleanURL, getStrippedURL } from "../util/stream_helpers.js";
 
 const logger = log4js.getLogger();
 
@@ -102,13 +103,15 @@ export async function sftpWriteStream(url: URL, opts: any): Promise<Writable> {
 export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
     const config = makeSftpConfig(url,opts);
 
-    logger.info(`trying to resolve ${url.href}`);
+    // getCleanURL: the URL carries the SFTP user:password (from the CLI URL or
+    // the SFTP_PASSWORD env fallback), so never log url.href raw.
+    logger.info(`trying to resolve ${getCleanURL(url).href}`);
 
     logger.debug(`sftp config:`, redactConfig(config));
 
     return new Promise((resolve, reject) => {
         if (! url.pathname.match(/\/@latest:\S+$/)) {
-            logger.info(`resolved as: ${url.href}`);
+            logger.info(`resolved as: ${getCleanURL(url).href}`);
             resolve(url);
             return;
         }
@@ -170,8 +173,10 @@ export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
                     }
                     url_parts.push(latestPath);
 
-                    logger.info(`resolved as: ${url_parts.join("")}`);
-                    resolve(new URL(url_parts.join("")));
+                    // url_parts embeds user:password — redact before logging.
+                    const resolved = new URL(url_parts.join(""));
+                    logger.info(`resolved as: ${getCleanURL(resolved).href}`);
+                    resolve(resolved);
                 });
             });
         });
@@ -184,15 +189,17 @@ export async function sftpLatestFile(url: URL, opts: any): Promise<URL> {
 export async function sftpGlobFiles(url: URL, opts: any): Promise<URL[]> {
     const config = makeSftpConfig(url, opts);
 
-    logger.info(`trying to glob files for ${url.href}`);
-    
+    logger.info(`trying to glob files for ${getCleanURL(url).href}`);
+
     logger.debug(`sftp config:`, redactConfig(config));
 
     return new Promise((resolve, reject) => {
         // Check if the URL follows the @glob: pattern
         if (!url.pathname.match(/\/@glob:\S+$/)) {
             logger.info(`no glob pattern found, returning original URL in array`);
-            resolve([url]);
+            // getStrippedURL: these URLs are printed to stdout by globtrotr, so
+            // they must not carry the SFTP user:password (mirrors the S3 path).
+            resolve([getStrippedURL(url)]);
             return;
         }
 
@@ -253,7 +260,9 @@ export async function sftpGlobFiles(url: URL, opts: any): Promise<URL[]> {
                         }
                         
                         url_parts.push(filePath);
-                        return new URL(url_parts.join(""));
+                        // Strip credentials: the result is printed to stdout by
+                        // globtrotr (mirrors the S3 glob path).
+                        return getStrippedURL(new URL(url_parts.join("")));
                     });
 
                     conn.end();
