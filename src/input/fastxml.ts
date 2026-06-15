@@ -81,9 +81,29 @@ function recordToFields(xml: string): string[][] {
     return fields;
 }
 
+// Warn once when this many bytes have been consumed without yielding a single
+// record — a strong signal the input is not MARCXML (e.g. an Aleph sequential
+// dump with a .xml name). Fires early so it surfaces immediately instead of
+// after streaming a multi-GB file to no effect.
+const NO_RECORD_BYTES = 1 << 20; // 1 MB
+
 export async function transform(_opts: any): Promise<Transform> {
     let buf = '';
     const decoder = new StringDecoder('utf8');
+    let recordsPushed = 0;
+    let bytesSeen = 0;
+    let warned = false;
+
+    function maybeWarnNoRecords(final = false): void {
+        if (warned || recordsPushed > 0 || bytesSeen === 0) return;
+        if (!final && bytesSeen < NO_RECORD_BYTES) return;
+        warned = true;
+        logger.fatal(
+            `fastxml read ${bytesSeen} bytes but found no <record> elements — ` +
+            `this does not look like MARCXML. If the input is Aleph sequential, ` +
+            `use --from alephseq.`
+        );
+    }
 
     function drain(stream: Transform): void {
         let pos = 0;
@@ -98,6 +118,7 @@ export async function transform(_opts: any): Promise<Transform> {
             const end = c.index + c[0].length;
             // values are stripped of control chars during parsing -> mark clean
             stream.push({ record: recordToFields(buf.slice(o.index, end)), [CLEAN]: true });
+            recordsPushed++;
             pos = end;
         }
         // keep a pending partial record, else drop consumed text but retain any
@@ -124,8 +145,10 @@ export async function transform(_opts: any): Promise<Transform> {
 
         transform(chunk: any, _encoding: string, callback: TransformCallback) {
             try {
+                bytesSeen += chunk.length;
                 buf += decoder.write(chunk);
                 drain(this);
+                maybeWarnNoRecords();
                 callback();
             } catch (err: any) {
                 logger.error('fastxml parse error', err.message);
@@ -137,6 +160,7 @@ export async function transform(_opts: any): Promise<Transform> {
             try {
                 buf += decoder.end();
                 drain(this);
+                maybeWarnNoRecords(true);
                 callback();
             } catch (err: any) {
                 logger.error('fastxml parse error', err.message);

@@ -1,7 +1,8 @@
-import { describe, test, expect } from "@jest/globals";
+import { describe, test, expect, jest } from "@jest/globals";
 import { loadPlugin } from "../../dist/plugin-loader.js";
 import { CLEAN } from "../../dist/util/marc_record.js";
 import { Readable } from 'node:stream';
+import log4js from "log4js";
 
 const data = `
 <?xml version="1.0" encoding="UTF-8"?>
@@ -90,5 +91,36 @@ describe("input/fastxml", () => {
         const a = await run(fast, data);
         const b = await run(sax, data);
         expect(a.map(r => r.record)).toStrictEqual(b.map(r => r.record));
+    });
+
+    test("logs FATAL when a large input yields no records (e.g. alephseq)", async () => {
+        // spy on the Logger prototype: the module holds its own logger instance,
+        // but every instance shares the prototype's fatal()
+        const proto = Object.getPrototypeOf(log4js.getLogger());
+        const fatal = jest.spyOn(proto, "fatal").mockImplementation(() => {});
+        try {
+            const plugin = await loadPlugin("fastxml", "input");
+            // >1 MB of Aleph sequential lines — no <record> elements at all
+            const line = "9936780231909161 035   L $$a(CKB)4100000011923202\n";
+            const alephseq = line.repeat(Math.ceil((1 << 20) / line.length) + 100);
+            const results = await run(plugin, alephseq);
+            expect(results).toHaveLength(0);
+            expect(fatal).toHaveBeenCalledTimes(1);
+            expect(String(fatal.mock.calls[0]?.[0])).toContain("alephseq");
+        } finally {
+            fatal.mockRestore();
+        }
+    });
+
+    test("does not warn on valid MARCXML", async () => {
+        const proto = Object.getPrototypeOf(log4js.getLogger());
+        const fatal = jest.spyOn(proto, "fatal").mockImplementation(() => {});
+        try {
+            const plugin = await loadPlugin("fastxml", "input");
+            await run(plugin, data);
+            expect(fatal).not.toHaveBeenCalled();
+        } finally {
+            fatal.mockRestore();
+        }
     });
 });
