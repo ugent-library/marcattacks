@@ -35,7 +35,24 @@ describe("output/json", () => {
         });
 
         const output = results.join(" ");
-    
+
         expect(JSON.parse(output)).toStrictEqual(JSON.parse(data));
+    });
+
+    test("empty input produces valid JSON ([]), not a zero-byte file", async () => {
+        const plugin = await loadPlugin("json", "output");
+        const transformer = await plugin.transform();
+
+        const results: string[] = [];
+        await new Promise((resolve, reject) => {
+            transformer.on('data', (chunk: any) => results.push(chunk));
+            transformer.on('end', resolve);
+            transformer.on('error', reject);
+            Readable.from([], { objectMode: true }).pipe(transformer);
+        });
+
+        const output = results.join("");
+        expect(output).toBe("[]");
+        expect(JSON.parse(output)).toStrictEqual([]);
     });
 });

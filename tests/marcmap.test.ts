@@ -60,6 +60,13 @@ describe("marcmap", () => {
     test("marcmap read 104 keeping record order", () => {
         expect(marcmap(demoRecord,"104")).toStrictEqual(["123 456"]);
     });
+    test("marcmap anchors the subfield alternation (no partial code match)", () => {
+        // Regression: the path "200ab" compiled to /^a|b$/ = /(^a)|(b$)/, which
+        // matched any code *starting with* 'a' or *ending with* 'b'. A code like
+        // "ax" or "xb" must NOT match — only the exact codes 'a' and 'b'.
+        const rec = [['200','0','1','ax','wrongStart','xb','wrongEnd','a','right']];
+        expect(marcmap(rec,"200ab")).toStrictEqual(["right"]);
+    });
 });
 
 describe('marcsubfields', () => {

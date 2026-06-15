@@ -16,7 +16,7 @@ verified empirically against the built code.
 | Failing test | fan-out coverage | ✅ Fixed |
 | High | 1–3 | ✅ Fixed |
 | Medium | 4, 5, 6, 7, 8, 9, 10 | ✅ Fixed |
-| Low | 11–20 | ⬜ Open |
+| Low | all | ✅ Fixed (except slow-writable dead code, left deliberately) |
 
 ## Root cause of the failing `worker-pool.test.ts` — ✅ FIXED
 
@@ -353,32 +353,49 @@ Severity: medium. Confidence: certain (reproduced).
   `"@id": "http://example.org/record/undefined"` (verified); in
   `parse=quads` mode that becomes a real bogus IRI and all id-less records
   collide on the same subject. Same class as the fixed marc2rdf #12; the
-  guard is a one-liner.
+  guard is a one-liner. ✅ FIXED — a missing/empty 001 now falls back to a
+  unique `http://example.org/record/genid-<uuid>` IRI, so id-less records stay
+  distinct and the IRI is valid in the JSON-LD, quads, and text serializers.
+  Verified: a record with no 001 emits a `genid-…` subject, not `/undefined`.
 - **`src/command.ts:27-28` + `src/attacker.ts:123`** — `--count 0` and
   `--count abc` silently disable the limiter (`parseInt` → 0/NaN, then the
   `if (opts.count || opts.skip)` gate is falsy → **all** records emitted
   instead of 0/an error). The parseInt added by #14 has no validation.
+  ✅ FIXED — `command.ts` now rejects a non-integer/negative `--count`/`--skip`
+  with EX_USAGE (64), and `createCountSkipStage` gates on `!== undefined`
+  (not truthiness) so `--count 0` builds the limiter and emits zero records.
+  Verified: `--count 0` → 0 records, exit 0; `--count abc` / `--skip -2` → 64;
+  `--count 5` → 5.
 - **`src/attacker.ts:246-249`** — `file:` *output* URLs use undecoded
   `url.pathname`, so `--out 'file:///tmp/a%20b.json'` creates a file
   literally named `a%20b.json`. Input side was fixed; this branch was missed.
-  Use `fileURLToPath(url)`.
+  Use `fileURLToPath(url)`. ✅ FIXED — the branch now passes the `URL` object
+  straight to `fs.createWriteStream(url, …)`, which percent-decodes it (and
+  handles Windows `/C:/` paths), mirroring the read side. Verified:
+  `--out 'file:///tmp/a%20b.json'` now creates `a b.json`.
 - **`src/globber.ts:156-160`** — the crash cause is logged at debug level
   (`logger.debug(e)`), so after the #18 level fix users see "process crashed"
-  with no detail. Should be `logger.error(e)` like command.ts.
+  with no detail. Should be `logger.error(e)` like command.ts. ✅ FIXED — the
+  cause is now logged with `logger.error(e)`.
 - **`src/attacker.ts:353-359`** — dead catch: both branches rethrow
   identically (`if (e instanceof PipelineError) { throw e; } else { throw e; }`).
   ✅ FIXED as part of #6 — the catch now destroys all built stages before
   rethrowing the original error.
 - **`src/output/json.ts:34-39`** — empty input produces a zero-byte file
   instead of `[]` (flush only pushes `"]"` when `!isFirst`) — invalid JSON
-  for any consumer that parses it.
+  for any consumer that parses it. ✅ FIXED — flush now pushes `"[]"` when no
+  record was written (`isFirst`), `"]"` otherwise. Verified: empty input →
+  `[]`; regression test added.
 - **`src/stream/worker-pool.ts:157`** — `outQueue.push(...m)` spreads every
   fanned-out row as an argument; ≳100k rows from one record throws
-  `RangeError: Maximum call stack size exceeded`. Use a loop.
+  `RangeError: Maximum call stack size exceeded`. Use a loop. ✅ FIXED — the
+  fan-out batch is now appended with `for (const row of m) outQueue.push(row)`.
 - **`src/marcmap.ts:68-69`** — `subMatch` is built with broken alternation
   precedence: `find.substring(3).split("").join("|")` yields `^a|b$`, which
   parses as `(^a)|(b$)`; a path like `245$a` yields `^$|a$` (matches empty
   codes). Harmless for well-formed single-char codes, wrong otherwise.
+  ✅ FIXED — the alternation is now grouped: `^(?:a|b)$`. Regression test added
+  (a code `ax`/`xb` no longer partial-matches the path `200ab`).
 - **`src/command.ts:120-129`** — `restoreTerminalAndDie` exits via SIGKILL
   (status 137), so `set -o pipefail` scripts see a benign
   `marcattacks … | head` as a failure. Deliberate for the tty fix, but the
@@ -407,6 +424,10 @@ HTTP 404 → 76, `| head` under pipefail → 0); full suite green (156/156).
   is dead code: `Writable` serializes `_write` calls (the next `_write` only
   arrives after the previous callback), so the queue never holds more than
   one item and concurrency can never exceed 1. Pre-existing, harmless.
+  ⬜ NOT FIXED (deliberate) — this is a test/benchmark sink (`--out` simulator);
+  the `_destroy` teardown errors pending `queue`/`active` callbacks, so removing
+  the machinery is a non-trivial rewrite of working code for zero behavior
+  change. Left as-is.
 - **`src/output/multipart.ts:25-31`** — the first part is never preceded by a
   boundary delimiter, so a strict MIME parser treats it as preamble. Possibly
   intentional for this homegrown format. ✅ FIXED — the first part is now
@@ -417,7 +438,10 @@ HTTP 404 → 76, `| head` under pipefail → 0); full suite green (156/156).
   their output.
 - **`src/stream/httpstream.ts`** (`httpLatestObject`/`httpGlobFiles`) — on a
   parser error the rejected promise leaves the response stream undestroyed,
-  pinning a keep-alive socket until timeout.
+  pinning a keep-alive socket until timeout. ✅ FIXED — both functions now
+  reject through a `fail()` helper that `stream.destroy()`s the response first,
+  releasing the socket immediately (the success path still fully consumes the
+  stream, returning the socket to the pool).
 
 ## Additional findings (surfaced while fixing the above)
 

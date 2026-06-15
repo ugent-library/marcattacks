@@ -170,7 +170,10 @@ export function createWorkerPool(opts: WorkerPoolOpts): Transform {
                 // A fan-out batch can briefly push outQueue past OUT_CAP (one
                 // record explodes into many); dispatch() stops feeding new
                 // batches until pump() drains it, so this self-corrects.
-                if (fanOut && Array.isArray(m)) outQueue.push(...m);
+                // Push in a loop, not `push(...m)`: spreading a large array as
+                // arguments overflows the call stack (RangeError) once a single
+                // record fans out into ~100k+ rows.
+                if (fanOut && Array.isArray(m)) { for (const row of m) outQueue.push(row); }
                 else outQueue.push(m);
             }
         }

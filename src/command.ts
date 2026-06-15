@@ -49,6 +49,17 @@ if (opts.fix !== undefined && opts.param.fix === undefined) {
     opts.param.fix = opts.fix;
 }
 
+// `--count`/`--skip` are parsed with parseInt, which yields NaN for non-numeric
+// input ("abc") and a negative for "-1" — both of which would silently produce
+// surprising behavior. Reject them up front with a usage error.
+for (const key of ['count', 'skip'] as const) {
+    const v = opts[key];
+    if (v !== undefined && (!Number.isInteger(v) || v < 0)) {
+        console.error(`--${key} must be a non-negative integer`);
+        process.exit(ExitCode.USAGE);
+    }
+}
+
 if (opts.log) {
     let output = 'stderr';
     let type = 0;

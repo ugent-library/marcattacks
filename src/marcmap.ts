@@ -65,8 +65,12 @@ function parseFind(find: string): { tagName: string, subRegex: RegExp } {
     let parsed = findCache.get(find);
     if (!parsed) {
         const tagName = find.substring(0, 3);
-        const subMatch = find.substring(3) ? find.substring(3).split("").join("|") : ".*";
-        parsed = { tagName, subRegex: new RegExp(`^${subMatch}$`) };
+        const codes = find.substring(3);
+        // Group the alternation: `a|b` in `^a|b$` parses as `(^a)|(b$)`, which
+        // matches "a" anywhere at the start OR "b" anywhere at the end — not
+        // "exactly a or b". `^(?:a|b)$` anchors the whole alternation.
+        const subMatch = codes ? codes.split("").join("|") : ".*";
+        parsed = { tagName, subRegex: new RegExp(`^(?:${subMatch})$`) };
         findCache.set(find, parsed);
     }
     return parsed;

@@ -2,6 +2,7 @@ import { Transform } from "stream";
 import { type Record, isRecord } from "../types/quad.js";
 import { parseString } from "../util/rdf_parse.js";
 import { marcmap } from "../marcmap.js";
+import { v4 as uuidv4 } from "uuid";
 
 export interface MarcInRDFOptions {
     parse?: "jsonld" | "quads" | "text:field" | "text:full" | "text:flat";
@@ -31,7 +32,12 @@ export async function transform(opts: MarcInRDFOptions = {}) : Promise<Transform
 async function makeRdfData(data: any, opts: MarcInRDFOptions = {} ) : Promise<Record> {
     const parse = opts.parse ? opts.parse : "jsonld";
 
-    const id = marcmap(data['record'],"001",{})[0];
+    // marcmap returns an array; take the first 001. A record without a 001 used
+    // to mint `http://example.org/record/undefined`, so every id-less record
+    // collided on that one bogus subject in `parse=quads`. Mint a unique IRI
+    // instead so each record stays distinct (and is a valid IRI in the text
+    // serializers too, which wrap @id in <...>).
+    const id = marcmap(data['record'],"001",{})[0] || `genid-${uuidv4()}`;
 
     // Shallow copy: we only add top-level keys (@context/@id/@type) below, and
     // the serialize* helpers read the rows without mutating them (slice, not

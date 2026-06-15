@@ -33,9 +33,10 @@ export async function transform(_opts:any) : Promise<Transform> {
         },
         flush(callback) {
             logger.debug('flush reached');
-            if (!isFirst) {
-                this.push("]");
-            }
+            // On empty input no chunk was ever written, so close the array that
+            // was never opened: emit "[]" rather than a zero-byte file, which is
+            // invalid JSON for any consumer that parses it.
+            this.push(isFirst ? "[]" : "]");
             callback();
         }
     });

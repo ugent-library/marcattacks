@@ -110,12 +110,17 @@ export async function httpLatestObject(url: URL): Promise<URL> {
         const store = new N3.Store();
 
         return new Promise((resolve, reject) => {
+            // Destroy the response stream on any failure so the underlying
+            // keep-alive socket is released immediately instead of lingering
+            // until its idle timeout. (On success the stream is fully consumed,
+            // so the socket returns to the pool on its own.)
+            const fail = (err: any) => { stream.destroy(); reject(err); };
             stream.on('error' , (err) => {
                 logger.error('stream failed during RDF parsing');
-                reject(err);
+                fail(err);
             });
             parser.parse(stream, (error, quad) => {
-                if (error) return reject(error);
+                if (error) return fail(error);
                 if (quad) {
                     store.add(quad);
                 } else {
@@ -141,7 +146,7 @@ export async function httpLatestObject(url: URL): Promise<URL> {
                     }
 
                     if (!latestUrl) {
-                        reject(new Error(`no ${targetExt} members found in ${containerUrl}`));
+                        fail(new Error(`no ${targetExt} members found in ${containerUrl}`));
                     } else {
                         logger.info(`resolved as: ${latestUrl}`);
                         resolve(new URL(latestUrl));
@@ -174,15 +179,18 @@ export async function httpGlobFiles(url: URL): Promise<URL[]> {
         const matchedUrls: URL[] = [];
 
         return new Promise((resolve, reject) => {
+            // Destroy the response stream on failure to release the keep-alive
+            // socket promptly (see httpLatestObject).
+            const fail = (err: any) => { stream.destroy(); reject(err); };
             stream.on('error' , (err) => {
                 logger.error('stream failed during RDF parsing');
-                reject(err);
+                fail(err);
             });
             parser.parse(stream, (error, quad) => {
                 if (error) {
                     logger.debug(error);
                     logger.error("RDF parse error");
-                    reject(error);
+                    fail(error);
                     return;
                 }
 

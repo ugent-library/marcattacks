@@ -155,7 +155,9 @@ async function main() : Promise<void> {
         });
     }
     catch (e) {
-        logger.debug(e);
+        // Log the cause at error level (was debug) so the reason is visible at
+        // the default log level, like command.ts does.
+        logger.error(e);
         logger.error("process crashed");
         process.exitCode = classifyError(e);
         process.exit();

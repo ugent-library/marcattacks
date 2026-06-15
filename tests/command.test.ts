@@ -58,6 +58,29 @@ describe("command (CLI)", () => {
         expect(JSON.parse(lines[0]).record[0][4]).toBe("111");
     });
 
+    test("--count 0 emits zero records and exits 0", async () => {
+        const { code, stdout } = await runCli([input, "--from", "json", "--to", "jsonl", "--count", "0"]);
+        expect(code).toBe(0);
+        expect(stdout.trim().split("\n").filter(Boolean)).toHaveLength(0);
+    });
+
+    test("--count 1 emits exactly one record", async () => {
+        const { code, stdout } = await runCli([input, "--from", "json", "--to", "jsonl", "--count", "1"]);
+        expect(code).toBe(0);
+        expect(stdout.trim().split("\n").filter(Boolean)).toHaveLength(1);
+    });
+
+    test("a non-numeric --count exits EX_USAGE (64)", async () => {
+        const { code, stderr } = await runCli([input, "--from", "json", "--to", "jsonl", "--count", "abc"]);
+        expect(code).toBe(64);
+        expect(stderr).toMatch(/non-negative integer/i);
+    });
+
+    test("a negative --skip exits EX_USAGE (64)", async () => {
+        const { code } = await runCli([input, "--from", "json", "--to", "jsonl", "--skip", "-2"]);
+        expect(code).toBe(64);
+    });
+
     test("-o writes output to a file", async () => {
         const out = path.join(dir, "out.jsonl");
         const { code } = await runCli([input, "--from", "json", "--to", "jsonl", "-o", out]);

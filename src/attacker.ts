@@ -121,11 +121,14 @@ export async function createInputTransformStage(url: URL, opts: {from: string, p
 }
 
 export async function createCountSkipStage(opts: {count?: number, skip?: number}): Promise<Transform | null> {
-    if (opts.count || opts.skip) {
-        if (opts.count) {
+    // Use `!== undefined`, not truthiness: `--count 0` is a valid request to
+    // emit zero records, but `if (opts.count || opts.skip)` treated 0 as falsy
+    // and silently disabled the limiter — emitting *all* records instead.
+    if (opts.count !== undefined || opts.skip !== undefined) {
+        if (opts.count !== undefined) {
             logger.info(`counting: ${opts.count}`);
         }
-        if (opts.skip) {
+        if (opts.skip !== undefined) {
             logger.info(`skipping: ${opts.skip}`);
         }
         return createCountableSkippedStream(opts.count, opts.skip);
@@ -245,9 +248,13 @@ export async function createOutputWriteStream(opts: any): Promise<Writable> {
             return await s3WriteStream(url, { acl: opts.acl });
         }
         else if (/^file:/.test(opts.out)) {
+            // Pass the URL object directly: createWriteStream percent-decodes it
+            // (and handles Windows /C:/ paths). url.pathname would be used raw,
+            // so `file:///tmp/a%20b.json` created a file literally named
+            // "a%20b.json".
             const url = new URL(opts.out);
 
-            return fs.createWriteStream(url.pathname, { encoding: 'utf-8' });
+            return fs.createWriteStream(url, { encoding: 'utf-8' });
         }
         else {
             return fs.createWriteStream(opts.out, { encoding: 'utf-8' });
