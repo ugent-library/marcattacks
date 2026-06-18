@@ -2,11 +2,19 @@ import path from "path";
 import type { Transform } from "stream";
 import { ExitCode } from "./exit-codes.js";
 
-// A genuine "module could not be resolved" error. Node's native ESM loader
-// uses ERR_MODULE_NOT_FOUND; Jest's resolver (and CommonJS) use MODULE_NOT_FOUND.
+// This resolution strategy did not yield a loadable module, so it's safe to
+// try the next one. Two cases qualify:
+//  - a genuine "module could not be resolved": Node's native ESM loader uses
+//    ERR_MODULE_NOT_FOUND; Jest's resolver (and CommonJS) use MODULE_NOT_FOUND.
+//  - the spec resolved to a directory, not a file: ERR_UNSUPPORTED_DIR_IMPORT.
+//    This happens when e.g. `--map fix` resolves against a cwd that contains a
+//    `fix/` directory; the built-in `fix` transform should still load via the
+//    next strategy rather than aborting the whole run.
 // Anything else means the file WAS found but failed to load.
-function isModuleNotFound(e: any): boolean {
-  return e?.code === 'ERR_MODULE_NOT_FOUND' || e?.code === 'MODULE_NOT_FOUND';
+function isUnresolved(e: any): boolean {
+  return e?.code === 'ERR_MODULE_NOT_FOUND'
+      || e?.code === 'MODULE_NOT_FOUND'
+      || e?.code === 'ERR_UNSUPPORTED_DIR_IMPORT';
 }
 
 // Attach a semantic exit code (read by classifyError in exit-codes.ts) so the
@@ -35,12 +43,12 @@ export async function loadPlugin(
     // transform or npm package is wrong and buries the real error in cause[0].
     // The file was found but failed to load (SyntaxError, throwing top-level,
     // bad sub-import): a real internal/software error, not a usage mistake.
-    if (!isModuleNotFound(e1)) throw tag(e1, ExitCode.SOFTWARE);
+    if (!isUnresolved(e1)) throw tag(e1, ExitCode.SOFTWARE);
     try {
       const resolved = new URL(`./${type}/${spec}.js`, import.meta.url).href;
       return await import(resolved);
     } catch (e2) {
-      if (!isModuleNotFound(e2)) throw tag(e2, ExitCode.SOFTWARE);
+      if (!isUnresolved(e2)) throw tag(e2, ExitCode.SOFTWARE);
       try {
         // Bare specifier: an npm-package plugin ("pkg" or "pkg/submodule").
         return await import(spec);
